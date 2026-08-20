@@ -29,6 +29,13 @@ class DeduplicationResult:
     near_duplicates: list[tuple[str, str, float]]
 
 
+@dataclass(frozen=True)
+class DatasetIntegrityReport:
+    errors: list[str]
+    warnings: list[str]
+    summary: dict[str, Any]
+
+
 def deduplicate_samples(
     samples: Iterable[IntentSample],
     *,
@@ -132,8 +139,7 @@ def group_aware_split(
             projected_size = len(assigned[split]) + current_group_size
             size_cost = abs(projected_size - target_size[split]) / max(target_size[split], 1)
             label_cost = sum(
-                abs(counts[split][label] + current_group_counts[label] - target)
-                / max(target, 1)
+                abs(counts[split][label] + current_group_counts[label] - target) / max(target, 1)
                 for label, target in target_by_label[split].items()
             )
             return (label_cost + size_cost, len(assigned[split]))
@@ -162,14 +168,33 @@ def group_aware_split(
             for split, split_samples in assigned.items()
         },
     }
-    manifest_payload = json.dumps(manifest, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    manifest["sha256"] = hashlib.sha256(manifest_payload).hexdigest()
     return output, manifest
+
+
+def seal_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Return a copy whose hash covers every field except the hash itself."""
+    sealed = {key: value for key, value in manifest.items() if key != "sha256"}
+    payload = json.dumps(sealed, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    sealed["sha256"] = hashlib.sha256(payload).hexdigest()
+    return sealed
+
+
+def verify_manifest(manifest: dict[str, Any]) -> bool:
+    expected = manifest.get("sha256")
+    return isinstance(expected, str) and seal_manifest(manifest)["sha256"] == expected
+
+
+def _path_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def write_split_dataset(
     samples: Iterable[IntentSample], manifest: dict[str, Any], output_dir: str | Path
-) -> None:
+) -> dict[str, Any]:
     destination = Path(output_dir)
     destination.mkdir(parents=True, exist_ok=True)
     buckets: dict[str, list[IntentSample]] = defaultdict(list)
@@ -177,12 +202,93 @@ def write_split_dataset(
         if sample.split is None:
             raise ValueError(f"Sample {sample.sample_id} does not have a split")
         buckets[sample.split].append(sample)
+    files: dict[str, dict[str, Any]] = {}
     for split, split_samples in buckets.items():
-        write_jsonl(split_samples, destination / f"{split}.jsonl")
+        path = destination / f"{split}.jsonl"
+        write_jsonl(split_samples, path)
+        files[split] = {
+            "path": path.name,
+            "rows": len(split_samples),
+            "sha256": _path_sha256(path),
+        }
+    final_manifest = seal_manifest({**manifest, "files": dict(sorted(files.items()))})
     (destination / "split_manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        json.dumps(final_manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    return final_manifest
+
+
+def audit_partition_integrity(
+    samples: Iterable[IntentSample],
+    *,
+    near_threshold: float = 0.92,
+    check_near_duplicates: bool = True,
+    require_action_splits: set[str] | None = None,
+) -> DatasetIntegrityReport:
+    """Audit IDs, groups, exact content, and optional near duplicates across partitions."""
+    records = list(samples)
+    errors: list[str] = []
+    warnings: list[str] = []
+    ids: dict[str, str | None] = {}
+    groups: dict[str, str | None] = {}
+    fingerprints: dict[str, tuple[str, str | None]] = {}
+    missing_actions = Counter()
+
+    for sample in records:
+        if sample.sample_id in ids:
+            errors.append(f"duplicate sample_id: {sample.sample_id}")
+        ids[sample.sample_id] = sample.split
+
+        previous_split = groups.setdefault(sample.template_group, sample.split)
+        if previous_split != sample.split:
+            errors.append(
+                f"template_group crosses splits: {sample.template_group} "
+                f"({previous_split}, {sample.split})"
+            )
+
+        fingerprint = sample_fingerprint(sample)
+        if fingerprint in fingerprints:
+            other_id, other_split = fingerprints[fingerprint]
+            scope = (
+                "crosses splits" if other_split != sample.split else "is duplicated within split"
+            )
+            errors.append(
+                f"exact content {scope}: {other_id}/{other_split} and {sample.sample_id}/{sample.split}"
+            )
+        fingerprints.setdefault(fingerprint, (sample.sample_id, sample.split))
+
+        if sample.adapter_missing_action or not sample.proposed_action:
+            missing_actions[str(sample.split)] += 1
+            if require_action_splits and sample.split in require_action_splits:
+                errors.append(f"action-mode row lacks an action: {sample.sample_id}/{sample.split}")
+
+    if check_near_duplicates:
+        signatures = [
+            char_ngrams("\n".join((row.user_goal, row.untrusted_content, row.proposed_action)))
+            for row in records
+        ]
+        for left_index, left in enumerate(records):
+            for right_index in range(left_index + 1, len(records)):
+                right = records[right_index]
+                if left.split == right.split:
+                    continue
+                score = jaccard(signatures[left_index], signatures[right_index])
+                if score >= near_threshold:
+                    errors.append(
+                        f"near duplicate crosses splits: {left.sample_id}/{left.split} and "
+                        f"{right.sample_id}/{right.split} ({score:.4f})"
+                    )
+
+    if missing_actions:
+        warnings.append("Rows with missing actions cannot support action-mode evidence.")
+    summary = dataset_summary(records)
+    summary["by_split"] = dict(sorted(Counter(str(row.split) for row in records).items()))
+    summary["missing_actions_by_split"] = dict(sorted(missing_actions.items()))
+    summary["action_provenance"] = dict(
+        sorted(Counter(row.action_provenance for row in records).items())
+    )
+    return DatasetIntegrityReport(errors=errors, warnings=warnings, summary=summary)
 
 
 def dataset_summary(samples: Iterable[IntentSample]) -> dict[str, Any]:

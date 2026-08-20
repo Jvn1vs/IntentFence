@@ -10,6 +10,8 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
+> 执行边界：Codex 只维护框架和合成 fixture 测试。真实数据下载、转换、合并、去重、划分、人工审计以及所有学习模型拟合均由项目所有者运行，详见 `configs/execution_policy.yaml`。
+
 ## 已实现
 
 - Pydantic 统一 JSONL schema 与标签一致性校验；
@@ -76,16 +78,17 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/evaluate `
 
 ## 数据流程
 
-第三方数据不提交到仓库。下载时保存上游 commit：
+第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用：
 
 ```powershell
 python scripts/download_sources.py bipia injecagent notinject
 ```
 
-不同版本的上游字段可能变化，因此适配器会生成 `*.conversion.json`，缺少关键字段的行默认跳过。BIPIA 记录常常没有“拟执行动作”；只有为单文本/上下文基线准备数据时，才应显式使用 `--allow-missing-action`。含 `NO_ACTION_PROVIDED` 的样本不能直接作为动作感知主模型证据。
+项目所有者审阅许可证后，必须同时使用 `--execute --acknowledge-source-terms` 才会下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
 
 ```powershell
 python scripts/prepare_bipia.py `
+  --kind generated `
   --input data/raw/bipia/path/to/export.json `
   --output data/interim/bipia.jsonl
 
@@ -100,6 +103,8 @@ python scripts/build_splits.py `
   --seed 42
 ```
 
+完整的项目所有者执行顺序、BIPIA 官方 builder 包装、InjecAgent/NotInject 命令、审计应用和质量出口见 [C1 用户执行手册](docs/c1_user_runbook.md)。Codex 不运行其中的真实数据命令。
+
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 
 合成 `data/examples/smoke.jsonl` 仅用于测试代码：
@@ -112,16 +117,31 @@ python scripts/build_splits.py `
 
 ## 基线
 
+以下拟合和真实数据预测命令只由项目所有者运行。推荐将训练、连续分数导出和阈值评估分开：
+
 ```powershell
-python baselines/run_all.py `
-  --train data/processed/v1/train.jsonl `
-  --test data/processed/v1/test_a.jsonl `
-  --output reports/tables/local_baselines.json
+python baselines/tfidf.py --train data/processed/v1/train.jsonl `
+  --analyzer word --output artifacts/tfidf_word.joblib
+
+python -m baselines.predict --backend tfidf --model artifacts/tfidf_word.joblib `
+  --input data/processed/v1/calibration.jsonl `
+  --output artifacts/tfidf_word_calibration.jsonl
+
+python -m baselines.predict --backend tfidf --model artifacts/tfidf_word.joblib `
+  --input data/processed/v1/test_a.jsonl `
+  --output artifacts/tfidf_word_test_a.jsonl
+
+python -m baselines.evaluate_scores `
+  --calibration artifacts/tfidf_word_calibration.jsonl `
+  --test artifacts/tfidf_word_test_a.jsonl `
+  --output reports/tables/tfidf_word_test_a.json
 ```
 
-这会运行规则、word TF-IDF 和 char TF-IDF。ProtectAI 与 PIGuard 适配器需要 `.[ml]`；运行前必须分别设置不可变 commit SHA：`PROTECTAI_MODEL_REVISION`，以及 `PIGUARD_MODEL_ID` + `PIGUARD_MODEL_REVISION`。外部权重可能见过部分测试数据，报告中必须记录潜在数据污染，不能把它们当作完成成员去重的内部模型。
+字符 TF-IDF 使用 `--analyzer char`。规则、ProtectAI 与 PIGuard 使用 `baselines.predict` 的相应 backend；外部模型 ID 和完整 revision 固定在 `configs/baseline_sources.yaml`，并需要 `.[ml]`。外部权重可能见过部分测试数据，报告中必须记录潜在数据污染，不能把它们当作完成成员去重的内部模型。
 
 ## 训练
+
+本节所有命令仅供项目所有者运行。Codex 不执行训练、tiny-overfit、checkpoint 生成或 GPU 租用；可以在用户提供日志后协助诊断。
 
 安装 GPU/训练依赖：
 
@@ -238,7 +258,7 @@ python benchmarks/latency.py `
 ## 仓库结构
 
 ```text
-configs/            训练、增强和策略配置
+configs/            训练、数据、执行边界和策略配置
 data/               schema 文档、合成 smoke fixture；真实数据被忽略
 scripts/            数据适配、审计、去重、划分、校准
 baselines/          规则/TF-IDF/ProtectAI/PIGuard 适配
@@ -264,7 +284,7 @@ IntentFence 是纵深防御的一层，可能被自适应攻击绕过。实际�
 - [Microsoft BIPIA](https://github.com/microsoft/BIPIA)
 - [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent)
 - [AgentDojo](https://github.com/ethz-spylab/agentdojo)
-- [InjecGuard / NotInject](https://github.com/safolab-wisc/injecguard)
+- [PIGuard / NotInject](https://github.com/leolee99/PIGuard)
 - [ProtectAI prompt-injection detector](https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2)
 - [Temperature Scaling](https://arxiv.org/abs/1706.04599)
 - [ONNX Runtime quantization](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html)

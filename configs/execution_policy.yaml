@@ -1,0 +1,20 @@
+schema_version: 1
+effective_from: "2026-08-20"
+owner: "project_owner"
+codex_allowed:
+  - "implement_framework_code_and_configuration"
+  - "run_static_lint_unit_tests_and_synthetic_fixture_tests"
+  - "preview_commands_without_external_or_data_side_effects"
+  - "analyze_logs_manifests_metrics_and_checkpoints_supplied_by_project_owner"
+codex_prohibited:
+  - "download_real_project_datasets"
+  - "convert_merge_deduplicate_split_or_audit_real_project_data"
+  - "fit_tfidf_or_any_other_learned_baseline_on_real_project_data"
+  - "run_small_or_base_model_training_or_tiny_overfit"
+  - "rent_gpu_or_incur_paid_api_or_training_cost"
+project_owner_executes:
+  - "source_download_and_license_acknowledgement"
+  - "real_data_conversion_merge_deduplication_split_and_label_audit"
+  - "all_learned_baseline_and_neural_model_training"
+  - "calibration_and_formal_final_test_after_freeze"
+

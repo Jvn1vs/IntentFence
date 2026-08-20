@@ -8,27 +8,28 @@ from _prepare import convert_file
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Normalize an exported BIPIA JSON/JSONL file")
+    parser = argparse.ArgumentParser(
+        description="Strictly normalize an official BIPIA builder export or clean context file"
+    )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--kind", choices=("generated", "clean"), default="generated")
     parser.add_argument(
-        "--allow-missing-action",
-        action="store_true",
-        help="Keep rows for text/context baselines with NO_ACTION_PROVIDED",
+        "--task-name",
+        help="Required for clean context files because they do not carry the BIPIA task name",
     )
+    parser.add_argument("--allow-skips", action="store_true")
     args = parser.parse_args()
-    print(
-        json.dumps(
-            convert_file(
-                args.input,
-                args.output,
-                source="BIPIA",
-                default_risk="instruction_hijacking",
-                allow_missing_action=args.allow_missing_action,
-            ),
-            indent=2,
-        )
+    if args.kind == "clean" and not args.task_name:
+        parser.error("--task-name is required when --kind clean")
+    report = convert_file(
+        args.input,
+        args.output,
+        profile_name=f"bipia_{args.kind}_v1",
+        allow_skips=args.allow_skips,
+        scenario_override=args.task_name,
     )
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

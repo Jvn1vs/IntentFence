@@ -32,11 +32,19 @@ class IntentSample(BaseModel):
     attack_family: str = "none"
     severity: int = Field(default=0, ge=0, le=4)
     template_group: str = Field(min_length=1)
-    split: Literal[
-        "train", "validation", "calibration", "test_a", "test_b", "test_c", "test_d"
-    ] | None = None
+    split: (
+        Literal["train", "validation", "calibration", "test_a", "test_b", "test_c", "test_d"] | None
+    ) = None
     language: str = "en"
     human_verified: bool = False
+    source_record_id: str | None = None
+    adapter_profile: str = "unknown"
+    adapter_missing_action: bool = False
+    action_provenance: Literal[
+        "missing", "benchmark_target", "protocol_wrapper", "source_field", "unknown"
+    ] = "unknown"
+    label_provenance: str = "unknown"
+    field_provenance: dict[str, list[str]] = Field(default_factory=dict)
 
     @field_validator("risk_label")
     @classmethod
@@ -89,16 +97,28 @@ def read_jsonl(path: str | Path) -> list[IntentSample]:
             except Exception as exc:
                 raise ValueError(f"Invalid sample at {source_path}:{line_number}: {exc}") from exc
             if sample.sample_id in seen_ids:
-                raise ValueError(f"Duplicate sample_id at {source_path}:{line_number}: {sample.sample_id}")
+                raise ValueError(
+                    f"Duplicate sample_id at {source_path}:{line_number}: {sample.sample_id}"
+                )
             seen_ids.add(sample.sample_id)
             samples.append(sample)
     return samples
 
 
 def iter_json_objects(path: str | Path) -> Iterator[dict[str, Any]]:
-    """Read JSONL, a JSON array, or a top-level object containing a records list."""
+    """Read JSONL/JSON or a Parquet file using the optional data dependencies."""
 
     source_path = Path(path)
+    if source_path.suffix.lower() == ".parquet":
+        try:
+            import pyarrow.parquet as parquet
+        except ImportError as exc:
+            raise RuntimeError(
+                "Install intentfence[data] before reading upstream Parquet files"
+            ) from exc
+        for batch in parquet.ParquetFile(source_path).iter_batches(batch_size=1_024):
+            yield from batch.to_pylist()
+        return
     if source_path.suffix.lower() == ".jsonl":
         with source_path.open("r", encoding="utf-8") as handle:
             for line in handle:
@@ -120,7 +140,9 @@ def iter_json_objects(path: str | Path) -> Iterator[dict[str, Any]]:
     raise ValueError(f"Unsupported JSON shape in {source_path}")
 
 
-def write_jsonl(samples: Iterable[IntentSample | BaseModel | dict[str, Any]], path: str | Path) -> None:
+def write_jsonl(
+    samples: Iterable[IntentSample | BaseModel | dict[str, Any]], path: str | Path
+) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as handle:

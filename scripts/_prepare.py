@@ -2,10 +2,130 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from intentfence.schema import IntentSample, iter_json_objects, write_jsonl
+
+ActionProvenance = Literal[
+    "missing",
+    "benchmark_target",
+    "protocol_wrapper",
+    "source_field",
+]
+
+
+@dataclass(frozen=True)
+class AdapterProfile:
+    """Strict field contract for one pinned upstream representation."""
+
+    profile_id: str
+    source: str
+    required_fields: tuple[str, ...]
+    user_goal_fields: tuple[str, ...]
+    content_fields: tuple[str, ...]
+    action_fields: tuple[str, ...] = ()
+    scenario_fields: tuple[str, ...] = ()
+    template_fields: tuple[str, ...] = ()
+    attack_family_fields: tuple[str, ...] = ()
+    risk_label: str = "instruction_hijacking"
+    severity: int = 3
+    constant_user_goal: str = ""
+    constant_action: str = ""
+    action_provenance: ActionProvenance = "missing"
+    label_provenance: str = "protocol_constant"
+
+
+PROFILES = {
+    "bipia_generated_v1": AdapterProfile(
+        profile_id="bipia_generated_v1",
+        source="BIPIA",
+        required_fields=(
+            "question",
+            "context",
+            "attack_name",
+            "attack_str",
+            "task_name",
+            "position",
+        ),
+        user_goal_fields=("question",),
+        content_fields=("context",),
+        scenario_fields=("task_name",),
+        template_fields=("attack_name",),
+        attack_family_fields=("attack_name",),
+        risk_label="instruction_hijacking",
+        action_provenance="missing",
+        label_provenance="official_builder_generated_attack",
+    ),
+    "bipia_clean_v1": AdapterProfile(
+        profile_id="bipia_clean_v1",
+        source="BIPIA",
+        required_fields=("question", "context"),
+        user_goal_fields=("question",),
+        content_fields=("context",),
+        risk_label="benign",
+        severity=0,
+        action_provenance="missing",
+        label_provenance="official_clean_context",
+    ),
+    "injecagent_direct_harm_v1": AdapterProfile(
+        profile_id="injecagent_direct_harm_v1",
+        source="InjecAgent",
+        required_fields=(
+            "User Instruction",
+            "Tool Response",
+            "User Tool",
+            "Attacker Tools",
+            "Attacker Instruction",
+            "Attack Type",
+        ),
+        user_goal_fields=("User Instruction",),
+        content_fields=("Tool Response",),
+        action_fields=("Attacker Tools", "Attacker Instruction"),
+        scenario_fields=("User Tool",),
+        template_fields=("User Tool", "Attacker Tools"),
+        attack_family_fields=("Attack Type",),
+        risk_label="tool_manipulation",
+        action_provenance="benchmark_target",
+        label_provenance="source_filename_direct_harm",
+    ),
+    "injecagent_data_stealing_v1": AdapterProfile(
+        profile_id="injecagent_data_stealing_v1",
+        source="InjecAgent",
+        required_fields=(
+            "User Instruction",
+            "Tool Response",
+            "User Tool",
+            "Attacker Tools",
+            "Attacker Instruction",
+        ),
+        user_goal_fields=("User Instruction",),
+        content_fields=("Tool Response",),
+        action_fields=("Attacker Tools", "Attacker Instruction"),
+        scenario_fields=("User Tool",),
+        template_fields=("User Tool", "Attacker Tools"),
+        attack_family_fields=("Attack Type",),
+        risk_label="data_exfiltration",
+        action_provenance="benchmark_target",
+        label_provenance="source_filename_data_stealing",
+    ),
+    "notinject_v1": AdapterProfile(
+        profile_id="notinject_v1",
+        source="NotInject",
+        required_fields=("prompt", "word_list", "category"),
+        user_goal_fields=(),
+        content_fields=("prompt",),
+        scenario_fields=("category",),
+        risk_label="benign",
+        severity=0,
+        constant_user_goal="Respond to the user's benign request without taking external actions.",
+        constant_action="return_text_response()",
+        action_provenance="protocol_wrapper",
+        label_provenance="official_notinject_all_benign",
+    ),
+}
 
 
 def _dig(record: dict[str, Any], key: str) -> Any:
@@ -17,149 +137,161 @@ def _dig(record: dict[str, Any], key: str) -> Any:
     return current
 
 
-def first_text(record: dict[str, Any], keys: tuple[str, ...]) -> str:
-    for key in keys:
-        value = _dig(record, key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-        if isinstance(value, (dict, list)) and value:
-            return json.dumps(value, ensure_ascii=False, sort_keys=True)
+def _serialize(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if value is None:
+        return ""
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _first(record: dict[str, Any], fields: tuple[str, ...]) -> str:
+    for field in fields:
+        value = _serialize(_dig(record, field))
+        if value:
+            return value
     return ""
 
 
+def _combine(record: dict[str, Any], fields: tuple[str, ...]) -> str:
+    values = {field: _dig(record, field) for field in fields if _dig(record, field) is not None}
+    if not values:
+        return ""
+    if len(values) == 1:
+        return _serialize(next(iter(values.values())))
+    return json.dumps(values, ensure_ascii=False, sort_keys=True)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def stable_id(source: str, record: dict[str, Any], index: int) -> str:
-    existing = first_text(record, ("sample_id", "id", "case_id", "task_id"))
-    if existing:
-        safe = "".join(char if char.isalnum() or char in "-_" else "_" for char in existing)
-        return f"{source.casefold()}_{safe}"
+    for field in ("sample_id", "id", "case_id", "task_id"):
+        existing = _serialize(_dig(record, field))
+        if existing:
+            safe = "".join(char if char.isalnum() or char in "-_" else "_" for char in existing)
+            return f"{source.casefold()}_{safe}"
     digest = hashlib.sha256(
         json.dumps(record, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()[:12]
+    ).hexdigest()[:16]
     return f"{source.casefold()}_{index:06d}_{digest}"
 
 
-def risk_from_record(record: dict[str, Any], default: str) -> str:
-    raw = first_text(record, ("risk_label", "attack_type", "attack_category", "category", "label"))
-    normalized = raw.casefold().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "benign": "benign",
-        "clean": "benign",
-        "legit": "benign",
-        "safe": "benign",
-        "instruction_hijacking": "instruction_hijacking",
-        "prompt_injection": "instruction_hijacking",
-        "indirect_prompt_injection": "instruction_hijacking",
-        "data_exfiltration": "data_exfiltration",
-        "data_stealing": "data_exfiltration",
-        "direct_harm": "tool_manipulation",
-        "privilege_escalation": "privilege_escalation",
-        "tool_manipulation": "tool_manipulation",
-    }
-    if normalized in aliases:
-        return aliases[normalized]
-    truthy = record.get("injected", record.get("is_attack", record.get("attack")))
-    if truthy is False or truthy == 0:
-        return "benign"
-    return default
+def _template_group(profile: AdapterProfile, record: dict[str, Any], sample_id: str) -> str:
+    if profile.profile_id == "notinject_v1":
+        category = _first(record, ("category",)) or "unknown"
+        words = _dig(record, "word_list")
+        trigger_count = len(words) if isinstance(words, list) else 0
+        raw = f"notinject_{category}_{trigger_count}_trigger_words"
+    else:
+        raw = _combine(record, profile.template_fields) or sample_id
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    return f"{profile.source.casefold()}_{digest}"
 
 
 def convert_file(
     input_path: Path,
     output_path: Path,
     *,
-    source: str,
-    default_risk: str,
-    force_benign: bool = False,
-    allow_missing_action: bool = False,
+    profile_name: str,
+    allow_skips: bool = False,
+    scenario_override: str | None = None,
 ) -> dict[str, Any]:
+    """Convert with a pinned, source-specific contract; never guess labels or fields."""
+    if profile_name not in PROFILES:
+        raise ValueError(f"Unknown adapter profile: {profile_name}")
+    profile = PROFILES[profile_name]
     converted: list[IntentSample] = []
     skipped: list[dict[str, Any]] = []
-    for index, record in enumerate(iter_json_objects(input_path), start=1):
-        user_goal = first_text(
-            record,
-            (
-                "user_goal",
-                "user_task",
-                "user_instruction",
-                "user_query",
-                "query",
-                "question",
-                "task.instruction",
-            ),
-        )
-        content = first_text(
-            record,
-            (
-                "untrusted_content",
-                "tool_response",
-                "tool_output",
-                "injected_content",
-                "attack_instruction",
-                "content",
-                "context",
-                "document",
-                "email",
-                "response",
-            ),
-        )
-        action = first_text(
-            record,
-            (
-                "proposed_action",
-                "tool_call",
-                "action",
-                "assistant_action",
-                "attacker_tool",
-                "target_action",
-            ),
-        )
-        missing = [
-            name
-            for name, value in (("user_goal", user_goal), ("untrusted_content", content))
-            if not value
-        ]
-        if not action and not allow_missing_action:
-            missing.append("proposed_action")
+    records = list(iter_json_objects(input_path))
+
+    for index, record in enumerate(records, start=1):
+        missing = [field for field in profile.required_fields if _dig(record, field) is None]
         if missing:
             skipped.append({"record_index": index, "missing": missing})
             continue
-        if not action:
-            action = "NO_ACTION_PROVIDED"
-        risk = "benign" if force_benign else risk_from_record(record, default_risk)
-        sample_id = stable_id(source, record, index)
-        template = first_text(record, ("template_group", "attack_template", "template_id"))
-        if not template:
-            template = f"{source.casefold()}_{risk}_{index:06d}"
+
+        user_goal = profile.constant_user_goal or _first(record, profile.user_goal_fields)
+        content = _first(record, profile.content_fields)
+        action = profile.constant_action or _combine(record, profile.action_fields)
+        sample_id = stable_id(profile.source, record, index)
+        scenario = scenario_override or _first(record, profile.scenario_fields) or "unknown"
+        attack_family = _first(record, profile.attack_family_fields)
+        if not attack_family:
+            attack_family = (
+                "none" if profile.risk_label == "benign" else "indirect_prompt_injection"
+            )
+
         converted.append(
             IntentSample(
                 sample_id=sample_id,
-                source=source,
-                scenario=first_text(record, ("scenario", "task_type", "domain")) or "unknown",
+                source=profile.source,
+                source_record_id=sample_id,
+                scenario=scenario,
                 user_goal=user_goal,
                 untrusted_content=content,
                 proposed_action=action,
-                risk_label=risk,
-                alignment_label=int(risk != "benign"),
-                attack_family=first_text(record, ("attack_family", "attack_type"))
-                or ("none" if risk == "benign" else "indirect_prompt_injection"),
-                severity=0 if risk == "benign" else int(record.get("severity", 3)),
-                template_group=template,
-                language=first_text(record, ("language", "lang")) or "en",
+                risk_label=profile.risk_label,
+                alignment_label=int(profile.risk_label != "benign"),
+                attack_family=attack_family,
+                severity=profile.severity,
+                template_group=_template_group(profile, record, sample_id),
+                language="en",
                 human_verified=False,
-                adapter_missing_action=action == "NO_ACTION_PROVIDED",
+                adapter_profile=profile.profile_id,
+                adapter_missing_action=not bool(action),
+                action_provenance=profile.action_provenance,
+                label_provenance=profile.label_provenance,
+                field_provenance={
+                    "user_goal": list(profile.user_goal_fields),
+                    "untrusted_content": list(profile.content_fields),
+                    "proposed_action": list(profile.action_fields),
+                },
             )
         )
-    write_jsonl(converted, output_path)
+
     report = {
-        "source": source,
+        "schema_version": 1,
+        "adapter_profile": profile.profile_id,
+        "source": profile.source,
         "input": str(input_path),
+        "input_sha256": _sha256(input_path),
         "output": str(output_path),
+        "records_read": len(records),
         "converted": len(converted),
         "skipped": len(skipped),
         "skipped_records": skipped[:100],
-        "warning": "Converted rows are not human-verified; audit before training.",
+        "risk_labels": dict(sorted(Counter(row.risk_label for row in converted).items())),
+        "action_provenance": dict(
+            sorted(Counter(row.action_provenance for row in converted).items())
+        ),
+        "human_verified": 0,
+        "warning": "Conversion is unverified and cannot be used for claims before user audit.",
     }
-    output_path.with_suffix(".conversion.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    report_path = output_path.with_suffix(".conversion.json")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if skipped and not allow_skips:
+        report["status"] = "failed_strict_field_validation"
+        report_path.write_text(
+            json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        raise ValueError(
+            f"{len(skipped)} records violate {profile.profile_id}; inspect {report_path} "
+            "or rerun with --allow-skips after manual review"
+        )
+
+    write_jsonl(converted, output_path)
+    report["output_sha256"] = _sha256(output_path)
+    report["status"] = "converted_unverified"
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     return report

@@ -1,0 +1,17 @@
+schema_version: 1
+verified_at: "2026-08-20"
+models:
+  protectai:
+    model_id: "protectai/deberta-v3-base-prompt-injection-v2"
+    revision: "90c9989b1a342275dd0d1a95aad283c04e075671"
+    license: "Apache-2.0 model; source datasets have mixed licenses"
+    contamination_status: "unknown_possible_overlap"
+    maintenance_status: "archived"
+  piguard:
+    model_id: "leolee99/PIGuard"
+    revision: "dd78b24e330193a22d2293ac66922dd4f982f563"
+    license: "MIT model card; source dataset terms remain separate"
+    contamination_status: "known_evaluation_on_bipia_and_notinject"
+    trust_remote_code_required: true
+    remote_code_policy: "project_owner_reviews_pinned_revision_before_execution"
+    maintenance_status: "check_card_before_user_execution"

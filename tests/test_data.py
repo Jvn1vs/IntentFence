@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from intentfence.data import deduplicate_samples, group_aware_split
+from intentfence.data import (
+    audit_partition_integrity,
+    deduplicate_samples,
+    group_aware_split,
+    seal_manifest,
+    verify_manifest,
+    write_split_dataset,
+)
 from intentfence.schema import IntentSample
 
 
@@ -35,3 +42,45 @@ def test_group_split_has_no_leakage():
         assert previous == item.split
     assert set(manifest["counts"]) == {"train", "validation", "calibration", "test_a"}
     assert all(value["total"] > 0 for value in manifest["counts"].values())
+
+
+def test_manifest_hash_covers_late_metadata():
+    manifest = seal_manifest({"schema_version": 1, "counts": {"train": 3}})
+    assert verify_manifest(manifest)
+    manifest["counts"]["train"] = 4
+    assert not verify_manifest(manifest)
+
+
+def test_written_split_manifest_covers_output_file_hashes(tmp_path):
+    assigned, manifest = group_aware_split(
+        [sample(index, f"g{index}") for index in range(8)], seed=42
+    )
+
+    final_manifest = write_split_dataset(assigned, manifest, tmp_path)
+
+    assert verify_manifest(final_manifest)
+    assert set(final_manifest["files"]) == {"train", "validation", "calibration", "test_a"}
+    assert all(len(item["sha256"]) == 64 for item in final_manifest["files"].values())
+
+
+def test_integrity_audit_rejects_group_leakage_and_missing_action():
+    left = sample(1, "shared").model_copy(
+        update={"split": "train", "proposed_action": "", "adapter_missing_action": True}
+    )
+    right = sample(2, "shared").model_copy(update={"split": "test_a"})
+
+    report = audit_partition_integrity(
+        [left, right], check_near_duplicates=False, require_action_splits={"train"}
+    )
+
+    assert any("template_group crosses splits" in error for error in report.errors)
+    assert any("action-mode row lacks an action" in error for error in report.errors)
+
+
+def test_integrity_audit_rejects_duplicate_content_within_one_split():
+    left = sample(1, "g1", "same content").model_copy(update={"split": "train"})
+    right = sample(2, "g2", "same content").model_copy(update={"split": "train"})
+
+    report = audit_partition_integrity([left, right], check_near_duplicates=False)
+
+    assert any("exact content is duplicated within split" in error for error in report.errors)

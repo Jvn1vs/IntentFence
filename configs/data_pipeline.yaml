@@ -1,0 +1,46 @@
+schema_version: 1
+stage: "C1"
+status: "framework_only_pending_project_owner_execution"
+execution_owner: "project_owner"
+codex_prohibited_operations:
+  - "download_real_training_or_test_data"
+  - "convert_or_merge_real_project_data"
+  - "fit_any_model_on_real_project_data"
+  - "run_final_data_audit_for_the_owner"
+source_registry: "configs/upstream_sources.yaml"
+sources:
+  bipia:
+    roles: ["train", "validation", "calibration", "test_a"]
+    adapter_profiles: ["bipia_generated_v1", "bipia_clean_v1"]
+    action_evidence: "missing_until_project_owner_supplies_separately_audited_actions"
+  injecagent:
+    roles: ["test_b"]
+    adapter_profiles: ["injecagent_direct_harm_v1", "injecagent_data_stealing_v1"]
+    action_evidence: "benchmark_target_not_observed_agent_output"
+  notinject:
+    roles: ["test_c"]
+    adapter_profiles: ["notinject_v1"]
+    action_evidence: "protocol_wrapper_for_overdefense_only"
+split:
+  seed: 42
+  ratios:
+    train: 0.70
+    validation: 0.10
+    calibration: 0.10
+    test_a: 0.10
+  near_duplicate_threshold: 0.92
+  isolation_keys: ["sample_fingerprint", "template_group"]
+audit:
+  minimum_rows: 200
+  statuses: ["correct", "incorrect", "ambiguous"]
+  ambiguous_policy: "exclude_from_primary_training_and_testing"
+  required_grouping: ["source", "risk_label", "action_provenance"]
+quality_gates:
+  strict_adapter_skips: 0
+  duplicate_ids: 0
+  exact_cross_split_duplicates: 0
+  template_groups_crossing_splits: 0
+  action_mode_missing_action_rows: 0
+  human_audit_completed: true
+  source_manifest_and_file_hashes_present: true
+

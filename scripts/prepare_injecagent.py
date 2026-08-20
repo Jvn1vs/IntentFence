@@ -8,19 +8,25 @@ from _prepare import convert_file
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Normalize an InjecAgent JSON/JSONL export")
+    parser = argparse.ArgumentParser(
+        description="Strictly normalize an official InjecAgent test file"
+    )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--allow-missing-action", action="store_true")
+    parser.add_argument("--attack-kind", choices=("direct-harm", "data-stealing"), required=True)
+    parser.add_argument("--allow-skips", action="store_true")
     args = parser.parse_args()
+    profile = {
+        "direct-harm": "injecagent_direct_harm_v1",
+        "data-stealing": "injecagent_data_stealing_v1",
+    }[args.attack_kind]
     print(
         json.dumps(
             convert_file(
                 args.input,
                 args.output,
-                source="InjecAgent",
-                default_risk="tool_manipulation",
-                allow_missing_action=args.allow_missing_action,
+                profile_name=profile,
+                allow_skips=args.allow_skips,
             ),
             indent=2,
         )

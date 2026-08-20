@@ -14,7 +14,9 @@ from intentfence.schema import read_jsonl
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Deduplicate and build template-group isolated splits")
+    parser = argparse.ArgumentParser(
+        description="Deduplicate and build template-group isolated splits"
+    )
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=42)
@@ -30,8 +32,8 @@ def main() -> None:
         "near_duplicates": dedup.near_duplicates,
         "near_threshold": args.near_threshold,
     }
-    write_split_dataset(assigned, manifest, args.output_dir)
-    print(json.dumps(manifest["counts"], indent=2))
+    final_manifest = write_split_dataset(assigned, manifest, args.output_dir)
+    print(json.dumps(final_manifest["counts"], indent=2))
 
 
 if __name__ == "__main__":

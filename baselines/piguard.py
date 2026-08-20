@@ -33,6 +33,7 @@ class PIGuardBaseline:
             revision=self.revision,
             device=device,
             top_k=None,
+            trust_remote_code=True,
         )
 
     def attack_scores(self, texts: list[str], batch_size: int = 16) -> list[float]:
@@ -41,7 +42,11 @@ class PIGuardBaseline:
         for candidates in outputs:
             mapping = {str(item["label"]).casefold(): float(item["score"]) for item in candidates}
             attack = max(
-                (score for label, score in mapping.items() if label not in {"benign", "legit", "label_0", "0"}),
+                (
+                    score
+                    for label, score in mapping.items()
+                    if label not in {"benign", "legit", "label_0", "0"}
+                ),
                 default=1.0 - mapping.get("benign", mapping.get("label_0", 0.5)),
             )
             result.append(float(attack))

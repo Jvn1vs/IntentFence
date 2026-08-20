@@ -8,20 +8,18 @@ from _prepare import convert_file
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Normalize a NotInject JSON/JSONL export")
+    parser = argparse.ArgumentParser(description="Strictly normalize an official NotInject export")
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--allow-missing-action", action="store_true")
+    parser.add_argument("--allow-skips", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
             convert_file(
                 args.input,
                 args.output,
-                source="NotInject",
-                default_risk="benign",
-                force_benign=True,
-                allow_missing_action=args.allow_missing_action,
+                profile_name="notinject_v1",
+                allow_skips=args.allow_skips,
             ),
             indent=2,
         )

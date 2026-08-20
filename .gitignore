@@ -25,6 +25,10 @@ reports/figures/*
 reports/tables/*
 reports/calibration/*
 reports/error_analysis/*
+reports/data_quality/*.csv
+reports/data_quality/*.json
+reports/data_quality/*.jsonl
+!reports/data_quality/*.md
 !reports/figures/.gitkeep
 !reports/tables/.gitkeep
 !reports/calibration/.gitkeep
