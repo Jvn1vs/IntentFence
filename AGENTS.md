@@ -4,6 +4,9 @@
 
 - Treat `docs/task_progress_plan.md` as the single source of truth for stages,
   status, tests, and exit criteria.
+- Use Conda for every project environment. The default CPU/data environment is
+  named `intentfence`; do not create or document a project `.venv`. Use the
+  official Anaconda and PyPI endpoints, not third-party package mirrors.
 - Work on one stage at a time. At the end of every stage, stop and report the
   changed files, verification results, remaining risks, and proposed next step.
 - Do not start the next stage until the user explicitly confirms it.
@@ -50,8 +53,9 @@
 ## Local verification
 
 ```powershell
-.\.venv\Scripts\python.exe -m ruff check .
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m compileall -q src baselines benchmarks scripts deployment
-.\.venv\Scripts\python.exe -m build --wheel
+conda activate intentfence
+python -m ruff check .
+python -m pytest -q
+python -m compileall -q src baselines benchmarks scripts deployment
+python -m build --wheel
 ```

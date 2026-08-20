@@ -53,12 +53,17 @@ flowchart LR
 需要 Python 3.10–3.13。核心规则/API/数据工具不需要 PyTorch。
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+conda create --name intentfence python=3.12 pip `
+  --override-channels `
+  --channel https://repo.anaconda.com/pkgs/main `
+  --yes
+conda activate intentfence
+python -m pip install -e ".[dev]" --index-url https://pypi.org/simple
 python -m pytest
 intentfence-api
 ```
+
+项目统一使用 Conda 管理环境；Conda 与 pip 分别使用 Anaconda 和 PyPI 官方源，不使用第三方镜像。
 
 打开 <http://127.0.0.1:8000/demo>，或者调用 API：
 
@@ -146,7 +151,8 @@ python -m baselines.evaluate_scores `
 安装 GPU/训练依赖：
 
 ```powershell
-python -m pip install -e ".[ml,dev]"
+conda activate intentfence
+python -m pip install -e ".[ml,dev]" --index-url https://pypi.org/simple
 ```
 
 先使用 DeBERTa-v3-small 做 200–500 样本的冒烟训练，再运行完整数据。配置里的 `input_mode` 可取：
@@ -221,7 +227,8 @@ intentfence-evaluate `
 ## ONNX / INT8 / API
 
 ```powershell
-python -m pip install -e ".[ml,onnx]"
+conda activate intentfence
+python -m pip install -e ".[ml,onnx]" --index-url https://pypi.org/simple
 python deployment/export_onnx.py `
   --model-dir checkpoints/base-action-seed42/best `
   --output-dir artifacts/onnx-base-action `

@@ -1,17 +1,24 @@
 # C1 数据与基线框架：用户执行手册
 
-状态：框架已实现，真实数据尚未执行。
+状态：框架已实现；Conda 环境和固定来源预览已由用户验证；真实数据尚未下载或处理。
 执行者：仅项目所有者（用户）。Codex 不执行本页的下载、转换、合并、去重、划分、人工审计、基线拟合或训练命令。
 
 ## 0. 执行边界
 
 本页把“框架完成”和“实验完成”分开：仓库内的单元测试只使用合成 fixture，不能替代真实数据结果。你运行每一步后，应保留终端输出、manifest、转换报告和哈希；如果失败，把日志发给 Codex 分析，不要跳过失败继续训练。
 
-安装数据工具依赖：
+统一使用 Conda。首次创建 CPU/数据环境时使用 Anaconda 官方源，再从 PyPI 官方源安装项目依赖：
 
 ```powershell
-python -m pip install -e ".[data,dev]"
+conda create --name intentfence python=3.12 pip `
+  --override-channels `
+  --channel https://repo.anaconda.com/pkgs/main `
+  --yes
+conda activate intentfence
+python -m pip install -e ".[data,dev]" --index-url https://pypi.org/simple
 ```
+
+2026-08-20 用户环境检查已通过：Conda `intentfence`、Python 3.12.13、`pip check` 无损坏依赖、32 项测试通过。后续数据和训练环境也只使用 Conda，不使用项目 `.venv`。
 
 ## 1. 先预览，不下载
 
