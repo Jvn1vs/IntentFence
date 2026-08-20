@@ -43,4 +43,3 @@ quality_gates:
   action_mode_missing_action_rows: 0
   human_audit_completed: true
   source_manifest_and_file_hashes_present: true
-
