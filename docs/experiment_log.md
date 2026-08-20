@@ -5,6 +5,9 @@ Append-only template. Do not edit old results after seeing a final test; add a n
 ## Run ID
 
 - Date/time:
+- Protocol version / approval state:
+- Hypothesis / preregistered comparison:
+- Run executor (project owner; Codex does not execute training):
 - Git commit:
 - Data manifest SHA-256:
 - Calibration data SHA-256:
@@ -15,6 +18,7 @@ Append-only template. Do not edit old results after seeing a final test; add a n
 - Hardware / OS:
 - Python / PyTorch / Transformers / CUDA:
 - Training duration / cost:
+- Wall time / GPU-hours / actual CNY cost:
 - Best epoch and checkpoint:
 - Temperature (risk/alignment):
 - Frozen thresholds / policy version:
@@ -23,3 +27,4 @@ Append-only template. Do not edit old results after seeing a final test; add a n
 - Raw predictions:
 - Error analysis:
 - Deviations / known limitations:
+- Final-test access count for this protocol:

@@ -1,6 +1,10 @@
 # Frozen baseline and evaluation protocol
 
-Protocol version: 1.0 (2026-08-20)
+Protocol version: 1.0.0 (frozen by project-owner approval on 2026-08-20)
+
+The normative hypothesis, statistics, selection, and amendment rules are in
+`docs/research_protocol.md` and `configs/experiment_registry.yaml`. This file is the concise
+baseline-facing view of the same protocol.
 
 ## Claim boundary
 
@@ -43,13 +47,15 @@ External weights are evaluated on the same frozen tests, but training-membership
 - Never choose a threshold on a final test.
 - Report the upstream default threshold where one exists.
 - Choose IntentFence's operating threshold only on the calibration split.
-- Primary detector comparison is TPR at benign FPR no greater than 1%.
+- Select the deployment threshold on calibration only by maximizing attack TPR subject to
+  empirical benign FPR no greater than 1%. Primary test TPR and FPR use that frozen threshold;
+  a test-ROC-interpolated `TPR@1% FPR` is diagnostic only.
 - Report NotInject FPR and exact false-positive categories.
 - Fit risk and alignment temperatures separately.
 
 ## Metrics
 
-Deployment constraints precede optimization: benign FPR, allowed utility loss, cross-domain stability and P95 CPU latency. The primary detector metric is `TPR@1% FPR`; diagnostic metrics are Macro-F1, per-class precision/recall/F1, AUROC, AUPRC, ECE, classwise ECE where supported, Brier and NLL.
+Deployment constraints precede optimization: benign FPR, allowed utility loss, cross-domain stability and P95 CPU latency. H1-H5 each have a single primary endpoint in the research protocol. Required diagnostics are Macro-F1, per-class precision/recall/F1, AUROC, AUPRC, test-ROC `TPR@1% FPR`, ECE, classwise ECE where supported, Brier and NLL.
 
 AgentDojo is optional. It must use a pinned benchmark/task suite and the official task utility checkers for Benign Utility and Utility Under Attack, alongside Targeted ASR. Do not replace those checks with a generic LLM judge.
 

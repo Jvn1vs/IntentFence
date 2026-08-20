@@ -1,0 +1,78 @@
+schema_version: 1
+verified_at: "2026-08-20"
+evidence_cutoff: "2026-08-20"
+sources:
+  task_shield:
+    kind: paper
+    title: "Task Shield: Enforcing Task Alignment to Defend Against Indirect Prompt Injection in LLM Agents"
+    official_url: "https://aclanthology.org/2025.acl-long.1435/"
+    doi: "10.18653/v1/2025.acl-long.1435"
+    paper_license: "CC-BY-4.0"
+    artifact_status: "paper-reported"
+    official_code_status: "not_identified_in_c0_audit"
+  bipia:
+    kind: git
+    official_url: "https://github.com/microsoft/BIPIA"
+    revision: "a004b69ec0dd446e0afd461d98cb5e96e120a5d0"
+    license: "MIT code; task datasets retain separate source licenses"
+    use: "train_validation_calibration_and_test_a"
+  injecagent:
+    kind: git
+    official_url: "https://github.com/uiuc-kang-lab/InjecAgent"
+    revision: "f19c9f2c79a41046eb13c03c51a24c567a8ffa07"
+    license: "MIT"
+    doi: "10.18653/v1/2024.findings-acl.624"
+    use: "test_b"
+  piguard:
+    kind: git
+    former_name: "InjecGuard"
+    official_url: "https://github.com/leolee99/PIGuard"
+    revision: "1b5751e88bf7475acbedfc8eda795ce060307c84"
+    license: "MIT repository; upstream data terms separate"
+    doi: "10.18653/v1/2025.acl-long.1468"
+    use: "external_baseline"
+  notinject:
+    kind: huggingface_dataset
+    official_url: "https://huggingface.co/datasets/leolee99/NotInject"
+    revision: "847ae76cf8fea5ed325429e569ae8cfef022d2e0"
+    license: "MIT"
+    use: "test_c"
+  agentdojo:
+    kind: git_release
+    official_url: "https://github.com/ethz-spylab/agentdojo"
+    release: "v0.1.35"
+    revision: "a75aba7631d3ca5fb7ab938965c97ead2f9ff84b"
+    license: "MIT"
+    use: "optional_test_d"
+  protectai_deberta_v2:
+    kind: huggingface_model
+    official_url: "https://huggingface.co/protectai/deberta-v3-base-prompt-injection-v2"
+    revision: "90c9989b1a342275dd0d1a95aad283c04e075671"
+    license: "Apache-2.0 model; mixed source-dataset licenses"
+    maintenance_status: "archived"
+    use: "external_baseline"
+  struq:
+    kind: git
+    official_url: "https://github.com/Sizhe-Chen/StruQ"
+    revision: "e4372b9e3d45ecdfc7c0ad70662094efe6e3850b"
+    license: "CC-BY-NC-4.0"
+    use: "related_work_only_no_code_copy"
+  secalign:
+    kind: git
+    official_url: "https://github.com/facebookresearch/SecAlign"
+    revision: "3fc9c9c3244a21512f5a1f3859a9858090711f0e"
+    license: "CC-BY-NC-4.0"
+    use: "related_work_or_separate_evaluation_only"
+  camel:
+    kind: git
+    official_url: "https://github.com/google-research/camel-prompt-injection"
+    revision: "f083b6b396399d3b3c7f2ddaf613a5945eaf32d8"
+    license: "Apache-2.0"
+    use: "related_work_only"
+  ipiguard:
+    kind: git
+    official_url: "https://github.com/Greysahy/ipiguard"
+    revision: "4e686ed2f62c135cb12564a4466daa95f3ace878"
+    license: "Apache-2.0"
+    use: "related_work_only"
+

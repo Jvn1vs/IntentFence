@@ -9,6 +9,12 @@
 - Do not start the next stage until the user explicitly confirms it.
 - Do not rent GPU capacity, call paid APIs, publish a release, or download large
   model/data artifacts without explicit user approval for that stage.
+- The user is the sole executor of real training runs. Codex may build and test
+  the framework, generate configs/commands, and analyze user-provided logs, but
+  must not launch commands that update real model weights, run tiny-overfit
+  training, rent training hardware, or incur training/API charges.
+- Framework verification may use static checks, fixtures, mocks, and tests that
+  do not fit learned parameters on real project data.
 
 ## Research integrity
 

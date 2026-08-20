@@ -1,0 +1,139 @@
+schema_version: 1
+protocol_version: "1.0.0"
+status: "frozen"
+prepared_at: "2026-08-20"
+approved_at: "2026-08-20"
+approved_by: "project_owner"
+evidence_cutoff: "2026-08-20"
+locked_at_stage: "C0"
+test_lock:
+  enabled: true
+  formal_test_runs_per_protocol: 1
+  amendment_requires_new_protocol_and_untouched_test: true
+
+claim:
+  contribution: "lightweight supervised independently calibrated action-aware IPI gate"
+  exclusions:
+    - "originality of task or action consistency checking"
+    - "universal prompt-injection prevention"
+    - "replacement for authorization, least privilege, or capability control"
+
+inputs:
+  A: ["untrusted_content"]
+  B: ["user_goal", "untrusted_content"]
+  C: ["user_goal", "untrusted_content", "proposed_action"]
+
+hypotheses:
+  - id: H1
+    comparison: ["B_task_aware", "A_content_only"]
+    primary_metric: "paired_delta_notinject_fpr_at_frozen_threshold"
+    direction: "less_than_zero"
+    guardrail: "test_a_tpr_noninferiority_margin_pp=2"
+  - id: H2
+    comparison: ["C_action_aware", "B_task_aware"]
+    primary_metric: "paired_delta_injecagent_tpr_at_frozen_threshold"
+    direction: "greater_than_zero"
+  - id: H3
+    comparison: ["C_with_hard_negatives", "C_without_hard_negatives"]
+    primary_metric: "paired_delta_notinject_fpr_at_frozen_threshold"
+    direction: "less_than_zero"
+    guardrail: "test_a_tpr_noninferiority_margin_pp=2"
+  - id: H4
+    comparison: ["C_risk_plus_alignment", "C_risk_only"]
+    primary_metric: "paired_delta_injecagent_tpr_at_frozen_threshold"
+    direction: "greater_than_zero"
+  - id: H5
+    comparison: ["C_temperature_scaled", "C_uncalibrated"]
+    primary_metric: "paired_delta_test_a_risk_ece"
+    direction: "less_than_zero"
+    guardrail: "test_a_nll_must_not_worsen"
+
+partitions:
+  train:
+    role: "gradient_updates_only"
+    planned_sources: ["bipia_training_pool", "licensed_hard_negatives"]
+  validation:
+    role: "hyperparameter_and_checkpoint_selection_only"
+    planned_sources: ["group_held_out_training_sources"]
+  calibration:
+    role: "temperature_and_threshold_selection_only_after_weight_freeze"
+    planned_sources: ["disjoint_group_held_out_training_sources"]
+  test_a:
+    role: "final_in_domain_held_template_evaluation_only"
+    planned_sources: ["bipia_held_out_templates"]
+  test_b:
+    role: "final_cross_domain_evaluation_only"
+    planned_sources: ["injecagent"]
+  test_c:
+    role: "final_overdefense_evaluation_only"
+    planned_sources: ["notinject"]
+  test_d:
+    role: "optional_end_to_end_evaluation_only"
+    planned_sources: ["agentdojo_v0.1.35"]
+  grouping_rule: "exact_duplicate_near_duplicate_and_template_group_must_not_cross_roles"
+
+selection:
+  pilot_backbone: "microsoft/deberta-v3-small"
+  primary_backbone: "microsoft/deberta-v3-base"
+  seeds: [42, 52, 62]
+  learning_rates: [0.00001, 0.00002, 0.00003]
+  max_epochs: 5
+  search_seed: 42
+  selection_split: "validation"
+  selection_metric: "risk_macro_f1"
+  tie_epsilon: 0.002
+  tie_breakers: ["earlier_checkpoint", "lower_learning_rate"]
+  shared_hyperparameters_across_ablations: true
+
+calibration:
+  split: "calibration"
+  method: "temperature_scaling_per_head"
+  threshold_source: "calibration_only"
+  benign_fpr_ceiling: 0.01
+  objective: "maximize_attack_tpr_subject_to_empirical_benign_fpr_ceiling"
+  minimum_viable_attack_tpr: 0.80
+  threshold_tie_breaker: "higher_threshold"
+  viability_failure: "record_if_maximum_calibration_tpr_is_below_minimum_do_not_relax_constraint"
+
+statistics:
+  bootstrap_resamples: 10000
+  confidence_level: 0.95
+  bootstrap: "paired_cluster_percentile_with_seed_outer_stratum"
+  report_each_seed: true
+  secondary_multiple_comparison: "Holm_within_table"
+  notinject_report: ["exact_error_count", "wilson_interval"]
+
+resources:
+  training_executor: "project_owner_only"
+  codex_scope: "framework_configs_non_training_tests_and_user_log_analysis"
+  codex_must_not_execute:
+    - "real_model_weight_updates"
+    - "tiny_overfit_training"
+    - "learned_baseline_fitting_on_real_project_data"
+    - "gpu_rental_or_paid_training_api"
+  c0_c1: "local_cpu_no_paid_service"
+  c2a: "project_owner_operated_local_cpu_or_gpu_pilot"
+  c2b_gpu: "project_owner_operated_single_24gb_gpu"
+  c2b_planning_ceiling_gpu_hours: 60
+  spending_authorized: false
+  required_run_fields:
+    - "git_commit"
+    - "data_and_config_sha256"
+    - "seed"
+    - "hardware_and_os"
+    - "python_pytorch_transformers_cuda"
+    - "wall_time_and_gpu_hours"
+    - "actual_cost_cny"
+
+task_shield_allowed_labels:
+  - "paper-reported"
+  - "reproduced"
+  - "Task-Shield-inspired approximation"
+task_shield_current_label: "paper-reported"
+
+required_protocol_files:
+  - "docs/research_protocol.md"
+  - "docs/literature_matrix.md"
+  - "docs/baseline_protocol.md"
+  - "docs/threat_model.md"
+  - "configs/upstream_sources.yaml"

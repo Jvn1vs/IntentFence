@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "protocol_version": "1.0.0",
+  "status": "frozen",
+  "generated_at": "2026-08-20",
+  "algorithm": "SHA-256",
+  "files": {
+    "docs/research_protocol.md": "fe464d5a858490f3c83151db7b5ca46a4f639d6d8474ea6b3f208552db6cab1c",
+    "docs/literature_matrix.md": "3a1ab1d8053087c8746c642ea62c5794c7019f4d842d5fb9882ca854b6bd6666",
+    "docs/baseline_protocol.md": "4427cdbbc325cba6b0b3bec0da409bd5febec432c70780371133a199eead1d8d",
+    "docs/threat_model.md": "557c58b6ba5444e5e66911a2a381432131c9210e214f5dfce444115a2c270344",
+    "configs/experiment_registry.yaml": "3ef5451ea4fa94cbf31e094c9e9c409e45fd35187afc14e70a41dc886ed89a30",
+    "configs/upstream_sources.yaml": "815f1a3c9046850000e8da954f16fa845172aa40f5ed2f37ee191cd1b7cc8062"
+  },
+  "note": "Frozen after project-owner approval. Substantive amendments require a new protocol version and an untouched final test."
+}
