@@ -1,0 +1,10 @@
+seed: 42
+train_augmentations:
+  - case_variation
+  - whitespace_variation
+  - markdown_wrapper
+heldout_attack_transformations:
+  - unicode_homoglyph
+  - zero_width_insertion
+  - encoded_payload
+  - html_comment_wrapper

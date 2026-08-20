@@ -1,0 +1,17 @@
+version: "1.0.0"
+thresholds:
+  allow_max: 0.20
+  block_min: 0.75
+tool_weights:
+  read: 1.0
+  local_write: 1.25
+  external_communication: 1.75
+  sensitive: 2.0
+rules:
+  sensitive_always_confirm: true
+  external_communication_minimum: confirm
+  fail_open_tool_types:
+    - read
+  fail_closed_tool_types:
+    - external_communication
+    - sensitive

@@ -1,0 +1,13 @@
+seed: 42
+word_tfidf:
+  analyzer: word
+  ngram_range: [1, 2]
+  min_df: 1
+  max_features: 50000
+  class_weight: balanced
+char_tfidf:
+  analyzer: char_wb
+  ngram_range: [3, 5]
+  min_df: 1
+  max_features: 80000
+  class_weight: balanced

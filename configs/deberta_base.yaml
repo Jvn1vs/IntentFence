@@ -1,0 +1,17 @@
+run_name: deberta-v3-base-action
+model_name: microsoft/deberta-v3-base
+input_mode: action
+max_length: 384
+train_batch_size: 8
+eval_batch_size: 16
+gradient_accumulation_steps: 2
+learning_rate: 2.0e-5
+weight_decay: 0.01
+epochs: 3
+warmup_ratio: 0.10
+max_grad_norm: 1.0
+mixed_precision: fp16
+gradient_checkpointing: false
+early_stopping_patience: 2
+alignment_loss_weight: 0.5
+seed: 42
