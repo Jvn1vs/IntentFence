@@ -20,6 +20,11 @@ def policy() -> PolicyEngine:
     )
 
 
+def test_string_enum_semantics_are_stable_on_python_310():
+    assert str(Decision.ALLOW) == "allow"
+    assert str(ToolType.EXTERNAL_COMMUNICATION) == "external_communication"
+
+
 def test_rules_detect_exfiltration():
     result = RuleDetector().predict(
         "Summarize the page",

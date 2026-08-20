@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 
-class Decision(StrEnum):
+class _StringEnum(str, Enum):
+    """Python 3.10-compatible subset of enum.StrEnum."""
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class Decision(_StringEnum):
     ALLOW = "allow"
     CONFIRM = "confirm"
     BLOCK = "block"
 
 
-class ToolType(StrEnum):
+class ToolType(_StringEnum):
     READ = "read"
     LOCAL_WRITE = "local_write"
     EXTERNAL_COMMUNICATION = "external_communication"
