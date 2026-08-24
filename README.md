@@ -10,7 +10,9 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据与生成报告仍不得提交。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
+> C1 数据执行闭环已完成并生成可重放证据，但训练入口仍关闭：真实划分的 validation/calibration/test_a 缺少 benign，train 缺少三个风险类，Alignment 标签没有独立信息，且 Model C 缺少获批动作。详见 [C1 data card](reports/data_quality/data_card.md) 与 [训练入口决策记录](docs/training_entry_decision.md)。
+
+> 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据及 JSON/CSV 证据不得提交，只提交经检查、不含样本内容的公开聚合 Markdown 报告。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 
 ## 已实现
 

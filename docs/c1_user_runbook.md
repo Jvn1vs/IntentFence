@@ -1,6 +1,6 @@
 # C1 数据与基线框架：数据执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：第 3～7 节均已执行；去重、六角色 manifest 及 context/external-action 完整性校验通过。真实结果同时暴露训练阻塞：validation、calibration、test_a 没有 benign。下一步执行第 8 节 builder 复现和训练前数据报告，由报告正式封存类别覆盖、Alignment 独立性与 Model C action readiness。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：C1 数据执行闭环已完成。2026-08-24 第 3～8 节全部执行并通过证据重放，训练前报告 `evidence_status=validated`；数据阶段在此停止。正式训练入口仍关闭：validation/calibration/test_a 没有 benign，train 缺少三个风险类，Alignment 没有独立标签信息，Model C 缺少获批动作。框架代码、允许公开的聚合 Markdown 报告与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
@@ -314,6 +314,8 @@ Invoke-IntentFencePython scripts/validate_dataset.py `
 
 ## 8. 生成训练前数据报告
 
+本节已完成，**不要重跑下列命令**。BIPIA builder 复现为 `status=reproduced_verified`，11,250 行及 SHA-256 与既有 export 完全一致。训练前报告为 `evidence_status=validated`、总计 4,080 条，但 `formal_training_authorized=false`。`dataset_statistics.json` SHA-256 为 `f9008ff67c7f307ae2544695091625a861f22d78950238802c08946cf4f4f81f`，`label_quality_report.md` 为 `d0ab3d93aaf401d2032e6d2169b091b81b3b8dd4edaec245825c02eaa562f5de`，`data_card.md` 为 `7428f765058226ad0ad3c3c1c3950f3dd783beda9457c0fa6fc2ab1994ac7446`。
+
 第 7 节两份完整性报告通过后，先补齐当前既有 BIPIA export 的复现 sidecar。即使你是从第 4 节当前断点一路向下执行，也不能跳过这一条：
 
 ```powershell
@@ -362,7 +364,7 @@ Invoke-IntentFencePython scripts/build_dataset_reports.py `
 
 `dataset_statistics.json` 的 Risk × Alignment 列联表、条件概率和互信息只使用 `train`，不使用最终测试标签作协议决策。报告还会显式给出五类训练覆盖、Alignment 标签独立性和 Model C action readiness。`training_readiness` 中出现 `false` 是研究阻塞证据，不得通过改写报告或填充占位 action 消除。
 
-三个报告生成并由 Codex 复核后，在这里暂停。项目所有者必须先根据 `docs/training_entry_decision.md` 批准协议处置和后续动作构造/独立审计路线；在该决定完成、C1 研究出口通过前，不进入正式模型训练，也不运行第 9 节所禁止的最终测试性能命令。
+三个报告已经生成并由 Codex 复核，C1 数据执行闭环在这里结束。项目所有者必须先根据 `docs/training_entry_decision.md` 选择协议处置路线，并满足该路线的数据前置条件；在新数据版本通过训练就绪门前，不进入正式模型训练，也不运行第 9 节所禁止的最终测试性能命令。
 
 ## 9. 基线框架已准备，但现在不要运行最终测试
 

@@ -67,7 +67,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 |---|---|---|---|---|---|
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
-| C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架完成 | 🔵 Codex 获授权继续真实数据流程 | 真实 manifest、审核和数据报告通过；正式 Test A/B/C 基线留到 C3 单次评测 |
+| C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架与真实执行闭环完成 | ✅ 证据 validated；⛔ 训练就绪失败 | 真实 manifest、审核和报告已生成；按训练入口决策补数据/修订协议前停止 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -207,8 +207,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ 第 6 节 BIPIA 训练池合并完成：11,300 条（50 `benign`、11,250 `instruction_hijacking`），输出 SHA-256 `3fc10575e89e2304e2894629489a876b8e7c935a87e1aaea627be57386be725a`；固定 seed=42 的审核表抽取 200 条（50 clean、150 attack）；
 - ✅ 项目所有者已检查全部 200 条 AI 预审建议并确认均为 `correct`；正式审核汇总 `status=passed`、`reviewer=project_owner`，应用只改变 200 行的 `human_verified`，11,100 条未抽样记录保留。正式审核 CSV SHA-256 为 `2e2990f0a62af8a163bae66e857debd8203d5a16f37e20f2f58c8abe2a717624`，审核后训练池 SHA-256 为 `1fd5559c18dd358a0e0184154af2e4a859cd0f5d13caff4f07f0b9125e397a99`；
 - ✅ 第 7 节完成：BIPIA 11,300 条经 163 个精确重复对和 8,450 个近重复对去重后保留 2,687 条；加 Test B/C 后六角色共 4,080 条。manifest 文件 SHA-256 `e04a16f4b23b9811dc68c4a98cc6fe4152da582d90c0fbbfd6eb225efae1b545`、封存自哈希 `bdd9fe80de528083591652bc743d878777adb55bb082bf4d5df6fc5f7d1f0063`；context/external-action 完整性报告均 passed，模板组和近重复跨 split 泄漏为 0；
-- ⛔ 真实划分暴露新的训练阻塞：train 为 39 benign/1,176 instruction_hijacking，但 validation 493、calibration 493、test_a 486 均没有 benign，无法支持 FPR、二分类校准或有效模型选择。第 8 节训练前报告尚未执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3；
-- ⛔ 因此 C1 工程框架可交付，但研究出口尚未完成，不能进入真实训练结论阶段。
+- ✅ 第 8 节完成：BIPIA builder 为 `reproduced_verified`；训练前报告重放整条证据链并给出 `evidence_status=validated`、总计 4,080 条。统计 JSON SHA-256 `f9008ff67c7f307ae2544695091625a861f22d78950238802c08946cf4f4f81f`，允许公开的标签报告与数据卡已生成；
+- ⛔ 训练就绪失败：train 为 39 benign/1,176 instruction_hijacking，但 validation 493、calibration 493、test_a 486 均没有 benign；train 缺少 data_exfiltration/privilege_escalation/tool_manipulation；Alignment 为 Risk 的确定性映射；Model C 的四个内部角色都缺少获批 action。`formal_training_authorized=false`，真实 Test A/B/C 基线仍受单次测试锁保护；
+- ✅ C1 工程框架与真实数据执行出口均已完成并形成 validated 证据；⛔ 研究训练出口因类别覆盖、Alignment 独立性和 action provenance 不足而关闭，不能进入真实训练结论阶段。
 
 #### 要测试什么
 
@@ -593,6 +594,6 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 暂停，等待用户提问或确认。
 ```
 
-## 10. 当前下一步（Codex 执行）
+## 10. 当前停止点（模型训练入口之前）
 
-C1 手册第 3～7 节已完成：来源/转换/审核/应用/去重/六角色划分和两份完整性报告均有可重放证据。当前准确断点是第 8 节：Codex 补做既有 BIPIA export 的 `--verify-existing` builder 复现，随后生成并复核训练前数据报告。真实划分已明确暴露 validation/calibration/test_a 无 benign 的训练阻塞；第 8 节必须如实封存该结果，不能启动学习参数拟合。报告复核后根据 `docs/training_entry_decision.md` 和实际覆盖问题整理训练入口决策；所有正式训练仍只由项目所有者执行，最终测试锁不变。
+C1 数据执行闭环已完成：来源、转换、合并、200 条正式审核、应用、去重、六角色划分、完整性验证、builder 复现和训练前报告均有可重放证据，`evidence_status=validated`。当前准确停止点是模型训练入口之前；由于 `formal_training_authorized=false`，不得执行任何学习参数拟合。项目所有者下一步只能先根据 `docs/training_entry_decision.md` 选择 A（二元 risk-only 并补充足量 benign/重建数据版本）、B（补齐五分类/独立 Alignment/action）或 C-only-smoke（仅工程 fixture）；选择与前置条件完成后才能另行开启训练阶段，最终测试锁不变。
