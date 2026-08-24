@@ -1,6 +1,6 @@
 # C1 数据与基线框架：数据执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：第 3～5 节转换均已完成；第 6 节 BIPIA 训练池合并、200 条审核抽样和 Codex AI 预审已完成。正式审核 CSV 仍保持未填写，下一步由项目所有者检查 `label_audit.ai_pre_review.csv` 的 200 条建议并确认；确认后 Codex 将填写正式审核记录、执行汇总/应用并连续推进第 7～8 节。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：框架已实现。2026-08-24 当前执行断点：第 3～5 节转换和第 6 节训练池合并、200 条标签审核、汇总及应用均已完成；下一步由 Codex 执行第 7 节去重、六角色隔离划分和完整性校验。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
@@ -222,7 +222,7 @@ Invoke-IntentFencePython scripts/merge_canonical.py `
   --report data/interim/bipia_train_pool.unverified.merge.json
 ```
 
-固定抽样包含 50 条 clean 和 150 条 attack，覆盖 15 个攻击族、67 个唯一注入模板及 start/middle/end 三种位置。Codex 已完成来源重放和语义预审，未发现标签不一致，200 条均建议 `correct`；建议保存在 `reports/data_quality/label_audit.ai_pre_review.csv`，SHA-256 为 `68d408f8ef420db389d7c9a99efa414e38d778911e49063ef924986c10c9d746`。正式 `label_audit.csv` 未被 AI 改写。项目所有者必须检查预审表的全部 200 条并明确确认，Codex 才能把最终人类审核结果写入正式 CSV：
+固定抽样包含 50 条 clean 和 150 条 attack，覆盖 15 个攻击族、67 个唯一注入模板及 start/middle/end 三种位置。Codex 完成来源重放和语义预审后，项目所有者已检查全部 200 条并确认建议；正式审核结果为 200/200 `correct`，`reviewer=project_owner`，汇总 `status=passed`。审核应用只把这 200 行的 `human_verified` 从 `false` 改为 `true`，其余字段没有变化；11,100 条未抽样记录原样保留。AI 预审 SHA-256 为 `68d408f8ef420db389d7c9a99efa414e38d778911e49063ef924986c10c9d746`，正式审核 CSV SHA-256 为 `2e2990f0a62af8a163bae66e857debd8203d5a16f37e20f2f58c8abe2a717624`，审核后训练池 SHA-256 为 `1fd5559c18dd358a0e0184154af2e4a859cd0f5d13caff4f07f0b9125e397a99`。下列生成命令只保留为版本记录：
 
 ```powershell
 Invoke-IntentFencePython scripts/audit_labels.py `
@@ -260,7 +260,7 @@ Invoke-IntentFencePython scripts/apply_label_audit.py `
 
 如果 summary 校验失败，脚本只在终端打印错误，不会占用正式的 `label_audit_summary.json` 路径；修正 CSV 后可以原样重跑。只有 `status=passed` 才会写正式 summary。已通过的 summary、应用输出和报告都拒绝覆盖，不要通过删除后重跑来改写既有证据；如确需重建数据版本，应使用新的版本目录并重新生成整条哈希链。
 
-`ambiguous` 行会从输出排除；未抽中的行保留 `human_verified=false`。未经项目所有者独立人类确认的 Codex 预审不能进入会设置 `human_verified=true` 的 apply 步骤，也不能误称为全量人工标注。
+`ambiguous` 行会从输出排除；未抽中的行保留 `human_verified=false`。本版本已取得项目所有者确认并完成 apply；只有抽中的 200 行为 `human_verified=true`，不能误称为全量人工标注。当前产物拒绝覆盖，后续不得重跑本节命令。
 
 ## 7. 去重、隔离划分与完整性校验
 
