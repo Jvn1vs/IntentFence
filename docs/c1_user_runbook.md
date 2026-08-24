@@ -1,6 +1,6 @@
 # C1 数据与基线框架：用户执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA 转换已完成；第 4 节 direct-harm 已完成，下一条是第 4 节 data-stealing；真实合并、人工审计和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA 转换和第 4 节 InjecAgent direct-harm/data-stealing 转换均已完成；下一条是第 5 节第一个 NotInject 子集。真实合并、人工审计和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：仅项目所有者（用户）。Codex 不执行本页的下载、转换、合并、去重、划分、人工审计、基线拟合或训练命令。
 
 ## 0. 执行边界
@@ -177,7 +177,7 @@ Invoke-IntentFencePython scripts/export_bipia_builder.py `
 
 ## 4. InjecAgent：建立 Test B
 
-当前 direct-harm 已完成且覆盖保护已启用，**不要重跑已完成命令，也不要复制包含它的旧版双命令块**。当前只执行下面这一条 data-stealing 命令：
+当前 direct-harm 和 data-stealing 均已完成且覆盖保护已启用，**不要重跑本节命令**。data-stealing 报告记录 544/544 条成功转换、`skipped=0`、`split=test_b`、`action_provenance=benchmark_target`；输入和输出 SHA-256 已与现存文件复核一致。下面只保留已执行命令作为版本记录：
 
 ```powershell
 Invoke-IntentFencePython scripts/prepare_injecagent.py `
@@ -186,7 +186,7 @@ Invoke-IntentFencePython scripts/prepare_injecagent.py `
   --output data/interim/injecagent_ds_test_b.jsonl
 ```
 
-将来如果在新的版本目录从零重建，才先用相同脚本和 `--attack-kind direct-harm` 转换 `data/raw/injecagent/data/test_cases_dh_base.json`；当前 `data/interim/injecagent_dh_test_b.jsonl` 及其 conversion report 已封存，不得覆盖。
+将来如果在新的版本目录从零重建，才先用相同脚本和 `--attack-kind direct-harm` 转换 `data/raw/injecagent/data/test_cases_dh_base.json`，再执行上述 data-stealing 命令；当前两组输出及 conversion report 已封存，不得覆盖。
 
 适配器把 `Tool Response` 当作不可信内容，把 `Attacker Tools + Attacker Instruction` 记录为 `benchmark_target`。这不是被测 Agent 的真实输出动作，报告时不得写成 observed tool call。
 

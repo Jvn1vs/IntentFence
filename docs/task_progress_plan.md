@@ -199,11 +199,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ C1 手册命令已统一为从 Conda 环境登记表唯一解析解释器并 fail-fast；BIPIA builder 最小依赖已纳入 `data` extra；正式 split build 必须恰好生成六角色，manifest 会绑定每个角色的路径、行数和 SHA-256；动作校验按 split/source/provenance 白名单 fail-closed，Test B/C 的代理证据不会被误称为 observed action；
 - ✅ 训练前报告生成器已实现：在用户完成第 7 节后会复核全部来源/转换/审计/manifest 证据，并生成 train-only Risk × Alignment 列联/条件概率/互信息、类别覆盖、动作就绪状态、标签质量报告和数据卡；
 - 🟡 项目所有者已完成第 3 节的 email attack export、generated 严格转换和 clean 严格转换；转换报告分别记录 11,250 条攻击样本和 50 条 clean 样本，均为 `skipped=0`，报告中的输入/输出 SHA-256 已与现存文件复核一致。由于 export 产生在 builder sidecar 功能加入前，第 8 节前还须由项目所有者用 `--verify-existing` 重建到临时文件并生成 `reproduced_verified` 报告，现有数据无需覆盖；
-- 🔵 项目所有者已完成第 4 节 direct-harm 转换：报告记录 510 条、`skipped=0`、`split=test_b`、`action_provenance=benchmark_target`，输出 SHA-256 已复核一致；data-stealing 转换尚未执行；
+- ✅ 项目所有者已完成第 4 节 InjecAgent 转换：direct-harm 报告记录 510 条，data-stealing 报告记录 544 条；两者均为 `skipped=0`、`split=test_b`、`action_provenance=benchmark_target`，且各自输入/输出 SHA-256 与现存文件一致；
 - ⛔ BIPIA 不提供拟执行动作，且当前尚无已批准的动作构造与独立审计流程；第 3～8 节只能关闭 A/B 数据证据路线并生成训练前报告，模型 C 数据门仍阻塞，不得伪造动作；
 - ⛔ 当前 BIPIA 构造只直接提供 `benign` 与 `instruction_hijacking`，且 schema 令 Alignment 成为 Risk 的确定性二值映射；正式训练前必须依据真实报告，由项目所有者决定是修订为二元 risk-only 主目标，还是增加经许可/审计的训练类与独立 Alignment 标注。冻结协议尚未被擅自修改；
 - ✅ 已新增 `docs/training_entry_decision.md`，把二元 risk-only、保留五分类扩充数据、仅 A/B 工程冒烟三条路线及其证据/批准边界写清；当前状态仍为项目所有者待决，不构成协议修改；
-- ⛔ InjecAgent data-stealing 与三个 NotInject 子集尚未由用户转换；合并、去重和六角色划分尚未开始；
+- ⛔ 三个 NotInject 子集尚未由用户转换；合并、去重和六角色划分尚未开始；
 - ⛔ 200 条人工标签审计、真实泄漏检查和训练前数据报告尚未由用户执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3，不是 C1 缺项；
 - ⛔ 因此 C1 工程框架可交付，但研究出口尚未完成，不能进入真实训练结论阶段。
 
@@ -592,4 +592,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前下一步（项目所有者执行）
 
-C1 工程框架、来源下载与 manifest 核验、环境依赖预检、手册第 3 节的数据产物，以及第 4 节 direct-harm 转换已经完成。当前准确断点是 `docs/c1_user_runbook.md` 第 4 节唯一的当前命令（第 183–186 行）：由项目所有者转换 InjecAgent data-stealing base 文件。成功并提供转换日志后，依次进入第 5 节三个 NotInject 子集转换、第 6 节合并与至少 200 条人工标签审计、第 7 节去重/六角色隔离划分与完整性校验；第 8 节前补做既有 BIPIA export 的 `--verify-existing` builder 复现报告，再生成训练前数据报告。第 8 节报告提交只读复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置和模型 C 动作构造/独立审计路线；真实 Test A/B/C 基线按单次测试锁留到 C3，C1 研究出口通过前不得进入正式训练结论阶段。
+C1 工程框架、来源下载与 manifest 核验、环境依赖预检、手册第 3 节的数据产物，以及第 4 节两份 InjecAgent 转换已经完成。当前准确断点是 `docs/c1_user_runbook.md` 第 5 节第一个 NotInject 子集转换。三个子集成功并提供转换日志后，依次进入第 6 节合并与至少 200 条人工标签审计、第 7 节去重/六角色隔离划分与完整性校验；第 8 节前补做既有 BIPIA export 的 `--verify-existing` builder 复现报告，再生成训练前数据报告。第 8 节报告提交只读复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置和模型 C 动作构造/独立审计路线；真实 Test A/B/C 基线按单次测试锁留到 C3，C1 研究出口通过前不得进入正式训练结论阶段。
