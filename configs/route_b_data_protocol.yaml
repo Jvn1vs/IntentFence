@@ -107,4 +107,3 @@ readiness:
     - "independent_human_audit_and_adjudication_complete"
     - "split_and_test_lock_integrity_passed"
     - "v2_manifest_and_public_aggregate_reports_complete"
-

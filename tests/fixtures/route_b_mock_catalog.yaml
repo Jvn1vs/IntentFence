@@ -141,4 +141,3 @@ cases:
           attendee: ["untrusted_content"]
           duration_minutes: ["untrusted_content"]
           recurrence: ["untrusted_content"]
-

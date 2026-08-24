@@ -64,4 +64,3 @@ def capture_candidate_action(
         "external_side_effects": False,
     }
     return canonical_action, trace
-
