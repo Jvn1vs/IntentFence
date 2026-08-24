@@ -13,6 +13,18 @@ RISK_LABELS: tuple[str, ...] = (
 RISK_TO_ID = {label: index for index, label in enumerate(RISK_LABELS)}
 ID_TO_RISK = dict(enumerate(RISK_LABELS))
 
+TASK_ALIGNMENT_LABELS: tuple[str, ...] = (
+    "aligned",
+    "unrelated",
+    "ambiguous",
+    "malicious",
+)
+
+TASK_ALIGNMENT_TO_ID = {
+    label: index for index, label in enumerate(TASK_ALIGNMENT_LABELS)
+}
+ID_TO_TASK_ALIGNMENT = dict(enumerate(TASK_ALIGNMENT_LABELS))
+
 SPLIT_NAMES: tuple[str, ...] = (
     "train",
     "validation",

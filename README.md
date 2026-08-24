@@ -10,7 +10,7 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> C1 数据执行闭环已完成并生成可重放证据，但训练入口仍关闭：真实划分的 validation/calibration/test_a 缺少 benign，train 缺少三个风险类，Alignment 标签没有独立信息，且 Model C 缺少获批动作。详见 [C1 data card](reports/data_quality/data_card.md) 与 [训练入口决策记录](docs/training_entry_decision.md)。
+> C1 数据执行闭环已完成并生成可重放证据。项目所有者已选择 Route B，当前进入五分类、独立 Alignment 与离线动作证据的训练前扩充；协议仍是草案，模型训练入口关闭。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md) 与 [Route B 数据协议](docs/route_b_data_protocol.md)。
 
 > 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据及 JSON/CSV 证据不得提交，只提交经检查、不含样本内容的公开聚合 Markdown 报告。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 
@@ -88,6 +88,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/evaluate `
 第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用；项目所有者审阅并批准来源条款后，Codex 或项目所有者可以使用 `--execute --acknowledge-source-terms` 执行已批准的固定来源下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
 
 所有可直接复制的环境定位、下载、BIPIA 官方 builder、InjecAgent/NotInject 转换、标签审核、五个固定外部输入、六角色划分和训练前报告命令，都以 [C1 数据执行手册](docs/c1_user_runbook.md) 为唯一操作说明。README 不再维护省略参数的转换或划分示例，避免绕过固定角色和证据链质量门。Codex 可以执行其中的数据命令，但不得运行训练、拟合参数或提前访问正式测试模型结果的命令。
+
+Route B 的静态框架、Wilson 精度规划、无副作用 mock fixture 和结构验证命令见 [Route B 训练前数据扩充手册](docs/route_b_user_runbook.md)。该手册当前只验证框架，不会把 fixture 误标为训练数据。
 
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 

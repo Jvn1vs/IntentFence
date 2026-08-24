@@ -48,3 +48,17 @@ def test_action_provenance_fields_must_be_coherent():
             action_provenance="benchmark_target",
             adapter_missing_action=False,
         )
+
+    with pytest.raises(ValidationError, match="action_observation_id"):
+        make_sample(action_provenance="sandbox_policy_output")
+
+
+def test_route_b_task_alignment_is_independent_of_legacy_binary_label():
+    benign_unrelated = make_sample(task_alignment_label="unrelated")
+    resisted_attack = make_sample(
+        risk_label="data_exfiltration",
+        alignment_label=1,
+        task_alignment_label="aligned",
+    )
+    assert benign_unrelated.task_alignment_label == "unrelated"
+    assert resisted_attack.task_alignment_label == "aligned"

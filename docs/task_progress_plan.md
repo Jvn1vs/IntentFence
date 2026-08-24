@@ -68,6 +68,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
 | C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架与真实执行闭环完成 | ✅ 证据 validated；⛔ 训练就绪失败 | 真实 manifest、审核和报告已生成；按训练入口决策补数据/修订协议前停止 |
+| C1B | Route B 训练前数据扩充 | 五分类训练来源、独立 Alignment、动作构造与审核、v2 manifest | 🟡 协议草案与框架完成 | ⛔ 真实 v2 数据/双人盲审未完成 | 五类与正负类覆盖、独立标签/action 证据、许可和新 split 全部通过 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -231,6 +232,52 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - 本地和外部必要基线的接口、固定 revision 和合成 smoke 可重复；真实 Test A/B/C 基线结果按 test lock 延后到 C3 单次正式评测；
 - 数据版本、哈希、许可证和结果均可追溯；
 - 未达到出口条件不得租 GPU 训练 Base。
+
+---
+
+### C1B：Route B 五分类、独立 Alignment 与动作数据扩充
+
+#### 要做什么
+
+1. 在不改变旧 Test B/C 锁的前提下，创建协议 `2.0.0` 草案；
+2. 将五分类 `risk_label` 与四分类 `task_alignment_label` 分离；
+3. 用离线 mock runtime 捕获候选动作、参数来源和不可变 observation ID；
+4. 构造 Risk/Alignment 反事实配对，避免 Alignment 再次成为 Risk 的确定函数；
+5. 根据 1% FPR、cluster 结构和主端点冻结精度/功效目标；
+6. 完成两条相互盲的人工审核流与分歧裁决；
+7. 重新构造互斥 v2 train/validation/calibration/untouched tests、manifest 与聚合报告；
+8. 只有 readiness 明确给出 `formal_training_authorized=true` 后才移交用户训练。
+
+#### 当前状态
+
+- ✅ 项目所有者已于 2026-08-24 选择 Route B；选择不等于当前 v1 可训练；
+- ✅ `docs/route_b_data_protocol.md` 与 machine-readable 草案已建立，状态明确为
+  `DRAFT_UNFROZEN_NOT_TRAINING_AUTHORIZED`；
+- ✅ 官方来源复核完成：BIPIA 代码为 MIT，但 Email/Table/Code 等数据保留 MIT 或
+  CC BY-SA 等各自条款；WebQA/Summarization 仍需另行取得源数据；
+- ✅ InjecAgent、NotInject、AgentDojo 继续锁为 Test B/C/D，验证器会拒绝把它们放入
+  train/validation/calibration；
+- ✅ canonical schema 已增加 `task_alignment_label` 四分类和
+  `sandbox_policy_output` action provenance；旧二值 `alignment_label` 仅作 v1 兼容；
+- ✅ Route B 结构验证器已实现：拦截动作证据缺失、测试集挪用、模板/动作签名跨角色
+  泄漏、动作配对破坏和 Risk/Alignment 确定性混淆；
+- ✅ 离线 mock capture 只记录候选动作，trace 固定为 `executed=false`、
+  `external_side_effects=false`；10 条五分类 fixture 通过结构验证；
+- ✅ Wilson 精度规划脚本已实现，结果明确标为 planning-only，并警告行级二项精度
+  不能替代 cluster-aware 功效分析；
+- ✅ Route B 操作命令已写入 `docs/route_b_user_runbook.md`，不依赖旧 PowerShell 会话
+  中的自定义函数；
+- ⛔ 协议 `2.0.0` 尚未由项目所有者批准和冻结；
+- ⛔ 正式样本量、project-owned corpus、第二名独立人工审核者、untouched Test A2、
+  v2 manifest 和真实质量报告尚未完成；
+- ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
+
+#### 出口条件
+
+- `docs/route_b_data_protocol.md` 第 7 节所有质量门同时通过；
+- 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
+- 只提交框架、配置、文档和允许公开的聚合 Markdown 证据；
+- 阶段退出后准确停在模型训练命令之前，由项目所有者执行训练。
 
 ---
 
@@ -594,6 +641,6 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 暂停，等待用户提问或确认。
 ```
 
-## 10. 当前停止点（模型训练入口之前）
+## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成：来源、转换、合并、200 条正式审核、应用、去重、六角色划分、完整性验证、builder 复现和训练前报告均有可重放证据，`evidence_status=validated`。当前准确停止点是模型训练入口之前；由于 `formal_training_authorized=false`，不得执行任何学习参数拟合。项目所有者下一步只能先根据 `docs/training_entry_decision.md` 选择 A（二元 risk-only 并补充足量 benign/重建数据版本）、B（补齐五分类/独立 Alignment/action）或 C-only-smoke（仅工程 fixture）；选择与前置条件完成后才能另行开启训练阶段，最终测试锁不变。
+C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已于 2026-08-24 选择路线 B；C1B 的来源/许可审计、协议草案、四分类独立 Alignment schema、无副作用动作 capture、结构验证器和操作手册已经完成，但协议尚未冻结，正式 v2 corpus、样本量、双人盲审、Test A2 与 manifest 尚未完成。当前仍停在 C1B，不进入 C2a；v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。

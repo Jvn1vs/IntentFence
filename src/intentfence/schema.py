@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from intentfence.constants import RISK_LABELS, SPLIT_NAMES
+from intentfence.constants import RISK_LABELS, SPLIT_NAMES, TASK_ALIGNMENT_LABELS
 
 
 class IntentSample(BaseModel):
@@ -29,6 +29,7 @@ class IntentSample(BaseModel):
         "tool_manipulation",
     ]
     alignment_label: Literal[0, 1]
+    task_alignment_label: Literal["aligned", "unrelated", "ambiguous", "malicious"] | None = None
     attack_family: str = "none"
     severity: int = Field(default=0, ge=0, le=4)
     template_group: str = Field(min_length=1)
@@ -41,8 +42,15 @@ class IntentSample(BaseModel):
     adapter_profile: str = "unknown"
     adapter_missing_action: bool = False
     action_provenance: Literal[
-        "missing", "benchmark_target", "protocol_wrapper", "source_field", "unknown"
+        "missing",
+        "benchmark_target",
+        "protocol_wrapper",
+        "source_field",
+        "sandbox_policy_output",
+        "unknown",
     ] = "unknown"
+    action_observation_id: str | None = None
+    action_policy_id: str | None = None
     label_provenance: str = "unknown"
     field_provenance: dict[str, list[str]] = Field(default_factory=dict)
 
@@ -51,6 +59,13 @@ class IntentSample(BaseModel):
     def known_risk_label(cls, value: str) -> str:
         if value not in RISK_LABELS:
             raise ValueError(f"risk_label must be one of {RISK_LABELS}")
+        return value
+
+    @field_validator("task_alignment_label")
+    @classmethod
+    def known_task_alignment_label(cls, value: str | None) -> str | None:
+        if value is not None and value not in TASK_ALIGNMENT_LABELS:
+            raise ValueError(f"task_alignment_label must be one of {TASK_ALIGNMENT_LABELS}")
         return value
 
     @field_validator("split")
@@ -78,10 +93,18 @@ class IntentSample(BaseModel):
             "benchmark_target",
             "protocol_wrapper",
             "source_field",
+            "sandbox_policy_output",
         } and (not self.proposed_action or self.adapter_missing_action):
             raise ValueError(
                 "non-missing action provenance requires a non-empty action and "
                 "adapter_missing_action=false"
+            )
+        if self.action_provenance == "sandbox_policy_output" and (
+            not self.action_observation_id or not self.action_policy_id
+        ):
+            raise ValueError(
+                "action_provenance=sandbox_policy_output requires action_observation_id "
+                "and action_policy_id"
             )
         return self
 

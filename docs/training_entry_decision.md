@@ -5,7 +5,7 @@
 - Origin Skill: academic-research-suite / experiment-agent
 - Origin Mode: reproducibility planning
 - Prepared: 2026-08-23；真实证据复核：2026-08-24
-- Status: `C1_EVIDENCE_VALIDATED_TRAINING_BLOCKED`
+- Status: `ROUTE_B_SELECTED_PREREQUISITES_OPEN`
 - Authority: 本文件不是协议修订；`docs/research_protocol.md` 与 `configs/experiment_registry.yaml` 仍保持冻结状态
 
 ## 为什么训练入口尚未开放
@@ -54,12 +54,23 @@
 
 ## 项目所有者需要确认的决定
 
-在真实 `dataset_statistics.json` 生成并复核后，项目所有者应在本文件记录：
+2026-08-24 项目所有者已选择 `B`。该选择保留五分类 Risk、独立 Alignment 监督和动作模型 C 的原始研究解释，并授权继续设计训练前数据扩充与独立审核框架；它不等于批准当前 v1 数据训练，也不自动批准任何新来源条款、下载、付费资源或模型训练。
 
-- 选择：`A` / `B` / `C-only-smoke`；
-- 决定日期与决定人；
-- 是否批准新协议版本；
-- 是否批准动作构造与独立审计阶段；
+- 选择：`B`
+- 决定人：`project_owner`
+- 决定日期：`2026-08-24`
+- 新协议版本：必须创建；当前仅进入草案阶段，尚未冻结
+- 动作构造与独立审核：属于路线 B 必需前置阶段；具体来源、生成方法、provenance 和审核协议待草案复核
+- 外部来源、许可与下载范围：尚未逐项批准
+- 模型训练：未授权 Codex 执行，当前数据也未通过训练就绪门
+
+路线 B 草案完成后，项目所有者仍需逐项确认：
+
+- 是否批准 `docs/route_b_data_protocol.md` 与
+  `configs/route_b_data_protocol.yaml` 的协议 `2.0.0` 方向；
+- 是否继续默认排除 BIPIA Table/Code 等 CC BY-SA 来源；
+- 是否批准项目自有离线 mock-tool corpus 的正式构造；
+- 第二名独立人工审核者如何登记；
 - 若涉及外部模型或新增数据，许可、下载范围与预算边界。
 
-在上述字段未确认、且所选路线的数据前置条件未通过前，状态保持 `C1_EVIDENCE_VALIDATED_TRAINING_BLOCKED`，正式模型训练入口关闭。
+在来源、许可、五分类覆盖、独立 Alignment、action provenance、独立审核和新版本 split 全部通过前，状态保持 `ROUTE_B_SELECTED_PREREQUISITES_OPEN`，正式模型训练入口关闭。
