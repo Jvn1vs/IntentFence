@@ -1,6 +1,6 @@
 # C1 数据与基线框架：数据执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA 转换和第 4 节 InjecAgent direct-harm/data-stealing 转换均已完成；下一条是第 5 节第一个 NotInject 子集。真实合并、人工审计和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA、第 4 节 InjecAgent 和第 5 节 NotInject 转换均已完成；下一步是第 6 节合并训练池并生成标签审核样本。真实标签确认和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
@@ -192,7 +192,7 @@ Invoke-IntentFencePython scripts/prepare_injecagent.py `
 
 ## 5. NotInject：建立 Test C
 
-NotInject 固定 revision 包含 Parquet 文件。对三个官方子集分别运行以下完整命令：
+本节已完成，**不要重跑下列命令**。三个官方子集各读取并转换 113 条，共 339 条；均为 `skipped=0`、`split=test_c`、`risk_label=benign`、`action_provenance=protocol_wrapper`。三份输入/输出 SHA-256 已与 conversion report 逐一复核，canonical schema 校验通过，跨子集重复 `sample_id=0`。下列命令仅作为版本记录：
 
 ```powershell
 Invoke-IntentFencePython scripts/prepare_notinject.py `
@@ -208,7 +208,7 @@ Invoke-IntentFencePython scripts/prepare_notinject.py `
   --output data/interim/notinject_three_test_c.jsonl
 ```
 
-NotInject 没有 Agent 任务或动作，适配器使用公开、固定的良性 `protocol_wrapper`；它只用于过度防御压力测试，不能证明真实 Agent 效用。
+输出 SHA-256 分别为：one `ae0bfa1a1c945cf5efca365e3ab35a65567028d4b87c8cfe4fa33527b46cde03`、two `ae2b993b8c20e7c3245fd7bd26eee64514ecea040f949e1569c8a80ce129f763`、three `d349d441adf039f3420dacdb492ed565834bd43ee84c9ea1d201e7bea1304f93`。NotInject 没有 Agent 任务或动作，适配器使用公开、固定的良性 `protocol_wrapper`；它只用于过度防御压力测试，不能证明真实 Agent 效用。
 
 ## 6. 合并、标签审核与应用修订
 
