@@ -1,6 +1,6 @@
 # C1 数据与基线框架：数据执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：第 3～5 节转换和第 6 节训练池合并、200 条标签审核、汇总及应用均已完成；下一步由 Codex 执行第 7 节去重、六角色隔离划分和完整性校验。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：框架已实现。2026-08-24 当前执行断点：第 3～7 节均已执行；去重、六角色 manifest 及 context/external-action 完整性校验通过。真实结果同时暴露训练阻塞：validation、calibration、test_a 没有 benign。下一步执行第 8 节 builder 复现和训练前数据报告，由报告正式封存类别覆盖、Alignment 独立性与 Model C action readiness。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
@@ -263,6 +263,10 @@ Invoke-IntentFencePython scripts/apply_label_audit.py `
 `ambiguous` 行会从输出排除；未抽中的行保留 `human_verified=false`。本版本已取得项目所有者确认并完成 apply；只有抽中的 200 行为 `human_verified=true`，不能误称为全量人工标注。当前产物拒绝覆盖，后续不得重跑本节命令。
 
 ## 7. 去重、隔离划分与完整性校验
+
+本节已完成，**不要重跑下列生成与校验命令**。BIPIA 主输入 11,300 条经 163 个精确重复对和 8,450 个近重复对去重后保留 2,687 条；六角色最终共 4,080 条。manifest 文件 SHA-256 为 `e04a16f4b23b9811dc68c4a98cc6fe4152da582d90c0fbbfd6eb225efae1b545`，封存自哈希为 `bdd9fe80de528083591652bc743d878777adb55bb082bf4d5df6fc5f7d1f0063`。context 和 external-action 两份完整性报告均为 `status=passed`，没有发现跨 split 模板/近重复泄漏或不支持的 action provenance。
+
+真实 split 计数为：train 1,215（39 benign、1,176 instruction_hijacking）；validation 493、calibration 493、test_a 486，后三者均只有 instruction_hijacking；test_b 1,054（544 data_exfiltration、510 tool_manipulation）；test_c 339 benign。validation/calibration/test_a 缺少 benign，无法支持 FPR、二分类校准或有效模型选择，属于训练入口阻塞，不能因结构校验通过而忽略。
 
 ```powershell
 Invoke-IntentFencePython scripts/build_splits.py `

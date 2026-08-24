@@ -206,7 +206,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ 第 5 节三个 NotInject 子集已完成：one/two/three 各 113 条，共 339 条；均为 `skipped=0`、`split=test_c`、`risk_label=benign`、`action_provenance=protocol_wrapper`，三份输入/输出 SHA-256 与报告一致，canonical schema 通过且跨子集重复 `sample_id=0`；
 - ✅ 第 6 节 BIPIA 训练池合并完成：11,300 条（50 `benign`、11,250 `instruction_hijacking`），输出 SHA-256 `3fc10575e89e2304e2894629489a876b8e7c935a87e1aaea627be57386be725a`；固定 seed=42 的审核表抽取 200 条（50 clean、150 attack）；
 - ✅ 项目所有者已检查全部 200 条 AI 预审建议并确认均为 `correct`；正式审核汇总 `status=passed`、`reviewer=project_owner`，应用只改变 200 行的 `human_verified`，11,100 条未抽样记录保留。正式审核 CSV SHA-256 为 `2e2990f0a62af8a163bae66e857debd8203d5a16f37e20f2f58c8abe2a717624`，审核后训练池 SHA-256 为 `1fd5559c18dd358a0e0184154af2e4a859cd0f5d13caff4f07f0b9125e397a99`；
-- 🔵 真实泄漏检查、六角色划分和训练前数据报告尚未执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3，不是 C1 缺项；
+- ✅ 第 7 节完成：BIPIA 11,300 条经 163 个精确重复对和 8,450 个近重复对去重后保留 2,687 条；加 Test B/C 后六角色共 4,080 条。manifest 文件 SHA-256 `e04a16f4b23b9811dc68c4a98cc6fe4152da582d90c0fbbfd6eb225efae1b545`、封存自哈希 `bdd9fe80de528083591652bc743d878777adb55bb082bf4d5df6fc5f7d1f0063`；context/external-action 完整性报告均 passed，模板组和近重复跨 split 泄漏为 0；
+- ⛔ 真实划分暴露新的训练阻塞：train 为 39 benign/1,176 instruction_hijacking，但 validation 493、calibration 493、test_a 486 均没有 benign，无法支持 FPR、二分类校准或有效模型选择。第 8 节训练前报告尚未执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3；
 - ⛔ 因此 C1 工程框架可交付，但研究出口尚未完成，不能进入真实训练结论阶段。
 
 #### 要测试什么
@@ -594,4 +595,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前下一步（Codex 执行）
 
-C1 工程框架、来源核验、手册第 3～5 节转换及第 6 节训练池合并/200 条正式标签审核已经完成。当前准确断点是第 7 节：Codex 执行去重、六角色隔离划分和 context/action 完整性校验；随后补做第 8 节 builder 复现并生成训练前数据报告。第 8 节报告复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置；所有学习参数拟合与正式训练继续由项目所有者执行，最终测试锁不变。
+C1 手册第 3～7 节已完成：来源/转换/审核/应用/去重/六角色划分和两份完整性报告均有可重放证据。当前准确断点是第 8 节：Codex 补做既有 BIPIA export 的 `--verify-existing` builder 复现，随后生成并复核训练前数据报告。真实划分已明确暴露 validation/calibration/test_a 无 benign 的训练阻塞；第 8 节必须如实封存该结果，不能启动学习参数拟合。报告复核后根据 `docs/training_entry_decision.md` 和实际覆盖问题整理训练入口决策；所有正式训练仍只由项目所有者执行，最终测试锁不变。
