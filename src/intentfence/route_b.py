@@ -15,6 +15,7 @@ from intentfence.mock_runtime import capture_candidate_action
 from intentfence.schema import IntentSample
 
 INTERNAL_ROLES = frozenset({"train", "validation", "calibration"})
+CONSTRUCTION_ROLES = frozenset({"train", "validation", "calibration", "test_a"})
 LOCKED_SOURCE_ROLES = {
     "injecagent": "test_b",
     "notinject": "test_c",
@@ -61,6 +62,7 @@ def validate_route_b_samples(
     pair_groups: dict[str, list[IntentSample]] = defaultdict(list)
     template_roles: dict[str, set[str]] = defaultdict(set)
     action_signature_roles: dict[str, set[str]] = defaultdict(set)
+    observation_ids: set[str] = set()
 
     for row in rows:
         split = str(row.split or "unassigned")
@@ -72,7 +74,7 @@ def validate_route_b_samples(
                     f"{row.sample_id}: locked source {row.source} may only use {expected_role}, got {split}"
                 )
 
-        if split in INTERNAL_ROLES:
+        if split in CONSTRUCTION_ROLES:
             if row.task_alignment_label is None:
                 errors.append(f"{row.sample_id}: internal Route B row lacks task_alignment_label")
             else:
@@ -83,8 +85,16 @@ def validate_route_b_samples(
                 )
             if not row.action_observation_id:
                 errors.append(f"{row.sample_id}: internal row lacks action_observation_id")
+            elif row.action_observation_id in observation_ids:
+                errors.append(
+                    f"{row.sample_id}: duplicate action_observation_id={row.action_observation_id}"
+                )
+            else:
+                observation_ids.add(row.action_observation_id)
             if not row.action_policy_id:
                 errors.append(f"{row.sample_id}: internal row lacks action_policy_id")
+            if not row.field_provenance:
+                errors.append(f"{row.sample_id}: internal row lacks field_provenance")
             pair_group = str(getattr(row, "action_pair_group", "") or "")
             if not pair_group:
                 errors.append(f"{row.sample_id}: internal row lacks action_pair_group")
@@ -96,13 +106,13 @@ def validate_route_b_samples(
             action_signature_roles[_normalized_action_signature(row.proposed_action)].add(split)
 
     for template_group, roles in sorted(template_roles.items()):
-        internal = roles & INTERNAL_ROLES
+        internal = roles & CONSTRUCTION_ROLES
         if len(internal) > 1:
             errors.append(
                 f"template_group crosses internal roles: {template_group} -> {sorted(internal)}"
             )
     for signature, roles in sorted(action_signature_roles.items()):
-        internal = roles & INTERNAL_ROLES
+        internal = roles & CONSTRUCTION_ROLES
         if len(internal) > 1:
             errors.append(
                 f"normalized action signature crosses internal roles: {signature!r} -> {sorted(internal)}"
@@ -118,8 +128,10 @@ def validate_route_b_samples(
             errors.append(f"action_pair_group {group!r} does not preserve one base case")
         if len(alignments) < 2:
             errors.append(f"action_pair_group {group!r} lacks contrasting alignment labels")
+        if len({row.proposed_action for row in members}) != len(members):
+            errors.append(f"action_pair_group {group!r} contains duplicate candidate actions")
 
-    internal_rows = [row for row in rows if str(row.split) in INTERNAL_ROLES]
+    internal_rows = [row for row in rows if str(row.split) in CONSTRUCTION_ROLES]
     if internal_rows:
         if not any(
             row.risk_label != "benign" and row.task_alignment_label == "aligned"
@@ -145,6 +157,23 @@ def validate_route_b_samples(
             blockers.append(f"internal roles lack Risk labels: {missing_risks}")
         if missing_alignment:
             blockers.append(f"internal roles lack task Alignment labels: {missing_alignment}")
+        for role in sorted(set(by_split) & CONSTRUCTION_ROLES):
+            role_rows = by_split[role]
+            role_risks = {row.risk_label for row in role_rows}
+            role_alignments = {
+                row.task_alignment_label
+                for row in role_rows
+                if row.task_alignment_label is not None
+            }
+            if role_risks != set(RISK_LABELS):
+                blockers.append(
+                    f"{role} lacks Risk labels: {sorted(set(RISK_LABELS) - role_risks)}"
+                )
+            if role_alignments != set(TASK_ALIGNMENT_LABELS):
+                blockers.append(
+                    f"{role} lacks task Alignment labels: "
+                    f"{sorted(set(TASK_ALIGNMENT_LABELS) - role_alignments)}"
+                )
 
     if policy.get("status") != "frozen":
         blockers.append("Route B protocol is not frozen")
@@ -153,6 +182,36 @@ def validate_route_b_samples(
     if not policy.get("readiness", {}).get("formal_training_authorized", False):
         blockers.append("formal_training_authorized is false")
 
+    contingency = {
+        risk: {
+            alignment: sum(
+                row.risk_label == risk and row.task_alignment_label == alignment
+                for row in internal_rows
+            )
+            for alignment in TASK_ALIGNMENT_LABELS
+        }
+        for risk in RISK_LABELS
+    }
+    relationship_total = len(internal_rows)
+    risk_totals = {risk: sum(contingency[risk].values()) for risk in RISK_LABELS}
+    alignment_totals = {
+        alignment: sum(contingency[risk][alignment] for risk in RISK_LABELS)
+        for alignment in TASK_ALIGNMENT_LABELS
+    }
+    mutual_information_nats = 0.0
+    if relationship_total:
+        for risk in RISK_LABELS:
+            for alignment in TASK_ALIGNMENT_LABELS:
+                count = contingency[risk][alignment]
+                if count:
+                    joint = count / relationship_total
+                    mutual_information_nats += joint * math.log(
+                        joint
+                        / (
+                            (risk_totals[risk] / relationship_total)
+                            * (alignment_totals[alignment] / relationship_total)
+                        )
+                    )
     summary = {
         "rows": len(rows),
         "by_split": {name: len(group) for name, group in sorted(by_split.items())},
@@ -170,6 +229,10 @@ def validate_route_b_samples(
             risk: sorted(labels) for risk, labels in sorted(risk_to_alignment.items())
         },
         "action_pair_groups": len(pair_groups),
+        "risk_alignment_contingency": contingency,
+        "risk_alignment_mutual_information_bits": (
+            mutual_information_nats / math.log(2) if relationship_total else 0.0
+        ),
     }
     return {
         "status": "failed" if errors else "structure_passed_readiness_blocked" if blockers else "ready",

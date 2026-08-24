@@ -1,9 +1,13 @@
 schema_version: 1
-protocol_version: "2.0.0-draft.1"
-status: "draft_unfrozen_not_training_authorized"
+protocol_version: "2.0.0-draft.2"
+status: "direction_approved_construction_authorized_not_frozen"
 selected_route: "B"
 selected_by: "project_owner"
 selected_at: "2026-08-24"
+direction_approved_by: "project_owner"
+direction_approved_at: "2026-08-24"
+project_owned_mock_corpus_authorized: true
+unapproved_cc_by_sa_and_noncommercial_sources_excluded: true
 evidence_cutoff: "2026-08-24"
 
 risk_labels:
@@ -44,7 +48,7 @@ action_evidence:
 
 source_routing:
   project_mock_scenarios:
-    roles: ["train", "validation", "calibration"]
+    roles: ["train", "validation", "calibration", "test_a"]
     status: "preferred_pending_independent_human_audit"
   bipia_email_train:
     roles: ["train", "validation", "calibration"]
@@ -85,16 +89,51 @@ split_isolation:
 
 audit:
   independent_human_reviewers_required: 2
-  risk_review_blinded_to_seed_label: true
-  alignment_review_blinded_to_risk_and_other_reviewer: true
+  both_reviewers_label_same_risk_sample_independently: true
+  both_reviewers_label_same_alignment_sample_independently: true
+  risk_review_blinded_to_seed_label_and_other_reviewer: true
+  alignment_review_blinded_to_risk_seed_label_and_other_reviewer: true
   adjudication_preserves_raw_reviews: true
   ai_review_counts_as_independent_human_review: false
   report_raw_agreement: true
   report_per_class_confusion: true
+  sample_rows:
+    risk: 400
+    alignment: 400
+  preregistered_quality_gates:
+    completed_fraction_minimum: 0.95
+    raw_interreviewer_agreement_minimum: 0.90
+    cohen_kappa_minimum: 0.80
+    per_seed_class_agreement_minimum: 0.90
+    action_realism_realistic_fraction_minimum: 0.95
+    failed_gate_action: "revise_corpus_and_generate_new_candidate_do_not_override"
 
 sample_size:
-  status: "pending_reproducible_precision_or_power_analysis"
-  forbid_arbitrary_per_class_minimum: true
+  status: "candidate_target_met_pending_human_audit_and_protocol_freeze"
+  basis:
+    target_benign_fpr: 0.01
+    calibration_benign_rows: 2000
+    test_a_benign_rows: 2000
+    one_event_resolution: 0.0005
+    nominal_wilson_95_half_width_at_1pct: 0.00445658529126125
+    caveat: "row-level precision only; cluster-aware uncertainty remains mandatory"
+  construction:
+    rows_per_base_case: 20
+    base_cases:
+      train: 250
+      validation: 100
+      calibration: 500
+      test_a: 500
+    template_groups:
+      train: 50
+      validation: 20
+      calibration: 100
+      test_a: 100
+    expected_rows:
+      train: 5000
+      validation: 2000
+      calibration: 10000
+      test_a: 10000
 
 readiness:
   formal_training_authorized: false

@@ -51,6 +51,7 @@ def _row(index: int, risk: str, alignment: str, pair: str) -> IntentSample:
         action_provenance="sandbox_policy_output",
         action_observation_id=f"trace-{index}",
         action_policy_id="deterministic-mock-policy-v1",
+        field_provenance={"item": ["user_goal"]},
         action_pair_group=pair,
     )
 
@@ -77,6 +78,7 @@ def test_route_b_fixture_passes_structure_but_not_readiness() -> None:
     assert report["status"] == "structure_passed_readiness_blocked"
     assert "formal_training_authorized is false" in report["readiness_blockers"]
     assert report["summary"]["action_pair_groups"] == 5
+    assert report["summary"]["risk_alignment_mutual_information_bits"] > 0
 
 
 def test_route_b_rejects_locked_test_source_in_training() -> None:

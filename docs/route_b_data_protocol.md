@@ -6,15 +6,16 @@
 - Mode: reproducibility planning
 - Prepared: 2026-08-24
 - Evidence cutoff: 2026-08-24
-- Status: `DRAFT_UNFROZEN_NOT_TRAINING_AUTHORIZED`
+- Status: `DIRECTION_APPROVED_CONSTRUCTION_AUTHORIZED_NOT_FROZEN`
 - Parent protocol: `docs/research_protocol.md` version `1.0.0`
 - Intended successor: protocol version `2.0.0`，仅在项目所有者批准后冻结
 
 ## 1. 已作出的决定与尚未获得的授权
 
 项目所有者已于 2026-08-24 选择 Route B：保留五分类 Risk、独立 Alignment
-监督和动作感知输入。该决定授权训练前协议、schema、静态验证器、离线 mock
-动作构造和审核材料的开发，但不表示：
+监督和动作感知输入，并于同日批准协议 `2.0.0` 方向、继续排除尚未单独批准的
+CC BY-SA/非商业外部数据，以及项目自有离线 mock-tool 正式候选语料的构造。该决定
+授权训练前协议、schema、静态验证器、离线 mock 动作构造和审核材料的开发，但不表示：
 
 - 当前 v1 数据可以训练；
 - 已接受任何新增外部数据条款；
@@ -135,25 +136,31 @@ Risk 类别判定规则：
   从未用于设计选择的 untouched Test A2；旧 Test A 仍保留为历史锁定证据；
 - Test B/C/D 永远不用于模板、阈值、动作政策或标签规则调优。
 
-正式样本量不在草案中凭经验拍定。冻结前应根据主端点、期望置信区间宽度、
-cluster 数量和 1% FPR 分辨率形成可重放的精度/功效分析。每个内部角色必须同时有
-benign/attack 和所有需要估计的 Alignment 类；单纯“每类至少一条”不构成就绪。
+构造目标采用完整 Risk × Alignment 反事实设计：每个 base case 生成 `5 × 4 = 20`
+条动作候选。train/validation/calibration/Test A2 分别计划
+`250/100/500/500` 个 base case，即 `5,000/2,000/10,000/10,000` 条；其中
+calibration 与 Test A2 各有 2,000 条 benign，可把单次 benign 错误的经验 FPR
+分辨率降到 0.05%。每个角色的 base case 再按 5 个 case 组成一个 template group，
+形成 `50/20/100/100` 个互斥 cluster。
 
 `scripts/plan_route_b_precision.py` 已提供不拟合参数的 Wilson 精度表。以恰好 1%
 错误率作规划点时，benign `n=100/339/1000/2000/5000` 的单错误分辨率分别约为
 `1%/0.295%/0.1%/0.05%/0.02%`，名义 95% Wilson 半宽约为
 `2.636%/1.134%/0.643%/0.446%/0.278%`。这只说明行级二项精度，不能替代
-cluster-aware 功效分析，也不决定最终样本量；当前仍保持 `pending`。
+cluster-aware 功效分析。上述数量是获批构造方向下的 candidate target，生成和审核后
+还要根据实际 cluster 分布冻结；它仍不是训练授权。
 
 ## 6. 双盲标签与动作审核
 
 AI 可以生成候选、做一致性预审和指出冲突，但不得计为独立人工审核。训练就绪需要：
 
-1. reviewer A 在看不到预设 Risk 标签时标注 Risk；
-2. reviewer B 在看不到 Risk 和 reviewer A 结果时标注 `task_alignment_label` 与动作 realism；
-3. 分歧由 adjudicator 处理，原始意见不得覆盖；
+1. reviewer A 与 reviewer B 分别在看不到预设标签和对方答案时独立标注同一批 Risk；
+2. 两人再以不同顺序、看不到 Risk/预设 Alignment/对方答案的表独立标注同一批
+   `task_alignment_label` 与动作 realism；
+3. 两份原始答案封存后才比较，分歧由 adjudicator 处理，原始意见不得覆盖；
 4. 每位审核者记录稳定匿名 ID、时间、rubric 版本和备注；
-5. 报告原始一致率、每类混淆和适当的一致性统计，不只报告裁决后 100%；
+5. 分别报告 Risk 与 Alignment 的原始一致率、每类混淆和适当的一致性统计，不只报告
+   裁决后 100%；
 6. `ambiguous` 是有效 Alignment 类，不等同于“审核没完成”；真正无法标注的 case 使用
    单独 audit 状态并从主要训练/评测隔离。
 
@@ -179,9 +186,12 @@ AI 可以生成候选、做一致性预审和指出冲突，但不得计为独�
 
 ## 8. 当前开放项
 
-- 项目所有者尚未批准 Table/Code 等 CC BY-SA 数据的加入与发布处理；默认排除。
+- 项目所有者已批准继续默认排除 Table/Code 等尚未单独批准的 CC BY-SA 数据；若以后
+  改变决定，必须另开来源许可阶段。
 - WebQA/XSum、SecAlign/StruQ 和任何新外部数据下载均未批准。
-- 正式样本量目标等待精度/功效分析。
+- candidate 4 已生成 27,000 条、270 个 template group；manifest、exact、四角色
+  template/action 隔离和 5,400 个模板代表的 0.92 near-duplicate 检查均通过。样本量
+  与 cluster 目标已经达到，但仍须双人盲审后才能冻结。
 - 第二名独立人工审核者尚未登记。
 - 新 untouched Test A2 的来源与构造尚未冻结。
 - 本草案尚未升级或覆盖冻结的 protocol `1.0.0`。

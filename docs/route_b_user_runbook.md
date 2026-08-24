@@ -1,9 +1,10 @@
 # Route B 训练前数据扩充手册
 
-状态：框架已实现；协议仍为草案，真实 v2 数据构造和模型训练均未开放。
+状态：框架和正式 candidate 4 已生成；协议仍未冻结，双人盲审与模型训练尚未完成。
 
-本手册只运行静态校验、精度规划和明确标记为 `framework_fixture_not_training_data`
-的合成 fixture。它不会下载新数据、调用在线工具、拟合参数或生成模型权重。
+本手册覆盖静态校验、精度规划、framework fixture、获批的项目自有离线 candidate
+构造、完整性验证和双人盲审。它不会下载外部数据、调用在线工具、拟合参数或生成
+模型权重。
 
 ## 0. 从哪里执行
 
@@ -44,7 +45,7 @@ if ($LASTEXITCODE -ne 0) { throw "Route B 框架校验失败" }
 预期输出：
 
 ```text
-Route B framework validation passed (draft remains training-blocked)
+Route B framework validation passed (construction authorized; training blocked)
 ```
 
 这里的 `passed` 只表示框架一致；括号明确说明训练仍被阻塞。
@@ -107,7 +108,86 @@ if ($LASTEXITCODE -ne 0) { throw "Route B fixture 结构校验失败" }
 不要对当前 fixture 使用 `--require-ready`，因为它故意不是训练数据。正式 v2 数据只有
 在协议、来源、双人盲审、split、manifest 和质量报告全部完成后才允许通过该选项。
 
-## 5. 完整本地验证
+## 5. 正式 candidate 4（已由 Codex 完成）
+
+当前不可覆盖目录：
+
+```text
+data\interim\route_b_v2_candidate_4
+```
+
+其中有 train 5,000、validation 2,000、calibration 10,000、Test A2 10,000，
+合计 27,000 条。每个 base case 有完整 `5 Risk × 4 Alignment` 反事实矩阵；四角色
+共有 270 个互斥 template group。不要重跑或删除当前目录。
+
+复核 manifest：
+
+```powershell
+& $IntentFencePython scripts/validate_route_b_manifest.py `
+  --manifest data/interim/route_b_v2_candidate_4/manifest.json
+if ($LASTEXITCODE -ne 0) { throw "Route B manifest 复核失败" }
+```
+
+复核四角色结构、exact 和 0.92 template-representative near-duplicate：
+
+```powershell
+& $IntentFencePython scripts/validate_route_b_dataset.py `
+  --input data/interim/route_b_v2_candidate_4/train.jsonl `
+  --input data/interim/route_b_v2_candidate_4/validation.jsonl `
+  --input data/interim/route_b_v2_candidate_4/calibration.jsonl `
+  --input data/interim/route_b_v2_candidate_4/test_a.jsonl
+if ($LASTEXITCODE -ne 0) { throw "Route B candidate 完整性复核失败" }
+```
+
+预期 `errors=[]`，同时仍显示协议、审核和训练授权 blocker。
+
+## 6. 双人盲审包（已由 Codex 生成）
+
+审核目录：
+
+```text
+data\interim\route_b_v2_candidate_4_audit_v2
+```
+
+`audit_manifest.json` 的密封 SHA-256 应为
+`05eaf499f3666f096a4a2f9a189e40da95b96e8fd37ff4f6f012896f6049e612`；分析器会在读取审核结果时再次验证该清单及密封 seed 文件。
+
+项目所有者先阅读 `docs/route_b_audit_rubric.md`。将下面两份只交给 reviewer A：
+
+```text
+reviewer_a_risk.csv
+reviewer_a_alignment.csv
+```
+
+将下面两份只交给 reviewer B：
+
+```text
+reviewer_b_risk.csv
+reviewer_b_alignment.csv
+```
+
+不要把 `sealed_seed_labels.json` 交给任何 reviewer。两人各自需要审核 400 条 Risk 和
+400 条 Alignment；两套顺序不同，但抽样集合相同。AI 不能充当第二名人类审核者。
+
+四份表完成并保存原始副本后，运行：
+
+```powershell
+& $IntentFencePython scripts/analyze_route_b_blind_audits.py `
+  --reviewer-a-risk data/interim/route_b_v2_candidate_4_audit_v2/reviewer_a_risk.csv `
+  --reviewer-b-risk data/interim/route_b_v2_candidate_4_audit_v2/reviewer_b_risk.csv `
+  --reviewer-a-alignment data/interim/route_b_v2_candidate_4_audit_v2/reviewer_a_alignment.csv `
+  --reviewer-b-alignment data/interim/route_b_v2_candidate_4_audit_v2/reviewer_b_alignment.csv `
+  --sealed-seed-labels data/interim/route_b_v2_candidate_4_audit_v2/sealed_seed_labels.json `
+  --audit-manifest data/interim/route_b_v2_candidate_4_audit_v2/audit_manifest.json `
+  --output data/interim/route_b_v2_candidate_4_audit_v2/audit_analysis.json
+if ($LASTEXITCODE -ne 0) { throw "Route B 双人盲审分析失败" }
+```
+
+分析器会拒绝修改过的题目列、相同 reviewer ID、缺少时区的时间、非法标签或未说明的
+`unable_to_determine`，并计算原始一致率、Cohen's kappa、逐类 seed agreement 和动作
+realism。即使全部通过，报告仍保持 `formal_training_authorized=false`，直到协议冻结。
+
+## 7. 完整本地验证
 
 ```powershell
 & $IntentFencePython -m ruff check .
@@ -123,7 +203,7 @@ if ($LASTEXITCODE -ne 0) { throw "compileall 失败" }
 if ($LASTEXITCODE -ne 0) { throw "wheel 构建失败" }
 ```
 
-## 6. 当前禁止执行
+## 8. 当前禁止执行
 
 - 不把 fixture 复制到 `data/processed` 并称为真实训练数据；
 - 不从 InjecAgent、NotInject、AgentDojo 或已冻结 Test A/B/C/D 抽取训练样本；
@@ -131,5 +211,5 @@ if ($LASTEXITCODE -ne 0) { throw "wheel 构建失败" }
 - 不把 AI 预审写成第二名独立人类审核；
 - 不运行 `intentfence-train`、TF-IDF 拟合、tiny-overfit、温度或阈值拟合。
 
-下一阶段开始前，需要项目所有者批准 `docs/route_b_data_protocol.md` 的具体协议修订，
-确认是否继续默认排除 CC BY-SA 来源，并登记第二名独立人工审核者。
+当前只剩人类双盲审核、可能的分歧裁决、协议最终冻结和 v2 readiness 报告。审核通过前
+不得把 candidate 4 复制为训练就绪版本。

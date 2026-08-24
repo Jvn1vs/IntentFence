@@ -68,7 +68,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
 | C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架与真实执行闭环完成 | ✅ 证据 validated；⛔ 训练就绪失败 | 真实 manifest、审核和报告已生成；按训练入口决策补数据/修订协议前停止 |
-| C1B | Route B 训练前数据扩充 | 五分类训练来源、独立 Alignment、动作构造与审核、v2 manifest | 🟡 协议草案与框架完成 | ⛔ 真实 v2 数据/双人盲审未完成 | 五类与正负类覆盖、独立标签/action 证据、许可和新 split 全部通过 |
+| C1B | Route B 训练前数据扩充 | 五分类训练来源、独立 Alignment、动作构造与审核、v2 manifest | 🟡 candidate 4 与审核包完成 | ⛔ 双人盲审/协议冻结未完成 | 五类与正负类覆盖、独立标签/action 证据、许可和新 split 全部通过 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -267,9 +267,18 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   不能替代 cluster-aware 功效分析；
 - ✅ Route B 操作命令已写入 `docs/route_b_user_runbook.md`，不依赖旧 PowerShell 会话
   中的自定义函数；
-- ⛔ 协议 `2.0.0` 尚未由项目所有者批准和冻结；
-- ⛔ 正式样本量、project-owned corpus、第二名独立人工审核者、untouched Test A2、
-  v2 manifest 和真实质量报告尚未完成；
+- ✅ 项目所有者已批准 `2.0.0` 方向、默认排除未单独批准的 CC BY-SA/非商业来源，
+  并授权 project-owned 离线 mock-tool 正式候选语料构造；
+- ✅ candidate 4 已生成 27,000 条：train 5,000、validation 2,000、calibration 10,000、
+  Test A2 10,000；五类 Risk 和四类 Alignment 在每个角色中均衡；
+- ✅ manifest 自哈希、配置/生成器/runtime/trace/split 哈希可重放，27,000 条 trace 全部
+  `executed=false`、`external_side_effects=false`；
+- ✅ exact、template group、action signature 检查通过；5,400 个模板代表在阈值 0.92 下
+  完成 69,452 次跨角色 Jaccard 比较，near-duplicate 为 0；
+- ✅ 已生成 reviewer A/B 两套不同顺序的盲审包；每人各 400 条 Risk 和 400 条
+  Alignment，不暴露 seed labels；审核分析器和预注册质量门已实现；
+- ⛔ 协议 `2.0.0` 尚未最终冻结，第二名独立人工审核者和两人审核尚未完成；
+- ⛔ v2 readiness 聚合报告尚未完成；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
@@ -603,7 +612,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-24：
 
 - Ruff 静态检查通过；
-- 108 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 123 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -643,4 +652,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已于 2026-08-24 选择路线 B；C1B 的来源/许可审计、协议草案、四分类独立 Alignment schema、无副作用动作 capture、结构验证器和操作手册已经完成，但协议尚未冻结，正式 v2 corpus、样本量、双人盲审、Test A2 与 manifest 尚未完成。当前仍停在 C1B，不进入 C2a；v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
+C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已批准路线 B 2.0 方向、外部许可排除边界和项目自有离线 corpus 构造。C1B candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双人盲审包和分析器也已生成。当前准确停止点是两名独立人类各自完成 400 条 Risk 与 400 条 Alignment 审核；在审核、可能的裁决、协议冻结和 readiness 报告完成前不进入 C2a。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。

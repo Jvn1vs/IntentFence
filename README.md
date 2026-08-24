@@ -10,7 +10,7 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> C1 数据执行闭环已完成并生成可重放证据。项目所有者已选择 Route B，当前进入五分类、独立 Alignment 与离线动作证据的训练前扩充；协议仍是草案，模型训练入口关闭。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md) 与 [Route B 数据协议](docs/route_b_data_protocol.md)。
+> C1 数据执行闭环已完成并生成可重放证据。项目所有者已批准 Route B 2.0 方向；项目自有离线 candidate 4 已完成 27,000 条五分类 × 四类独立 Alignment/action 数据及完整性验证，当前等待双人盲审和协议冻结，模型训练入口仍关闭。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md) 与 [Route B 数据协议](docs/route_b_data_protocol.md)。
 
 > 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据及 JSON/CSV 证据不得提交，只提交经检查、不含样本内容的公开聚合 Markdown 报告。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 

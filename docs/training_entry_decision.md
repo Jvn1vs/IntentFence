@@ -64,12 +64,12 @@
 - 外部来源、许可与下载范围：尚未逐项批准
 - 模型训练：未授权 Codex 执行，当前数据也未通过训练就绪门
 
+2026-08-24 后续批准：项目所有者批准 Route B 2.0 协议方向、继续排除尚未单独批准的
+CC BY-SA/非商业外部数据，并批准项目自有离线 mock-tool 正式候选语料构造。该批准
+解除 corpus construction 阻塞，但不解除协议冻结、双人盲审、manifest 或训练阻塞。
+
 路线 B 草案完成后，项目所有者仍需逐项确认：
 
-- 是否批准 `docs/route_b_data_protocol.md` 与
-  `configs/route_b_data_protocol.yaml` 的协议 `2.0.0` 方向；
-- 是否继续默认排除 BIPIA Table/Code 等 CC BY-SA 来源；
-- 是否批准项目自有离线 mock-tool corpus 的正式构造；
 - 第二名独立人工审核者如何登记；
 - 若涉及外部模型或新增数据，许可、下载范围与预算边界。
 
