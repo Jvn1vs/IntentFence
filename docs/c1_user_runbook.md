@@ -1,6 +1,6 @@
 # C1 数据与基线框架：数据执行手册
 
-状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA、第 4 节 InjecAgent 和第 5 节 NotInject 转换均已完成；下一步是第 6 节合并训练池并生成标签审核样本。真实标签确认和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
+状态：框架已实现。2026-08-24 当前执行断点：第 3～5 节转换均已完成；第 6 节 BIPIA 训练池合并、200 条审核抽样和 Codex AI 预审已完成。正式审核 CSV 仍保持未填写，下一步由项目所有者检查 `label_audit.ai_pre_review.csv` 的 200 条建议并确认；确认后 Codex 将填写正式审核记录、执行汇总/应用并连续推进第 7～8 节。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
 执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
@@ -212,7 +212,7 @@ Invoke-IntentFencePython scripts/prepare_notinject.py `
 
 ## 6. 合并、标签审核与应用修订
 
-用显式输入列表合并；脚本拒绝覆盖和重复 `sample_id`：
+合并与抽样已完成，**不要重跑下列两条生成命令**。训练池共 11,300 条，其中 50 条 `benign`、11,250 条 `instruction_hijacking`；合并输出 SHA-256 为 `3fc10575e89e2304e2894629489a876b8e7c935a87e1aaea627be57386be725a`。脚本使用显式输入列表并拒绝覆盖和重复 `sample_id`：
 
 ```powershell
 Invoke-IntentFencePython scripts/merge_canonical.py `
@@ -222,7 +222,7 @@ Invoke-IntentFencePython scripts/merge_canonical.py `
   --report data/interim/bipia_train_pool.unverified.merge.json
 ```
 
-生成至少 200 条分层标签审核。抽样按来源、风险标签和动作 provenance 轮转；Codex 可以填写预审建议，但项目所有者必须逐条确认最终审核字段：
+固定抽样包含 50 条 clean 和 150 条 attack，覆盖 15 个攻击族、67 个唯一注入模板及 start/middle/end 三种位置。Codex 已完成来源重放和语义预审，未发现标签不一致，200 条均建议 `correct`；建议保存在 `reports/data_quality/label_audit.ai_pre_review.csv`，SHA-256 为 `68d408f8ef420db389d7c9a99efa414e38d778911e49063ef924986c10c9d746`。正式 `label_audit.csv` 未被 AI 改写。项目所有者必须检查预审表的全部 200 条并明确确认，Codex 才能把最终人类审核结果写入正式 CSV：
 
 ```powershell
 Invoke-IntentFencePython scripts/audit_labels.py `
@@ -232,7 +232,7 @@ Invoke-IntentFencePython scripts/audit_labels.py `
   --seed 42
 ```
 
-该命令还会生成 `label_audit.audit_key.json`，且只要 CSV 或 key 已存在就拒绝覆盖。Key 会封存固定 seed、分层抽样算法、有序样本 ID，以及每行不可编辑字段的摘要；生成后不要重跑并覆盖已有审核内容。CSV 中只有 `audit_status`、`new_risk_label`、`new_alignment_label`、`new_severity`、`notes`、`reviewer`、`reviewed_at` 可以填写或修改；不要改动样本 ID、来源、场景、原标签、原严重度、目标、不可信内容或动作字段，否则 summary 会拒绝该审计表。AI 预审建议不能直接作为正式 CSV 的独立人类审核记录；项目所有者确认后，正式 `reviewer` 和 `reviewed_at` 必须如实记录最终人类审核者及时间。Codex 随后可以执行 summary 和 apply 命令。
+该命令还会生成 `label_audit.audit_key.json`，且只要 CSV 或 key 已存在就拒绝覆盖。Key 会封存固定 seed、分层抽样算法、有序样本 ID，以及每行不可编辑字段的摘要；生成后不要重跑并覆盖已有审核内容。CSV 中只有 `audit_status`、`new_risk_label`、`new_alignment_label`、`new_severity`、`notes`、`reviewer`、`reviewed_at` 可以填写或修改；不要改动样本 ID、来源、场景、原标签、原严重度、目标、不可信内容或动作字段，否则 summary 会拒绝该审计表。AI 预审建议不能直接作为正式 CSV 的独立人类审核记录；项目所有者检查全部建议并明确确认后，Codex 可机械写入 `audit_status=correct`，同时把正式 `reviewer` 和 `reviewed_at` 如实记录为最终人类审核者及确认时间，再执行 summary 和 apply 命令。
 
 `audit_status` 只能填写 `correct`、`incorrect` 或 `ambiguous`。所有完成行必须填写列 `reviewer` 和 `reviewed_at`；`incorrect` 和 `ambiguous` 行必须在 `notes` 中说明理由。`incorrect` 行还必须满足：
 

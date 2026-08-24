@@ -204,8 +204,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ⛔ 当前 BIPIA 构造只直接提供 `benign` 与 `instruction_hijacking`，且 schema 令 Alignment 成为 Risk 的确定性二值映射；正式训练前必须依据真实报告，由项目所有者决定是修订为二元 risk-only 主目标，还是增加经许可/审计的训练类与独立 Alignment 标注。冻结协议尚未被擅自修改；
 - ✅ 已新增 `docs/training_entry_decision.md`，把二元 risk-only、保留五分类扩充数据、仅 A/B 工程冒烟三条路线及其证据/批准边界写清；当前状态仍为项目所有者待决，不构成协议修改；
 - ✅ 第 5 节三个 NotInject 子集已完成：one/two/three 各 113 条，共 339 条；均为 `skipped=0`、`split=test_c`、`risk_label=benign`、`action_provenance=protocol_wrapper`，三份输入/输出 SHA-256 与报告一致，canonical schema 通过且跨子集重复 `sample_id=0`；
-- 🔵 第 6 节训练池合并、标签审核抽样/预审以及后续去重和六角色划分尚未开始；
-- ⛔ 200 条标签审核、真实泄漏检查和训练前数据报告尚未执行；Codex 可准备预审建议，但项目所有者必须逐条确认正式审核记录后才能应用；真实 Test A/B/C 基线按单次测试锁有意延后到 C3，不是 C1 缺项；
+- ✅ 第 6 节 BIPIA 训练池合并完成：11,300 条（50 `benign`、11,250 `instruction_hijacking`），输出 SHA-256 `3fc10575e89e2304e2894629489a876b8e7c935a87e1aaea627be57386be725a`；固定 seed=42 的审核表抽取 200 条（50 clean、150 attack）；
+- 🟡 Codex 已对 200 条完成来源重放与 AI 语义预审，覆盖 15 个攻击族、67 个唯一注入模板及三种注入位置，未发现不一致并全部建议 `correct`；预审文件 SHA-256 为 `68d408f8ef420db389d7c9a99efa414e38d778911e49063ef924986c10c9d746`，正式审核 CSV 保持未填写，等待项目所有者检查全部建议并确认后才能应用为 `human_verified=true`；
+- ⛔ 真实泄漏检查、六角色划分和训练前数据报告尚未执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3，不是 C1 缺项；
 - ⛔ 因此 C1 工程框架可交付，但研究出口尚未完成，不能进入真实训练结论阶段。
 
 #### 要测试什么
@@ -593,4 +594,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前下一步（Codex 执行）
 
-C1 工程框架、来源下载与 manifest 核验、环境依赖预检，以及手册第 3～5 节的 BIPIA、InjecAgent、NotInject 转换已经完成。当前准确断点是 `docs/c1_user_runbook.md` 第 6 节：Codex 合并 BIPIA 训练池并生成至少 200 条标签审核样本，完成 AI 预审后交项目所有者逐条确认正式审核 CSV，再由 Codex 执行汇总和应用。随后进入第 7 节去重/六角色隔离划分与完整性校验；第 8 节前补做既有 BIPIA export 的 `--verify-existing` builder 复现报告并生成训练前数据报告。第 8 节报告复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置；所有学习参数拟合与正式训练继续由项目所有者执行，最终测试锁不变。
+C1 工程框架、来源核验和手册第 3～5 节转换已经完成；第 6 节训练池合并、200 条固定抽样及 Codex AI 预审也已完成。当前唯一断点是项目所有者检查 `reports/data_quality/label_audit.ai_pre_review.csv` 全部 200 条并明确确认建议；正式 CSV 仍未改写。确认后 Codex 将如实记录最终人类 reviewer/时间，执行审核汇总与应用，并连续进入第 7 节去重/六角色隔离划分、完整性校验和第 8 节 builder 复现/训练前数据报告。第 8 节报告复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置；所有学习参数拟合与正式训练继续由项目所有者执行，最终测试锁不变。
