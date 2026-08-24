@@ -10,7 +10,7 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> 执行边界：Codex 只维护框架和合成 fixture 测试。真实数据下载、转换、合并、去重、划分、人工审计以及所有学习模型拟合均由项目所有者运行，详见 `configs/execution_policy.yaml`。
+> 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据与生成报告仍不得提交。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 
 ## 已实现
 
@@ -83,9 +83,9 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/evaluate `
 
 ## 数据流程
 
-第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用；项目所有者审阅许可证后，必须同时使用 `--execute --acknowledge-source-terms` 才会下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
+第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用；项目所有者审阅并批准来源条款后，Codex 或项目所有者可以使用 `--execute --acknowledge-source-terms` 执行已批准的固定来源下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
 
-所有可直接复制的环境定位、下载、BIPIA 官方 builder、InjecAgent/NotInject 转换、人工审计、五个固定外部输入、六角色划分和训练前报告命令，都以 [C1 用户执行手册](docs/c1_user_runbook.md) 为唯一操作说明。README 不再维护省略参数的转换或划分示例，避免绕过固定角色和证据链质量门。Codex 不运行手册中的真实数据命令。
+所有可直接复制的环境定位、下载、BIPIA 官方 builder、InjecAgent/NotInject 转换、标签审核、五个固定外部输入、六角色划分和训练前报告命令，都以 [C1 数据执行手册](docs/c1_user_runbook.md) 为唯一操作说明。README 不再维护省略参数的转换或划分示例，避免绕过固定角色和证据链质量门。Codex 可以执行其中的数据命令，但不得运行训练、拟合参数或提前访问正式测试模型结果的命令。
 
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 

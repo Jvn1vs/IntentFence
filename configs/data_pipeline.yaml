@@ -1,12 +1,19 @@
 schema_version: 1
 stage: "C1"
-status: "framework_only_pending_project_owner_execution"
+status: "real_data_execution_authorized_pending_completion"
 execution_owner: "project_owner"
+execution_operator: "codex_or_project_owner"
+codex_allowed_operations:
+  - "download_preapproved_pinned_sources"
+  - "convert_merge_deduplicate_and_split_real_project_data"
+  - "inspect_and_pre_review_labels_with_truthful_reviewer_provenance"
+  - "generate_data_quality_and_reproducibility_reports"
 codex_prohibited_operations:
-  - "download_real_training_or_test_data"
-  - "convert_or_merge_real_project_data"
   - "fit_any_model_on_real_project_data"
-  - "run_final_data_audit_for_the_owner"
+  - "update_model_or_calibration_parameters"
+  - "access_formal_final_test_model_results_before_freeze"
+  - "claim_ai_review_as_independent_human_review"
+  - "apply_ai_only_review_as_human_verified"
 source_registry: "configs/upstream_sources.yaml"
 sources:
   bipia:

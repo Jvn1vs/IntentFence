@@ -38,27 +38,48 @@ def validate() -> list[str]:
 
     if pipeline.get("execution_owner") != "project_owner":
         errors.append("C1 data execution owner must be project_owner")
+    if pipeline.get("execution_operator") != "codex_or_project_owner":
+        errors.append("C1 data execution operator must allow Codex or project owner")
+    allowed = set(pipeline.get("codex_allowed_operations", []))
+    required_allowed = {
+        "download_preapproved_pinned_sources",
+        "convert_merge_deduplicate_and_split_real_project_data",
+        "inspect_and_pre_review_labels_with_truthful_reviewer_provenance",
+        "generate_data_quality_and_reproducibility_reports",
+    }
+    if not required_allowed.issubset(allowed):
+        errors.append("C1 Codex data permissions are incomplete")
     prohibited = set(pipeline.get("codex_prohibited_operations", []))
     required = {
-        "download_real_training_or_test_data",
-        "convert_or_merge_real_project_data",
         "fit_any_model_on_real_project_data",
-        "run_final_data_audit_for_the_owner",
+        "update_model_or_calibration_parameters",
+        "access_formal_final_test_model_results_before_freeze",
+        "claim_ai_review_as_independent_human_review",
+        "apply_ai_only_review_as_human_verified",
     }
     if not required.issubset(prohibited):
-        errors.append("C1 Codex data/training prohibitions are incomplete")
+        errors.append("C1 Codex training/test/reviewer prohibitions are incomplete")
     if registry.get("status") != "frozen":
         errors.append("C1 cannot start from an unfrozen research protocol")
     if registry.get("resources", {}).get("training_executor") != "project_owner_only":
         errors.append("training executor drifted from project_owner_only")
     if execution.get("owner") != "project_owner":
         errors.append("execution policy owner must be project_owner")
+    execution_allowed = set(execution.get("codex_allowed", []))
+    if not {
+        "execute_preapproved_pinned_source_downloads",
+        "convert_merge_deduplicate_and_split_real_project_data",
+        "inspect_and_pre_review_real_project_data_with_truthful_reviewer_provenance",
+        "generate_data_quality_integrity_and_reproducibility_reports",
+    }.issubset(execution_allowed):
+        errors.append("machine-readable Codex data permissions are incomplete")
     execution_prohibited = set(execution.get("codex_prohibited", []))
     if not {
-        "download_real_project_datasets",
-        "convert_merge_deduplicate_split_or_audit_real_project_data",
         "fit_tfidf_or_any_other_learned_baseline_on_real_project_data",
         "run_small_or_base_model_training_or_tiny_overfit",
+        "update_model_or_calibration_parameters",
+        "claim_codex_label_review_as_independent_human_verification",
+        "apply_codex_only_review_as_human_verified",
     }.issubset(execution_prohibited):
         errors.append("machine-readable Codex execution prohibitions are incomplete")
 

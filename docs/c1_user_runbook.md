@@ -1,11 +1,11 @@
-# C1 数据与基线框架：用户执行手册
+# C1 数据与基线框架：数据执行手册
 
 状态：框架已实现。2026-08-24 当前执行断点：Conda 数据依赖预检和固定来源哈希核验已通过；第 3 节 BIPIA 转换和第 4 节 InjecAgent direct-harm/data-stealing 转换均已完成；下一条是第 5 节第一个 NotInject 子集。真实合并、人工审计和划分尚未开始。框架代码与文档按阶段推送功能分支，真实数据及 JSON/CSV 质量证据继续留在本地且不得提交。
-执行者：仅项目所有者（用户）。Codex 不执行本页的下载、转换、合并、去重、划分、人工审计、基线拟合或训练命令。
+执行者：Codex 或项目所有者均可执行本页第 1～8 节的数据命令。Codex 可以生成并预审第 6 节审核表，但现有 schema 的 `human_verified=true` 必须由项目所有者完成人类确认后才能应用。Codex 不执行学习基线拟合、模型训练、tiny-overfit、模型/校准参数更新或提前读取正式测试模型结果的命令。
 
 ## 0. 执行边界
 
-本页把“框架完成”和“实验完成”分开：仓库内的单元测试只使用合成 fixture，不能替代真实数据结果。你运行每一步后，应保留终端输出、manifest、转换报告和哈希；如果失败，把日志发给 Codex 分析，不要跳过失败继续训练。
+本页把“框架完成”和“实验完成”分开：仓库内的单元测试只使用合成 fixture，不能替代真实数据结果。每一步都必须保留终端输出、manifest、转换报告和哈希；失败后应先诊断，不得跳过失败继续。Codex 执行真实数据步骤时同样遵守拒绝覆盖、阶段复核和不提交数据产物的规则。
 
 统一使用 Conda。首次创建 CPU/数据环境时使用 Anaconda 官方源，再从 PyPI 官方源安装项目依赖：
 
@@ -91,9 +91,9 @@ Invoke-IntentFencePython scripts/download_sources.py bipia injecagent notinject
 
 将输出与 `configs/upstream_sources.yaml` 对照。BIPIA 的代码是 MIT，但部分任务数据仍受各自来源条款约束；没有取得相应数据时，不运行 WebQA/Summarization 子任务。
 
-## 2. 由你下载固定版本
+## 2. 下载固定版本
 
-确认条款后，由你亲自执行：
+项目所有者确认条款后，Codex 或项目所有者执行：
 
 ```powershell
 Invoke-IntentFencePython scripts/download_sources.py bipia injecagent notinject `
@@ -158,7 +158,7 @@ BIPIA 官方 builder 产生 `question/context/attack_name/attack_str/task_name/p
 
 上述 clean 命令已显式使用 `--kind clean --task-name email`。`train` 与 `test` 上游文件、`text_attack_train.json` 与 `text_attack_test.json` 必须保持角色隔离；本节的训练池命令只使用两个 `train` 上游文件。
 
-如果 attack export 是在 builder sidecar 功能加入前已经生成的（当前 2026-08-23 的执行状态正是如此），不删除、不覆盖现有输出，也不用现在打断第 4～7 节。在执行第 8 节前，由项目所有者运行下面的复现验证：它会用相同固定 revision、task、seed 和两个已登记原始输入重建到临时文件，只有行数和字节 SHA-256 都与既有输出完全一致时，才原子生成 `status=reproduced_verified` 的 builder 报告：
+如果 attack export 是在 builder sidecar 功能加入前已经生成的（当前 2026-08-23 的执行状态正是如此），不删除、不覆盖现有输出，也不用现在打断第 4～7 节。在执行第 8 节前，由 Codex 或项目所有者运行下面的复现验证：它会用相同固定 revision、task、seed 和两个已登记原始输入重建到临时文件，只有行数和字节 SHA-256 都与既有输出完全一致时，才原子生成 `status=reproduced_verified` 的 builder 报告：
 
 ```powershell
 Invoke-IntentFencePython scripts/export_bipia_builder.py `
@@ -210,7 +210,7 @@ Invoke-IntentFencePython scripts/prepare_notinject.py `
 
 NotInject 没有 Agent 任务或动作，适配器使用公开、固定的良性 `protocol_wrapper`；它只用于过度防御压力测试，不能证明真实 Agent 效用。
 
-## 6. 合并、人工审计与应用修订
+## 6. 合并、标签审核与应用修订
 
 用显式输入列表合并；脚本拒绝覆盖和重复 `sample_id`：
 
@@ -222,7 +222,7 @@ Invoke-IntentFencePython scripts/merge_canonical.py `
   --report data/interim/bipia_train_pool.unverified.merge.json
 ```
 
-由你生成并完成至少 200 条分层审计。抽样按来源、风险标签和动作 provenance 轮转：
+生成至少 200 条分层标签审核。抽样按来源、风险标签和动作 provenance 轮转；Codex 可以填写预审建议，但项目所有者必须逐条确认最终审核字段：
 
 ```powershell
 Invoke-IntentFencePython scripts/audit_labels.py `
@@ -232,7 +232,7 @@ Invoke-IntentFencePython scripts/audit_labels.py `
   --seed 42
 ```
 
-该命令还会生成 `label_audit.audit_key.json`，且只要 CSV 或 key 已存在就拒绝覆盖。Key 会封存固定 seed、分层抽样算法、有序样本 ID，以及每行不可编辑字段的摘要；生成后不要重跑并覆盖已有人工审计内容。CSV 中只有 `audit_status`、`new_risk_label`、`new_alignment_label`、`new_severity`、`notes`、`reviewer`、`reviewed_at` 可以填写或修改；不要改动样本 ID、来源、场景、原标签、原严重度、目标、不可信内容或动作字段，否则 summary 会拒绝该审计表。
+该命令还会生成 `label_audit.audit_key.json`，且只要 CSV 或 key 已存在就拒绝覆盖。Key 会封存固定 seed、分层抽样算法、有序样本 ID，以及每行不可编辑字段的摘要；生成后不要重跑并覆盖已有审核内容。CSV 中只有 `audit_status`、`new_risk_label`、`new_alignment_label`、`new_severity`、`notes`、`reviewer`、`reviewed_at` 可以填写或修改；不要改动样本 ID、来源、场景、原标签、原严重度、目标、不可信内容或动作字段，否则 summary 会拒绝该审计表。AI 预审建议不能直接作为正式 CSV 的独立人类审核记录；项目所有者确认后，正式 `reviewer` 和 `reviewed_at` 必须如实记录最终人类审核者及时间。Codex 随后可以执行 summary 和 apply 命令。
 
 `audit_status` 只能填写 `correct`、`incorrect` 或 `ambiguous`。所有完成行必须填写列 `reviewer` 和 `reviewed_at`；`incorrect` 和 `ambiguous` 行必须在 `notes` 中说明理由。`incorrect` 行还必须满足：
 
@@ -260,7 +260,7 @@ Invoke-IntentFencePython scripts/apply_label_audit.py `
 
 如果 summary 校验失败，脚本只在终端打印错误，不会占用正式的 `label_audit_summary.json` 路径；修正 CSV 后可以原样重跑。只有 `status=passed` 才会写正式 summary。已通过的 summary、应用输出和报告都拒绝覆盖，不要通过删除后重跑来改写既有证据；如确需重建数据版本，应使用新的版本目录并重新生成整条哈希链。
 
-`ambiguous` 行会从输出排除；未抽中的行保留 `human_verified=false`，不能误称为全量人工标注。
+`ambiguous` 行会从输出排除；未抽中的行保留 `human_verified=false`。未经项目所有者独立人类确认的 Codex 预审不能进入会设置 `human_verified=true` 的 apply 步骤，也不能误称为全量人工标注。
 
 ## 7. 去重、隔离划分与完整性校验
 
@@ -277,7 +277,7 @@ Invoke-IntentFencePython scripts/build_splits.py `
   --near-threshold 0.92
 ```
 
-五个 `--fixed-input` 会把 InjecAgent 两部分固定合并为 `test_b.jsonl`，把 NotInject 三部分固定合并为 `test_c.jsonl`。正式 C1 build 会 fail-closed：`test_b` 或 `test_c` 缺少、出现额外角色、任一角色为空，或 manifest counts 与文件行数不一致时，在写入前失败。输出 manifest 的自哈希覆盖最终 counts、去重报告、固定外部输入列表和六个 split 文件的 SHA-256。校验时六个 `--input` 还必须逐角色指向 manifest 登记的同一文件；不能拿一份合法 manifest 校验另一组数据。然后由你运行全角色 context 完整性检查：
+五个 `--fixed-input` 会把 InjecAgent 两部分固定合并为 `test_b.jsonl`，把 NotInject 三部分固定合并为 `test_c.jsonl`。正式 C1 build 会 fail-closed：`test_b` 或 `test_c` 缺少、出现额外角色、任一角色为空，或 manifest counts 与文件行数不一致时，在写入前失败。输出 manifest 的自哈希覆盖最终 counts、去重报告、固定外部输入列表和六个 split 文件的 SHA-256。校验时六个 `--input` 还必须逐角色指向 manifest 登记的同一文件；不能拿一份合法 manifest 校验另一组数据。然后运行全角色 context 完整性检查：
 
 ```powershell
 Invoke-IntentFencePython scripts/validate_dataset.py `
@@ -358,7 +358,7 @@ Invoke-IntentFencePython scripts/build_dataset_reports.py `
 
 `dataset_statistics.json` 的 Risk × Alignment 列联表、条件概率和互信息只使用 `train`，不使用最终测试标签作协议决策。报告还会显式给出五类训练覆盖、Alignment 标签独立性和 Model C action readiness。`training_readiness` 中出现 `false` 是研究阻塞证据，不得通过改写报告或填充占位 action 消除。
 
-三个报告生成并提交给 Codex 只读复核后，在这里暂停。项目所有者必须先根据 `docs/training_entry_decision.md` 批准协议处置和后续动作构造/独立审计路线；在该决定完成、C1 研究出口通过前，不进入正式模型训练，也不运行第 9 节所禁止的最终测试性能命令。
+三个报告生成并由 Codex 复核后，在这里暂停。项目所有者必须先根据 `docs/training_entry_decision.md` 批准协议处置和后续动作构造/独立审计路线；在该决定完成、C1 研究出口通过前，不进入正式模型训练，也不运行第 9 节所禁止的最终测试性能命令。
 
 ## 9. 基线框架已准备，但现在不要运行最终测试
 
@@ -377,4 +377,4 @@ C1 只验证基线接口、固定 external revision、连续分数格式和 cali
 - `dataset_statistics.json`、`label_quality_report.md` 和 `data_card.md` 已生成，Risk × Alignment 关系、类别覆盖和训练阻塞均有记录；
 - 正式 Test A/B/C 基线尚未提前运行；其接口和固定 revision 已通过合成验证，结果表留到 C3 单次正式评测；
 - 动作实验的 train/validation/calibration/test_a 均没有 missing action；当前 BIPIA 路线尚未满足，因此该 C1 动作门仍为阻塞状态；
-- 你把上述 manifest、报告和终端日志提供给 Codex 复核后，C1 研究出口才能标记完成。
+- 上述 manifest、报告和终端日志经 Codex 复核后，C1 研究出口才能标记完成。

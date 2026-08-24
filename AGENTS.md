@@ -12,11 +12,20 @@
 - Do not start the next stage until the user explicitly confirms it.
 - Do not rent GPU capacity, call paid APIs, publish a release, or download large
   model/data artifacts without explicit user approval for that stage.
-- The user is the sole executor of real data and training runs. Codex may build
-  and test the framework, generate configs/commands, and analyze user-provided
-  logs, but must not download, convert, merge, deduplicate, split, or audit real
-  project data; fit a learned baseline; update real model weights; run tiny-
-  overfit training; rent training hardware; or incur training/API charges.
+- The project owner has authorized Codex to execute the real C1 data workflow:
+  pinned-source download after recorded terms approval, conversion, merge,
+  deduplication, split construction, data-quality inspection, label-audit
+  sampling/pre-review, and reproducibility-report generation. Codex must preserve the frozen protocol,
+  source licenses, hashes, split isolation, and final-test lock while doing so.
+- The project owner remains the sole executor of model-training-related work.
+  Codex must not fit a learned baseline on real project data, update model or
+  calibration parameters, run tiny-overfit/Small/Base training, rent training
+  hardware, or incur paid API/training charges. This C1 data authorization does
+  not independently authorize formal final-test model evaluation.
+- If Codex performs preliminary label review, record it truthfully as Codex/AI;
+  never apply it through a path that sets `human_verified=true`. The protocol's
+  independent human review remains a project-owner sign-off gate; after that
+  sign-off Codex may execute the deterministic summary/application commands.
 - Framework verification may use static checks, fixtures, mocks, and tests that
   do not fit learned parameters on real project data.
 - `configs/execution_policy.yaml` is the machine-readable execution boundary.
