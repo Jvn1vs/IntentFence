@@ -83,66 +83,21 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/evaluate `
 
 ## 数据流程
 
-第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用：
+第三方数据不提交到仓库。下载脚本默认只预览固定来源和 revision，不产生数据副作用；项目所有者审阅许可证后，必须同时使用 `--execute --acknowledge-source-terms` 才会下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
 
-```powershell
-python scripts/download_sources.py bipia injecagent notinject
-```
-
-项目所有者审阅许可证后，必须同时使用 `--execute --acknowledge-source-terms` 才会下载。每个文件会写入 SHA-256 manifest。不同版本的上游字段可能变化，因此适配器使用固定、严格的 source profile；字段不符默认导致整个转换失败，不会猜测或静默跳过。BIPIA 官方数据没有“拟执行动作”，这类样本会明确标记为 `action_provenance=missing`，不能直接作为动作感知主模型证据。
-
-```powershell
-python scripts/prepare_bipia.py `
-  --kind generated `
-  --input data/raw/bipia/path/to/export.json `
-  --output data/interim/bipia.jsonl
-
-python scripts/audit_labels.py `
-  --input data/interim/bipia.jsonl `
-  --output reports/data_quality/label_audit.csv `
-  --size 200
-
-python scripts/build_splits.py `
-  --input data/interim/merged_verified.jsonl `
-  --output-dir data/processed/v1 `
-  --seed 42
-```
-
-完整的项目所有者执行顺序、BIPIA 官方 builder 包装、InjecAgent/NotInject 命令、审计应用和质量出口见 [C1 用户执行手册](docs/c1_user_runbook.md)。Codex 不运行其中的真实数据命令。
+所有可直接复制的环境定位、下载、BIPIA 官方 builder、InjecAgent/NotInject 转换、人工审计、五个固定外部输入、六角色划分和训练前报告命令，都以 [C1 用户执行手册](docs/c1_user_runbook.md) 为唯一操作说明。README 不再维护省略参数的转换或划分示例，避免绕过固定角色和证据链质量门。Codex 不运行手册中的真实数据命令。
 
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 
-合成 `data/examples/smoke.jsonl` 仅用于测试代码：
-
-```powershell
-python scripts/build_splits.py `
-  --input data/examples/smoke.jsonl `
-  --output-dir data/processed/smoke
-```
+合成 `data/examples/smoke.jsonl` 只用于单元测试和接口示例；正式 `build_splits.py` 强制要求 Test B/C 的五个固定输入，不应使用单文件简化命令生成研究数据。
 
 ## 基线
 
-以下拟合和真实数据预测命令只由项目所有者运行。推荐将训练、连续分数导出和阈值评估分开：
+C1 只使用合成 fixture 验证规则、word/char TF-IDF、ProtectAI 与 PIGuard 的接口、固定 revision、连续分数格式和 calibration-only 阈值逻辑。真实数据上的拟合、预测和最终结果聚合只能由项目所有者在相应阶段执行。
 
-```powershell
-python baselines/tfidf.py --train data/processed/v1/train.jsonl `
-  --analyzer word --output artifacts/tfidf_word.joblib
+Test A/B/C 受单次正式测试锁约束：每个冻结协议版本只能在模型、校准器、阈值和运行矩阵全部冻结后统一执行一次。训练前不得运行任何读取 `data/processed/v1/test_a.jsonl`、`test_b.jsonl` 或 `test_c.jsonl` 并产生性能分数的命令。正式 rules、word/char TF-IDF、ProtectAI、PIGuard 与 A/B/C 模型使用同一矩阵留到 C3；执行时必须登记最终测试访问次数、协议版本、预测文件哈希和完整模型 revision。具体 C1 边界见 `docs/c1_user_runbook.md`，正式评测命令将在 C3 冻结后提供。
 
-python -m baselines.predict --backend tfidf --model artifacts/tfidf_word.joblib `
-  --input data/processed/v1/calibration.jsonl `
-  --output artifacts/tfidf_word_calibration.jsonl
-
-python -m baselines.predict --backend tfidf --model artifacts/tfidf_word.joblib `
-  --input data/processed/v1/test_a.jsonl `
-  --output artifacts/tfidf_word_test_a.jsonl
-
-python -m baselines.evaluate_scores `
-  --calibration artifacts/tfidf_word_calibration.jsonl `
-  --test artifacts/tfidf_word_test_a.jsonl `
-  --output reports/tables/tfidf_word_test_a.json
-```
-
-字符 TF-IDF 使用 `--analyzer char`。规则、ProtectAI 与 PIGuard 使用 `baselines.predict` 的相应 backend；外部模型 ID 和完整 revision 固定在 `configs/baseline_sources.yaml`，并需要 `.[ml]`。外部权重可能见过部分测试数据，报告中必须记录潜在数据污染，不能把它们当作完成成员去重的内部模型。
+外部权重可能见过部分测试数据，报告中必须记录潜在数据污染，不能把它们当作完成成员去重的内部模型。PIGuard 的 pinned remote code 和任何大型外部权重必须由项目所有者在对应阶段单独审阅、确认和下载。
 
 ## 训练
 
@@ -204,7 +159,9 @@ python scripts/calibrate.py `
 
 报告同时包含校准前后 ECE、Brier、NLL 和安全指标。少数类不足时不能据此制定独立类别阈值，应记录为证据不足并使用整体攻击风险与保守确认策略。
 
-## 评测
+## C3 正式最终评测（当前不要运行）
+
+下面的命令只展示冻结后的评测入口，不属于当前 C1/C2 训练前流程。只有模型、温度、阈值、运行矩阵和协议版本全部冻结，并确认本协议的唯一一次正式 Test A/B/C 访问尚未使用时，项目所有者才能在 C3 执行；运行后必须登记访问次数，不能根据结果回调模型或配置。
 
 ```powershell
 intentfence-evaluate `
@@ -222,7 +179,7 @@ intentfence-evaluate `
 3. 诊断：Macro-F1、逐类指标、AUROC/AUPRC、NotInject FPR、ECE/Brier/NLL；
 4. 工程选择：P50/P95、内存、模型大小、成本。
 
-最终测试集只能在模型、温度和阈值冻结后评估。不同输入权限的方法不能只比较一个 Accuracy；IntentFence 使用额外的用户目标和拟执行动作时必须明确说明。
+最终测试集只能在模型、温度、阈值和完整运行矩阵冻结后评估一次。不同输入权限的方法不能只比较一个 Accuracy；IntentFence 使用额外的用户目标和拟执行动作时必须明确说明。
 
 ## ONNX / INT8 / API
 

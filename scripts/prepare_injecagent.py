@@ -27,6 +27,7 @@ def main() -> None:
                 args.output,
                 profile_name=profile,
                 allow_skips=args.allow_skips,
+                split_override="test_b",
             ),
             indent=2,
         )

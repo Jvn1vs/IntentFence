@@ -21,6 +21,27 @@ sources:
     roles: ["test_c"]
     adapter_profiles: ["notinject_v1"]
     action_evidence: "protocol_wrapper_for_overdefense_only"
+bipia_builder:
+  task: "email"
+  seed: 42
+  contexts: "benchmark/email/train.jsonl"
+  attacks: "benchmark/text_attack_train.json"
+conversion_inputs:
+  bipia_clean_v1:
+    source: "bipia"
+    paths: ["benchmark/email/train.jsonl"]
+  injecagent_direct_harm_v1:
+    source: "injecagent"
+    paths: ["data/test_cases_dh_base.json"]
+  injecagent_data_stealing_v1:
+    source: "injecagent"
+    paths: ["data/test_cases_ds_base.json"]
+  notinject_v1:
+    source: "notinject"
+    paths:
+      - "data/NotInject_one-00000-of-00001.parquet"
+      - "data/NotInject_two-00000-of-00001.parquet"
+      - "data/NotInject_three-00000-of-00001.parquet"
 split:
   seed: 42
   ratios:
@@ -32,14 +53,43 @@ split:
   isolation_keys: ["sample_fingerprint", "template_group"]
 audit:
   minimum_rows: 200
+  seed: 42
+  selection_algorithm: "deterministic_stratified_round_robin"
+  selection_algorithm_version: 1
   statuses: ["correct", "incorrect", "ambiguous"]
   ambiguous_policy: "exclude_from_primary_training_and_testing"
   required_grouping: ["source", "risk_label", "action_provenance"]
+action_evidence_policy:
+  train:
+    sources: ["BIPIA"]
+    allowed_provenance: []
+    evidence_scope: "blocked_pending_approved_action_audit"
+  validation:
+    sources: ["BIPIA"]
+    allowed_provenance: []
+    evidence_scope: "blocked_pending_approved_action_audit"
+  calibration:
+    sources: ["BIPIA"]
+    allowed_provenance: []
+    evidence_scope: "blocked_pending_approved_action_audit"
+  test_a:
+    sources: ["BIPIA"]
+    allowed_provenance: []
+    evidence_scope: "blocked_pending_approved_action_audit"
+  test_b:
+    sources: ["InjecAgent"]
+    allowed_provenance: ["benchmark_target"]
+    evidence_scope: "benchmark_target_not_observed_agent_output"
+  test_c:
+    sources: ["NotInject"]
+    allowed_provenance: ["protocol_wrapper"]
+    evidence_scope: "protocol_wrapper_for_overdefense_only"
 quality_gates:
   strict_adapter_skips: 0
   duplicate_ids: 0
   exact_cross_split_duplicates: 0
   template_groups_crossing_splits: 0
   action_mode_missing_action_rows: 0
+  action_mode_invalid_provenance_rows: 0
   human_audit_completed: true
   source_manifest_and_file_hashes_present: true

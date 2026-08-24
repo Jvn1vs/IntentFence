@@ -194,15 +194,14 @@ def _template_group(profile: AdapterProfile, record: dict[str, Any], sample_id: 
     return f"{profile.source.casefold()}_{digest}"
 
 
-def convert_file(
+def convert_records(
     input_path: Path,
-    output_path: Path,
     *,
     profile_name: str,
-    allow_skips: bool = False,
     scenario_override: str | None = None,
-) -> dict[str, Any]:
-    """Convert with a pinned, source-specific contract; never guess labels or fields."""
+    split_override: str | None = None,
+) -> tuple[list[IntentSample], list[dict[str, Any]], int]:
+    """Replay one pinned adapter without writing conversion artifacts."""
     if profile_name not in PROFILES:
         raise ValueError(f"Unknown adapter profile: {profile_name}")
     profile = PROFILES[profile_name]
@@ -241,6 +240,7 @@ def convert_file(
                 attack_family=attack_family,
                 severity=profile.severity,
                 template_group=_template_group(profile, record, sample_id),
+                split=split_override,
                 language="en",
                 human_verified=False,
                 adapter_profile=profile.profile_id,
@@ -255,6 +255,34 @@ def convert_file(
             )
         )
 
+    return converted, skipped, len(records)
+
+
+def convert_file(
+    input_path: Path,
+    output_path: Path,
+    *,
+    profile_name: str,
+    allow_skips: bool = False,
+    scenario_override: str | None = None,
+    split_override: str | None = None,
+) -> dict[str, Any]:
+    """Convert with a pinned, source-specific contract; never guess labels or fields."""
+    report_path = output_path.with_suffix(".conversion.json")
+    existing = [path for path in (output_path, report_path) if path.exists()]
+    if existing:
+        rendered = ", ".join(str(path) for path in existing)
+        raise FileExistsError(f"Refusing to overwrite conversion output or report: {rendered}")
+    if profile_name not in PROFILES:
+        raise ValueError(f"Unknown adapter profile: {profile_name}")
+    profile = PROFILES[profile_name]
+    converted, skipped, records_read = convert_records(
+        input_path,
+        profile_name=profile_name,
+        scenario_override=scenario_override,
+        split_override=split_override,
+    )
+
     report = {
         "schema_version": 1,
         "adapter_profile": profile.profile_id,
@@ -262,7 +290,8 @@ def convert_file(
         "input": str(input_path),
         "input_sha256": _sha256(input_path),
         "output": str(output_path),
-        "records_read": len(records),
+        "split": split_override,
+        "records_read": records_read,
         "converted": len(converted),
         "skipped": len(skipped),
         "skipped_records": skipped[:100],
@@ -273,7 +302,6 @@ def convert_file(
         "human_verified": 0,
         "warning": "Conversion is unverified and cannot be used for claims before user audit.",
     }
-    report_path = output_path.with_suffix(".conversion.json")
     report_path.parent.mkdir(parents=True, exist_ok=True)
 
     if skipped and not allow_skips:

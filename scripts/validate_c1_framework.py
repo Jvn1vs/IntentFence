@@ -7,6 +7,14 @@ from typing import Any
 import yaml
 from _prepare import PROFILES
 from download_sources import C1_SOURCES, build_plan
+from summarize_label_audit import (
+    AUDIT_REQUIRED_GROUPING,
+    AUDIT_SELECTION_ALGORITHM,
+    AUDIT_SELECTION_ALGORITHM_VERSION,
+    AUDIT_SELECTION_SEED,
+)
+
+from intentfence.data import C1_REQUIRED_SPLITS
 
 ROOT = Path(__file__).resolve().parents[1]
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -61,6 +69,89 @@ def validate() -> list[str]:
     }
     if configured_profiles != set(PROFILES):
         errors.append("configured adapter profiles do not exactly match implemented profiles")
+    if pipeline.get("bipia_builder") != {
+        "task": "email",
+        "seed": 42,
+        "contexts": "benchmark/email/train.jsonl",
+        "attacks": "benchmark/text_attack_train.json",
+    }:
+        errors.append("BIPIA builder contract drifted from the frozen C1 route")
+    if pipeline.get("conversion_inputs") != {
+        "bipia_clean_v1": {
+            "source": "bipia",
+            "paths": ["benchmark/email/train.jsonl"],
+        },
+        "injecagent_direct_harm_v1": {
+            "source": "injecagent",
+            "paths": ["data/test_cases_dh_base.json"],
+        },
+        "injecagent_data_stealing_v1": {
+            "source": "injecagent",
+            "paths": ["data/test_cases_ds_base.json"],
+        },
+        "notinject_v1": {
+            "source": "notinject",
+            "paths": [
+                "data/NotInject_one-00000-of-00001.parquet",
+                "data/NotInject_two-00000-of-00001.parquet",
+                "data/NotInject_three-00000-of-00001.parquet",
+            ],
+        },
+    }:
+        errors.append("conversion input contract drifted from the frozen C1 route")
+    audit_contract = pipeline.get("audit")
+    if not isinstance(audit_contract, dict):
+        errors.append("audit sampling contract is missing")
+    else:
+        if audit_contract.get("seed") != AUDIT_SELECTION_SEED:
+            errors.append("audit sampling seed drifted from the frozen C1 route")
+        if audit_contract.get("selection_algorithm") != AUDIT_SELECTION_ALGORITHM:
+            errors.append("audit selection algorithm drifted from the frozen C1 route")
+        if (
+            audit_contract.get("selection_algorithm_version")
+            != AUDIT_SELECTION_ALGORITHM_VERSION
+        ):
+            errors.append("audit selection algorithm version drifted from the frozen C1 route")
+        if audit_contract.get("required_grouping") != list(AUDIT_REQUIRED_GROUPING):
+            errors.append("audit required grouping drifted from the frozen C1 route")
+
+    expected_action_policy = {
+        "train": ({"BIPIA"}, set(), "blocked_pending_approved_action_audit"),
+        "validation": ({"BIPIA"}, set(), "blocked_pending_approved_action_audit"),
+        "calibration": ({"BIPIA"}, set(), "blocked_pending_approved_action_audit"),
+        "test_a": ({"BIPIA"}, set(), "blocked_pending_approved_action_audit"),
+        "test_b": (
+            {"InjecAgent"},
+            {"benchmark_target"},
+            "benchmark_target_not_observed_agent_output",
+        ),
+        "test_c": (
+            {"NotInject"},
+            {"protocol_wrapper"},
+            "protocol_wrapper_for_overdefense_only",
+        ),
+    }
+    action_policy = pipeline.get("action_evidence_policy")
+    if not isinstance(action_policy, dict) or set(action_policy) != set(C1_REQUIRED_SPLITS):
+        errors.append("action evidence policy must define exactly the six C1 split roles")
+    else:
+        for split, (sources, provenance, scope) in expected_action_policy.items():
+            entry = action_policy.get(split)
+            if not isinstance(entry, dict):
+                errors.append(f"action evidence policy entry is invalid: {split}")
+                continue
+            configured_sources = set(entry.get("sources", []))
+            configured_provenance = set(entry.get("allowed_provenance", []))
+            if configured_sources != sources:
+                errors.append(f"action evidence sources drifted for {split}")
+            if configured_provenance != provenance:
+                errors.append(f"action evidence provenance drifted for {split}")
+            if {"missing", "unknown"} & configured_provenance:
+                errors.append(f"invalid action provenance is allowed for {split}")
+            if entry.get("evidence_scope") != scope:
+                errors.append(f"action evidence scope drifted for {split}")
+    if pipeline.get("quality_gates", {}).get("action_mode_invalid_provenance_rows") != 0:
+        errors.append("action-mode invalid provenance quality gate must be zero")
 
     for name, model in baseline_sources.get("models", {}).items():
         if not SHA40.fullmatch(model.get("revision", "")):
@@ -82,11 +173,13 @@ def validate() -> list[str]:
         "scripts/merge_canonical.py",
         "scripts/build_splits.py",
         "scripts/validate_dataset.py",
+        "scripts/build_dataset_reports.py",
         "scripts/audit_labels.py",
         "scripts/summarize_label_audit.py",
         "scripts/apply_label_audit.py",
         "baselines/predict.py",
         "baselines/evaluate_scores.py",
+        "baselines/aggregate_results.py",
     ):
         if not (ROOT / relative).is_file():
             errors.append(f"required C1 framework file is missing: {relative}")

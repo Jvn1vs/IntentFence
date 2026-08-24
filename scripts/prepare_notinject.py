@@ -20,6 +20,7 @@ def main() -> None:
                 args.output,
                 profile_name="notinject_v1",
                 allow_skips=args.allow_skips,
+                split_override="test_c",
             ),
             indent=2,
         )

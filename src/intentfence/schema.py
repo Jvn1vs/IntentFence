@@ -68,6 +68,21 @@ class IntentSample(BaseModel):
             raise ValueError("risk samples must have alignment_label=1")
         if self.risk_label == "benign" and self.severity > 1:
             raise ValueError("benign samples cannot have severity above 1")
+        if self.action_provenance == "missing" and (
+            self.proposed_action or not self.adapter_missing_action
+        ):
+            raise ValueError(
+                "action_provenance=missing requires an empty action and adapter_missing_action=true"
+            )
+        if self.action_provenance in {
+            "benchmark_target",
+            "protocol_wrapper",
+            "source_field",
+        } and (not self.proposed_action or self.adapter_missing_action):
+            raise ValueError(
+                "non-missing action provenance requires a non-empty action and "
+                "adapter_missing_action=false"
+            )
         return self
 
     @property

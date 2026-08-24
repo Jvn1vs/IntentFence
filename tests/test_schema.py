@@ -36,3 +36,15 @@ def test_duplicate_ids_rejected(tmp_path):
     path.write_text(json.dumps(sample) + "\n" + json.dumps(sample) + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="Duplicate sample_id"):
         read_jsonl(path)
+
+
+def test_action_provenance_fields_must_be_coherent():
+    with pytest.raises(ValidationError, match="action_provenance=missing"):
+        make_sample(action_provenance="missing", adapter_missing_action=True)
+
+    with pytest.raises(ValidationError, match="non-missing action provenance"):
+        make_sample(
+            proposed_action="",
+            action_provenance="benchmark_target",
+            adapter_missing_action=False,
+        )

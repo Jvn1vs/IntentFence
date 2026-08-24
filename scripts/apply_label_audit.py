@@ -7,8 +7,9 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from summarize_label_audit import summarize
+from summarize_label_audit import summarize, validate_audit_key
 
+from intentfence.data import file_sha256
 from intentfence.schema import IntentSample, read_jsonl, write_jsonl
 
 
@@ -68,6 +69,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apply a validated project-owner label audit")
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--audit", type=Path, required=True)
+    parser.add_argument("--audit-key", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--minimum-rows", type=int, default=200)
@@ -76,8 +78,33 @@ def main() -> None:
         raise FileExistsError("Refusing to overwrite audit output or report")
     with args.audit.open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
+    key_path = args.audit_key or args.audit.with_suffix(".audit_key.json")
+    key, key_errors = validate_audit_key(
+        key_path,
+        args.audit,
+        rows,
+        expected_input=args.input,
+    )
+    if key_errors:
+        raise ValueError("Audit key validation failed: " + "; ".join(key_errors))
+    if not isinstance(key.get("input"), str) or Path(key["input"]).resolve() != args.input.resolve():
+        raise ValueError("Audit key input path does not match --input")
+    if key.get("input_sha256") != file_sha256(args.input):
+        raise ValueError("Audit key input hash does not match --input")
     samples, report = apply_audit(read_jsonl(args.input), rows, args.minimum_rows)
     write_jsonl(samples, args.output)
+    report.update(
+        {
+            "input": str(args.input),
+            "input_sha256": file_sha256(args.input),
+            "audit": str(args.audit),
+            "audit_sha256": file_sha256(args.audit),
+            "audit_key": str(key_path),
+            "audit_key_sha256": file_sha256(key_path),
+            "output": str(args.output),
+            "output_sha256": file_sha256(args.output),
+        }
+    )
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(
         json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n",

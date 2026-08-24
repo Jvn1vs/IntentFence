@@ -22,6 +22,14 @@
 
 未经用户确认，不自动进入下一阶段，不自动租用 GPU，不启动付费 API 实验。
 
+从 2026-08-24 起，每个阶段在通过该阶段的静态、合成或用户执行验证后，还必须：
+
+1. 只提交代码、配置、测试和允许公开的文档，不提交 raw/interim/processed 数据、JSON/CSV 质量报告、模型权重、凭据或缓存；
+2. 在独立功能分支创建阶段提交并显式推送到远程同名分支，不使用可能误推 `main` 的裸 `git push`；
+3. 在阶段汇报中记录远程分支、提交 SHA、验证结果和研究证据状态。
+
+用户已明确授权在模型训练入口之前连续推进、更新文档并完成这些阶段提交；该授权不改变“真实数据与训练只能由项目所有者执行”的边界，也不授权自动开始 C2 模型训练。
+
 ## 2. 状态定义
 
 | 标记 | 含义 |
@@ -59,7 +67,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 |---|---|---|---|---|---|
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
-| C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架完成 | ⛔ 等待用户执行真实数据流程 | 用户提供真实 manifest、审计和基线结果后关闭研究门 |
+| C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架完成 | ⛔ 等待用户执行真实数据流程 | 用户提供真实 manifest、审计和数据报告；正式 Test A/B/C 基线留到 C3 单次评测 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -71,7 +79,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 5. 分阶段任务、工具与测试
 
-### P0：计划冻结（当前阶段）
+### P0：计划冻结（已完成）
 
 #### 要做什么
 
@@ -83,7 +91,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 #### 用什么做
 
 - `docs/task_progress_plan.md`：唯一任务进度主文档；
-- Git：查看文件状态，但本阶段不提交、不推送；
+- Git：P0 当时只查看状态；从 2026-08-24 起按第 1 节的新阶段检查点规则提交并推送后续阶段；
 - Academic Research Suite experiment plan：约束实验可验证性和状态声明。
 
 #### 当前状态
@@ -92,7 +100,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ 用户已确认目标为论文级实验，最终用于简历；
 - ✅ 用户允许下载公开数据，允许后续租用 GPU；
 - ✅ GitHub 目标确定为公开 `Jvn1vs/IntentFence`；
-- ⛔ GitHub 仓库尚未创建，本阶段不执行发布。
+- ✅ GitHub 远程仓库 `Jvn1vs/IntentFence` 已存在；阶段成果先推送独立功能分支，正式合并或 Release 仍需单独批准。
 
 #### 要测试什么
 
@@ -163,8 +171,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 5. 分层人工审计至少 200 条；
 6. 输出 Risk × Alignment 列联表、条件概率和互信息；
 7. 建立互斥 train/validation/calibration/test split；
-8. 运行规则、word TF-IDF、char TF-IDF、ProtectAI、PIGuard/InjecGuard 基线；
-9. 生成数据卡、标签质量报告和基线表。
+8. 完成规则、word TF-IDF、char TF-IDF、ProtectAI、PIGuard/InjecGuard 的可重复运行框架和合成 smoke；正式 Test A/B/C 基线与冻结模型一起留到 C3 单次评测；
+9. 生成数据卡、标签质量报告和训练就绪/阻塞报告；正式基线表在 C3 由同一批冻结预测统一生成。
 
 #### 用什么做
 
@@ -176,18 +184,27 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 #### 当前状态
 
-- ✅ 固定 revision 下载器已实现，默认只预览；只有项目所有者可显式下载并确认来源条款；
+- ✅ 固定 revision 下载器已实现，默认只预览；只有项目所有者可显式下载并确认来源条款；多来源中断后可用 `--resume` 验证并复用已有来源、补齐缺失来源和原子生成完整 manifest；
 - ✅ BIPIA、InjecAgent、NotInject 严格字段 profile 已实现并通过合成 fixture 测试，不再猜测字段或标签；
 - ✅ 每行记录 adapter、label、action provenance；BIPIA 缺失动作、InjecAgent 基准目标动作和 NotInject 协议包装被明确隔离；
 - ✅ 转换报告记录输入/输出 SHA-256、跳过数、标签与动作 provenance；严格模式 `skipped` 必须为 0；
-- ✅ 人工审计抽样、审计汇总、修订应用、模糊样本排除框架已实现；
-- ✅ 精确/近重复、模板组跨 split、动作缺失检查和最终 split manifest 自哈希已实现；
-- ✅ 规则、TF-IDF、ProtectAI、PIGuard 的统一连续分数接口，以及 calibration-only 阈值评估框架已实现；
+- ✅ 人工审计抽样、审计汇总、修订应用、模糊样本排除框架已实现；抽样 seed、算法、分层字段和不可编辑行摘要均可从 canonical 输入重放验证；
+- ✅ 精确/近重复、模板组跨 split、动作缺失检查和最终 split manifest 自哈希已实现；训练前报告会重放转换、merge、审计应用、去重和固定 seed 划分，而不是只相信 sidecar 声明；
+- ✅ 规则、TF-IDF、ProtectAI、PIGuard 的统一连续分数接口、calibration/test backend+revision 绑定、calibration-only 阈值评估和完整矩阵聚合框架已实现；真实最终测试基线不会在模型冻结前提前运行；
 - ✅ 数据/训练执行权已固定给项目所有者，Codex 只运行静态检查和合成 fixture 测试；
-- ✅ 用户已完成 Conda `intentfence` 环境准备：Python 3.12.13、`pip check` 通过、32 项测试通过（1 条非阻塞 Starlette 弃用警告）；
+- ✅ 用户已完成 Conda `intentfence` 环境准备：Python 3.12.13；`pip check` 无损坏依赖；`huggingface_hub`、`jsonlines`、`nltk`、`pandas`、`pyarrow`、`transformers`、`yaml` 和项目包导入通过；固定 BIPIA email builder 导入预检通过；
 - ✅ 用户已完成 BIPIA、InjecAgent、NotInject 固定来源预览；URL、revision、许可证发现和目标路径与冻结注册表一致，预览后 Git 工作区干净；
-- ⛔ 公开数据尚未由用户下载、转换、合并、去重或划分；
-- ⛔ 200 条人工标签审计、真实泄漏检查和真实基线尚未由用户执行；
+- ✅ 用户已使用 `--resume` 完成 BIPIA、InjecAgent 与 NotInject 固定来源下载；`source_manifest.json` 的 3 个 revision 与冻结注册表一致，131 个登记文件的存在性、大小和实际 SHA-256 已逐项复核且错误为 0；
+- ✅ 已用 `intentfence` Conda 解释器完成 BIPIA email builder 无副作用预览；冻结 revision、train context/attack 路径和计划输出路径均正确，未生成数据文件；
+- ✅ C1 手册命令已统一为从 Conda 环境登记表唯一解析解释器并 fail-fast；BIPIA builder 最小依赖已纳入 `data` extra；正式 split build 必须恰好生成六角色，manifest 会绑定每个角色的路径、行数和 SHA-256；动作校验按 split/source/provenance 白名单 fail-closed，Test B/C 的代理证据不会被误称为 observed action；
+- ✅ 训练前报告生成器已实现：在用户完成第 7 节后会复核全部来源/转换/审计/manifest 证据，并生成 train-only Risk × Alignment 列联/条件概率/互信息、类别覆盖、动作就绪状态、标签质量报告和数据卡；
+- 🟡 项目所有者已完成第 3 节的 email attack export、generated 严格转换和 clean 严格转换；转换报告分别记录 11,250 条攻击样本和 50 条 clean 样本，均为 `skipped=0`，报告中的输入/输出 SHA-256 已与现存文件复核一致。由于 export 产生在 builder sidecar 功能加入前，第 8 节前还须由项目所有者用 `--verify-existing` 重建到临时文件并生成 `reproduced_verified` 报告，现有数据无需覆盖；
+- 🔵 项目所有者已完成第 4 节 direct-harm 转换：报告记录 510 条、`skipped=0`、`split=test_b`、`action_provenance=benchmark_target`，输出 SHA-256 已复核一致；data-stealing 转换尚未执行；
+- ⛔ BIPIA 不提供拟执行动作，且当前尚无已批准的动作构造与独立审计流程；第 3～8 节只能关闭 A/B 数据证据路线并生成训练前报告，模型 C 数据门仍阻塞，不得伪造动作；
+- ⛔ 当前 BIPIA 构造只直接提供 `benign` 与 `instruction_hijacking`，且 schema 令 Alignment 成为 Risk 的确定性二值映射；正式训练前必须依据真实报告，由项目所有者决定是修订为二元 risk-only 主目标，还是增加经许可/审计的训练类与独立 Alignment 标注。冻结协议尚未被擅自修改；
+- ✅ 已新增 `docs/training_entry_decision.md`，把二元 risk-only、保留五分类扩充数据、仅 A/B 工程冒烟三条路线及其证据/批准边界写清；当前状态仍为项目所有者待决，不构成协议修改；
+- ⛔ InjecAgent data-stealing 与三个 NotInject 子集尚未由用户转换；合并、去重和六角色划分尚未开始；
+- ⛔ 200 条人工标签审计、真实泄漏检查和训练前数据报告尚未由用户执行；真实 Test A/B/C 基线按单次测试锁有意延后到 C3，不是 C1 缺项；
 - ⛔ 因此 C1 工程框架可交付，但研究出口尚未完成，不能进入真实训练结论阶段。
 
 #### 要测试什么
@@ -207,7 +224,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - 用户执行出口：按 `docs/c1_user_runbook.md` 生成并提交以下证据；
 - 标签质量报告完成；
 - 所有 split 无模板/近重复泄漏；
-- 本地和外部必要基线可重复运行；
+- 本地和外部必要基线的接口、固定 revision 和合成 smoke 可重复；真实 Test A/B/C 基线结果按 test lock 延后到 C3 单次正式评测；
 - 数据版本、哈希、许可证和结果均可追溯；
 - 未达到出口条件不得租 GPU 训练 Base。
 
@@ -532,14 +549,15 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 8. 当前已验证事实
 
-截至 2026-08-20：
+截至 2026-08-24：
 
 - Ruff 静态检查通过；
-- 32 个单元/API/协议/数据框架测试通过；
+- 108 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
-- 合成 smoke 数据的划分、规则、word TF-IDF、char TF-IDF 和延迟脚本可运行；
-- 上述验证只证明工程骨架工作，**不证明 IntentFence 在公开基准上有效**；
+- C0 协议校验和 C1 框架校验通过；
+- 合成 fixture 已覆盖来源/转换 replay、人工审计 key、merge、去重、六角色划分、manifest、完整性报告、规则与 word/char TF-IDF 接口及正式测试锁；
+- 上述结果属于静态与合成验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
 - 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型。
 
 ## 9. 每阶段汇报模板
@@ -572,6 +590,6 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 暂停，等待用户提问或确认。
 ```
 
-## 10. 下一步（需用户确认）
+## 10. 当前下一步（项目所有者执行）
 
-C1 工程框架、用户 Conda 环境和来源预览已经完成。下一步不是由 Codex 进入训练阶段，而是项目所有者按 `docs/c1_user_runbook.md` 第 2 节确认来源条款并下载固定版本数据。每个用户执行子阶段完成后先提供 manifest、报告或日志，Codex 只做只读复核与框架修正；C1 研究出口通过前不得进入真实训练结论阶段。
+C1 工程框架、来源下载与 manifest 核验、环境依赖预检、手册第 3 节的数据产物，以及第 4 节 direct-harm 转换已经完成。当前准确断点是 `docs/c1_user_runbook.md` 第 4 节唯一的当前命令（第 183–186 行）：由项目所有者转换 InjecAgent data-stealing base 文件。成功并提供转换日志后，依次进入第 5 节三个 NotInject 子集转换、第 6 节合并与至少 200 条人工标签审计、第 7 节去重/六角色隔离划分与完整性校验；第 8 节前补做既有 BIPIA export 的 `--verify-existing` builder 复现报告，再生成训练前数据报告。第 8 节报告提交只读复核后暂停，由项目所有者根据 `docs/training_entry_decision.md` 批准协议处置和模型 C 动作构造/独立审计路线；真实 Test A/B/C 基线按单次测试锁留到 C3，C1 研究出口通过前不得进入正式训练结论阶段。

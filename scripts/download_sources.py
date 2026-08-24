@@ -97,7 +97,11 @@ def _file_sha256(path: Path) -> str:
 def _artifact_files(target: Path) -> list[dict[str, Any]]:
     files: list[dict[str, Any]] = []
     for path in sorted(target.rglob("*")):
-        if not path.is_file() or any(part in {".git", ".cache"} for part in path.parts):
+        if (
+            not path.is_file()
+            or path.suffix in {".pyc", ".pyo"}
+            or any(part in {".git", ".cache", "__pycache__"} for part in path.parts)
+        ):
             continue
         files.append(
             {
@@ -109,21 +113,95 @@ def _artifact_files(target: Path) -> list[dict[str, Any]]:
     return files
 
 
-def execute_plan(plan: list[dict[str, Any]], destination: Path) -> dict[str, Any]:
+def _git_output(target: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(target), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _validate_existing_git_source(item: dict[str, Any], target: Path) -> None:
+    if not (target / ".git").is_dir():
+        raise RuntimeError(
+            f"Cannot resume {item['name']}: existing target is not a Git repository: {target}"
+        )
+    head = _git_output(target, "rev-parse", "HEAD")
+    if head != item["revision"]:
+        raise RuntimeError(
+            f"Cannot resume {item['name']}: expected revision {item['revision']}, found {head}"
+        )
+    status = _git_output(target, "status", "--porcelain")
+    if status:
+        raise RuntimeError(
+            f"Cannot resume {item['name']}: existing Git worktree has local changes"
+        )
+
+
+def _load_existing_manifest(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.is_file():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or not isinstance(payload.get("sources"), list):
+        raise RuntimeError(f"Cannot resume from malformed source manifest: {path}")
+    return {
+        source["name"]: source
+        for source in payload["sources"]
+        if isinstance(source, dict) and isinstance(source.get("name"), str)
+    }
+
+
+def _validate_existing_snapshot_source(
+    item: dict[str, Any], target: Path, previous: dict[str, Any] | None
+) -> None:
+    if previous is None:
+        raise RuntimeError(
+            f"Cannot safely resume {item['name']}: existing snapshot has no completed manifest entry"
+        )
+    for key in ("method", "official_url", "revision"):
+        if previous.get(key) != item[key]:
+            raise RuntimeError(
+                f"Cannot resume {item['name']}: existing manifest {key} does not match the plan"
+            )
+    expected_files = previous.get("files")
+    if not isinstance(expected_files, list) or expected_files != _artifact_files(target):
+        raise RuntimeError(
+            f"Cannot resume {item['name']}: existing snapshot files do not match the manifest"
+        )
+
+
+def execute_plan(
+    plan: list[dict[str, Any]], destination: Path, *, resume: bool = False
+) -> dict[str, Any]:
     destination = destination.resolve()
     destination.mkdir(parents=True, exist_ok=True)
+    manifest_path = destination / "source_manifest.json"
+    previous_sources = _load_existing_manifest(manifest_path) if resume else {}
     completed: list[dict[str, Any]] = []
     for item in plan:
         target = Path(item["target"]).resolve()
         if target.parent != destination:
             raise ValueError(f"Unsafe target outside destination: {target}")
         if target.exists():
-            raise FileExistsError(f"Refusing to overwrite source directory: {target}")
-        if item["method"] == "git":
-            _run_git_download(item, target)
+            if not resume:
+                raise FileExistsError(f"Refusing to overwrite source directory: {target}")
+            if item["method"] == "git":
+                _validate_existing_git_source(item, target)
+            else:
+                _validate_existing_snapshot_source(
+                    item, target, previous_sources.get(item["name"])
+                )
+            retrieval_status = "reused_verified"
         else:
-            _run_huggingface_download(item, target)
-        completed.append({**item, "files": _artifact_files(target)})
+            if item["method"] == "git":
+                _run_git_download(item, target)
+            else:
+                _run_huggingface_download(item, target)
+            retrieval_status = "downloaded"
+        completed.append(
+            {**item, "retrieval_status": retrieval_status, "files": _artifact_files(target)}
+        )
 
     manifest = {
         "schema_version": 1,
@@ -131,11 +209,12 @@ def execute_plan(plan: list[dict[str, Any]], destination: Path) -> dict[str, Any
         "execution_owner": "project_owner",
         "sources": completed,
     }
-    manifest_path = destination / "source_manifest.json"
-    manifest_path.write_text(
+    temporary_manifest = manifest_path.with_suffix(".json.tmp")
+    temporary_manifest.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    temporary_manifest.replace(manifest_path)
     return manifest
 
 
@@ -156,6 +235,14 @@ def main() -> None:
         action="store_true",
         help="Confirm that the project owner reviewed source-specific licenses and terms.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help=(
+            "Reuse existing sources only after validating their pinned revision and integrity; "
+            "download missing sources and rebuild the complete manifest."
+        ),
+    )
     args = parser.parse_args()
     plan = build_plan(args.sources, args.destination, args.registry)
     if not args.execute:
@@ -163,7 +250,13 @@ def main() -> None:
         return
     if not args.acknowledge_source_terms:
         parser.error("--execute requires --acknowledge-source-terms")
-    print(json.dumps(execute_plan(plan, args.destination), indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            execute_plan(plan, args.destination, resume=args.resume),
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
 
 if __name__ == "__main__":
