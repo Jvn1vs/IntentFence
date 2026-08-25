@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from intentfence.data import audit_partition_integrity
+from intentfence.data import audit_partition_integrity, file_sha256
 from intentfence.route_b import (
     load_route_b_policy,
     render_route_b_report,
@@ -77,6 +77,19 @@ def main() -> int:
     report["near_threshold"] = args.near_threshold
     report["near_duplicate_check_performed"] = not args.skip_near_duplicates
     report["near_duplicate_scope"] = "one representative per split/template/risk/alignment"
+    report["evidence"] = {
+        "config": {
+            "path": str(args.config.resolve()),
+            "sha256": file_sha256(args.config),
+        },
+        "inputs": [
+            {
+                "path": str(path.resolve()),
+                "sha256": file_sha256(path),
+            }
+            for path in args.input
+        ],
+    }
     if report["errors"]:
         report["status"] = "failed"
     rendered = render_route_b_report(report)

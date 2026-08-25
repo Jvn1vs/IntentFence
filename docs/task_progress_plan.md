@@ -277,8 +277,13 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   完成 69,452 次跨角色 Jaccard 比较，near-duplicate 为 0；
 - ✅ 已生成 reviewer A/B 两套不同顺序的盲审包；每人各 400 条 Risk 和 400 条
   Alignment，不暴露 seed labels；审核分析器和预注册质量门已实现；
+- ✅ readiness 聚合与协议锁框架已实现：会重放 candidate manifest、结构/near-duplicate
+  报告和双人审核分析；integrity v3 绑定四个 split 与当前 policy 哈希；聚合器同时绑定
+  公开报告，并在任一证据缺失或漂移时保持
+  `formal_training_authorized=false`；
 - ⛔ 协议 `2.0.0` 尚未最终冻结，第二名独立人工审核者和两人审核尚未完成；
-- ⛔ v2 readiness 聚合报告尚未完成；
+- ⛔ v2 **真实** readiness 聚合报告尚未完成；框架预检必须因审核和冻结证据缺失而
+  fail-closed；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
@@ -609,10 +614,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 8. 当前已验证事实
 
-截至 2026-08-24：
+截至 2026-08-25：
 
 - Ruff 静态检查通过；
-- 123 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 126 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -652,4 +657,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已批准路线 B 2.0 方向、外部许可排除边界和项目自有离线 corpus 构造。C1B candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双人盲审包和分析器也已生成。当前准确停止点是两名独立人类各自完成 400 条 Risk 与 400 条 Alignment 审核；在审核、可能的裁决、协议冻结和 readiness 报告完成前不进入 C2a。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
+C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已批准路线 B 2.0 方向、外部许可排除边界和项目自有离线 corpus 构造。C1B candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双人盲审包、分析器、readiness 聚合器和协议锁框架也已生成。当前准确停止点仍是两名独立人类各自完成 400 条 Risk 与 400 条 Alignment 审核；在审核、可能的裁决、协议冻结和真实 readiness 报告完成前不进入 C2a。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。

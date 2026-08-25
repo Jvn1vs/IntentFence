@@ -84,6 +84,7 @@ split_isolation:
     - "normalized_action_signature"
   exact_cross_role_duplicates: 0
   near_cross_role_duplicates: 0
+  near_duplicate_threshold: 0.92
   template_groups_crossing_roles: 0
   frozen_tests_used_for_design: false
 
@@ -137,6 +138,7 @@ sample_size:
 
 readiness:
   formal_training_authorized: false
+  public_aggregate_reports_complete: false
   requires:
     - "protocol_2_0_0_approved_and_frozen"
     - "all_source_terms_and_attribution_approved"

@@ -52,6 +52,10 @@ addresses, files, resources, and identifiers are synthetic; email domains use `.
 - Template representatives checked at Jaccard threshold 0.92: 5,400.
 - Candidate/comparison pairs: 69,452.
 - Detected cross-role near duplicates: 0.
+- Input-bound integrity report v3 SHA-256:
+  `cb25c2141c3007bb16f4376d2f8cef1fe3bce4d1625aa0194a3de1aabdffff00`.
+  It binds the four candidate split hashes and the current Route B policy hash; its readiness
+  status remains blocked.
 
 Candidate 1 was rejected for two wildcard ticket action signatures that crossed roles.
 Candidate 2 removed that defect but still exposed role-coded entity prefixes. Candidate 3

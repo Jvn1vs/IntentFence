@@ -187,7 +187,56 @@ if ($LASTEXITCODE -ne 0) { throw "Route B 双人盲审分析失败" }
 `unable_to_determine`，并计算原始一致率、Cohen's kappa、逐类 seed agreement 和动作
 realism。即使全部通过，报告仍保持 `formal_training_authorized=false`，直到协议冻结。
 
-## 7. 完整本地验证
+## 7. Readiness 聚合与协议封存
+
+readiness 工具会重放 candidate manifest、核对完整性报告与候选 split、重放双人盲审
+分析，并验证协议锁和公开聚合报告。任何输入缺失、哈希漂移、审核门失败或协议未冻结，
+都只会生成 `formal_training_authorized=false` 并以非零状态退出。
+
+在审核尚未完成的当前状态，可运行一次 fail-closed 预检（预期退出码为 1）：
+
+```powershell
+& $IntentFencePython scripts/build_route_b_readiness.py `
+  --candidate-manifest data/interim/route_b_v2_candidate_4/manifest.json `
+  --integrity-report data/interim/route_b_v2_candidate_4/route_b_integrity_report_v3.json `
+  --public-report reports/data_quality/route_b_candidate_4_card.md `
+  --output data/interim/route_b_v2_candidate_4/readiness_preflight.json
+if ($LASTEXITCODE -ne 1) { throw "未完成审核时 readiness 必须 fail-closed" }
+```
+
+只有四份审核表完成、分析通过且无需分歧裁决后，项目所有者才能：
+
+1. 更新公开聚合卡，保留原始审核文件和哈希；
+2. 将 YAML/Markdown 协议批准为精确版本 `2.0.0`，记录带时区的 `approved_at`，冻结
+   样本量目标，并显式设置两项 readiness 布尔值；
+3. 亲自确认并执行协议锁命令：
+
+```powershell
+& $IntentFencePython scripts/freeze_route_b_protocol.py `
+  --confirm-project-owner-approval `
+  --output configs/route_b_protocol_lock.json
+if ($LASTEXITCODE -ne 0) { throw "Route B 协议封存失败" }
+```
+
+随后生成最终 readiness 报告：
+
+```powershell
+& $IntentFencePython scripts/build_route_b_readiness.py `
+  --protocol-lock configs/route_b_protocol_lock.json `
+  --candidate-manifest data/interim/route_b_v2_candidate_4/manifest.json `
+  --integrity-report data/interim/route_b_v2_candidate_4/route_b_integrity_report_v3.json `
+  --audit-analysis data/interim/route_b_v2_candidate_4_audit_v2/audit_analysis.json `
+  --audit-manifest data/interim/route_b_v2_candidate_4_audit_v2/audit_manifest.json `
+  --public-report reports/data_quality/route_b_candidate_4_card.md `
+  --output data/interim/route_b_v2_candidate_4/readiness.json
+if ($LASTEXITCODE -ne 0) { throw "Route B readiness 未通过，禁止训练" }
+```
+
+若审核报告为 `quality_gates_passed_adjudication_required`，当前工具会继续阻塞；必须先
+保留两份原始意见并完成可追溯裁决，不能用命令行开关绕过。即使 readiness 通过，
+训练执行者仍固定为项目所有者，最终测试锁继续生效。
+
+## 8. 完整本地验证
 
 ```powershell
 & $IntentFencePython -m ruff check .
@@ -203,7 +252,7 @@ if ($LASTEXITCODE -ne 0) { throw "compileall 失败" }
 if ($LASTEXITCODE -ne 0) { throw "wheel 构建失败" }
 ```
 
-## 8. 当前禁止执行
+## 9. 当前禁止执行
 
 - 不把 fixture 复制到 `data/processed` 并称为真实训练数据；
 - 不从 InjecAgent、NotInject、AgentDojo 或已冻结 Test A/B/C/D 抽取训练样本；
@@ -211,5 +260,5 @@ if ($LASTEXITCODE -ne 0) { throw "wheel 构建失败" }
 - 不把 AI 预审写成第二名独立人类审核；
 - 不运行 `intentfence-train`、TF-IDF 拟合、tiny-overfit、温度或阈值拟合。
 
-当前只剩人类双盲审核、可能的分歧裁决、协议最终冻结和 v2 readiness 报告。审核通过前
-不得把 candidate 4 复制为训练就绪版本。
+readiness 聚合和协议封存框架现已具备。当前仍缺人类双盲审核、可能的分歧裁决、协议
+最终冻结和真实 v2 readiness 报告；审核通过前不得把 candidate 4 复制为训练就绪版本。
