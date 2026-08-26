@@ -1,6 +1,9 @@
-# Route B 训练前数据扩充手册
+# Route B 训练前数据扩充手册（历史人类审核路线）
 
-状态：框架和正式 candidate 4 已生成；协议仍未冻结，双人盲审与模型训练尚未完成。
+状态：人类审核版本保留作协议历史；当前 active route 为
+[`route_b_ai_review_runbook.md`](route_b_ai_review_runbook.md) 的双 AI 工程/简历演示路线。
+AI 路线不会产生人工验证证据，`human_verified=false` 且
+`formal_training_authorized=false`。
 
 本手册覆盖静态校验、精度规划、framework fixture、获批的项目自有离线 candidate
 构造、完整性验证和双人盲审。它不会下载外部数据、调用在线工具、拟合参数或生成

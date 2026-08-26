@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "protocol_version": "2.1.0-ai-draft.1",
+  "review_mode": "dual_ai_engineering",
+  "content_class": "synthetic_project_owned",
+  "external_upload_approved_by_project_owner": false,
+  "audit_manifest_sha256": "REPLACE_64_HEX",
+  "reviewers": {
+    "ai_a": {
+      "reviewer_id": "provider_a:model_a@revision_a",
+      "provider": "REPLACE",
+      "model": "REPLACE",
+      "revision": "REPLACE",
+      "execution_mode": "local_or_external",
+      "temperature": 0,
+      "prompt_sha256": "REPLACE_64_HEX",
+      "seed_labels_hidden": true,
+      "other_reviewer_output_hidden": true,
+      "raw_output_files": {
+        "risk_path": "reviewer_a_risk.csv",
+        "risk_sha256": "REPLACE_64_HEX",
+        "alignment_path": "reviewer_a_alignment.csv",
+        "alignment_sha256": "REPLACE_64_HEX"
+      }
+    },
+    "ai_b": {
+      "reviewer_id": "provider_b:model_b@revision_b",
+      "provider": "REPLACE",
+      "model": "REPLACE",
+      "revision": "REPLACE",
+      "execution_mode": "local_or_external",
+      "temperature": 0,
+      "prompt_sha256": "REPLACE_64_HEX",
+      "seed_labels_hidden": true,
+      "other_reviewer_output_hidden": true,
+      "raw_output_files": {
+        "risk_path": "reviewer_b_risk.csv",
+        "risk_sha256": "REPLACE_64_HEX",
+        "alignment_path": "reviewer_b_alignment.csv",
+        "alignment_sha256": "REPLACE_64_HEX"
+      }
+    }
+  }
+}

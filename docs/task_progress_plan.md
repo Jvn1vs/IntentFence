@@ -68,7 +68,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
 | C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架与真实执行闭环完成 | ✅ 证据 validated；⛔ 训练就绪失败 | 真实 manifest、审核和报告已生成；按训练入口决策补数据/修订协议前停止 |
-| C1B | Route B 训练前数据扩充 | 五分类训练来源、独立 Alignment、动作构造与审核、v2 manifest | 🟡 candidate 4 与审核包完成 | ⛔ 双人盲审/协议冻结未完成 | 五类与正负类覆盖、独立标签/action 证据、许可和新 split 全部通过 |
+| C1B | Route B 训练前数据扩充（双 AI 工程路线） | 五分类训练来源、独立 Alignment、动作构造与双 AI 审核、v2 manifest | 🟡 candidate 4 与 AI 输入包完成 | ⛔ 双 AI 结果/metadata 未完成 | 五类与正负类覆盖、AI 一致性证据、许可和新 split 全部通过 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -235,24 +235,29 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ---
 
-### C1B：Route B 五分类、独立 Alignment 与动作数据扩充
+### C1B：Route B 五分类、独立 Alignment 与动作数据扩充（当前为双 AI 工程路线）
 
 #### 要做什么
 
-1. 在不改变旧 Test B/C 锁的前提下，创建协议 `2.0.0` 草案；
+1. 在不改变旧 Test B/C 锁的前提下，保留 `2.0.0` 人类审核草案并创建 `2.1.0-ai-draft.1`；
 2. 将五分类 `risk_label` 与四分类 `task_alignment_label` 分离；
 3. 用离线 mock runtime 捕获候选动作、参数来源和不可变 observation ID；
 4. 构造 Risk/Alignment 反事实配对，避免 Alignment 再次成为 Risk 的确定函数；
 5. 根据 1% FPR、cluster 结构和主端点冻结精度/功效目标；
-6. 完成两条相互盲的人工审核流与分歧裁决；
+6. 当前 active route 完成两条相互盲的双 AI 审核流；原人工审核流保留为历史；
 7. 重新构造互斥 v2 train/validation/calibration/untouched tests、manifest 与聚合报告；
-8. 只有 readiness 明确给出 `formal_training_authorized=true` 后才移交用户训练。
+8. AI-only 路线只生成工程证据，保持 `human_verified=false` 与
+   `formal_training_authorized=false`；不移交论文级训练授权。
 
 #### 当前状态
 
-- ✅ 项目所有者已于 2026-08-24 选择 Route B；选择不等于当前 v1 可训练；
-- ✅ `docs/route_b_data_protocol.md` 与 machine-readable 草案已建立，状态明确为
-  `DRAFT_UNFROZEN_NOT_TRAINING_AUTHORIZED`；
+- ✅ 项目所有者已于 2026-08-24 选择 Route B，并于 2026-08-26 选择双 AI 工程/简历
+  演示路线；选择不等于当前 v1 或论文级可训练；
+- ✅ 新增 `2.1.0-ai-draft.1` AI-only 协议、双 AI prompt、metadata example 和分析 CLI；
+  原 `2.0.0` 人类审核协议仍保留作历史，不被伪装为 AI 证据；
+- ✅ `docs/route_b_data_protocol.md` 与 machine-readable 人类审核草案保留作历史；当前
+  active machine-readable 协议为 `configs/route_b_ai_review_protocol.yaml`，状态明确为
+  `AI_REVIEW_DIRECTION_APPROVED_CONSTRUCTION_AUTHORIZED_NOT_TRAINING_AUTHORIZED`；
 - ✅ 官方来源复核完成：BIPIA 代码为 MIT，但 Email/Table/Code 等数据保留 MIT 或
   CC BY-SA 等各自条款；WebQA/Summarization 仍需另行取得源数据；
 - ✅ InjecAgent、NotInject、AgentDojo 继续锁为 Test B/C/D，验证器会拒绝把它们放入
@@ -275,23 +280,24 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   `executed=false`、`external_side_effects=false`；
 - ✅ exact、template group、action signature 检查通过；5,400 个模板代表在阈值 0.92 下
   完成 69,452 次跨角色 Jaccard 比较，near-duplicate 为 0；
-- ✅ 已生成 reviewer A/B 两套不同顺序的盲审包；每人各 400 条 Risk 和 400 条
-  Alignment，不暴露 seed labels；审核分析器和预注册质量门已实现；
+- ✅ 已生成两套不同顺序的 AI reviewer 输入包；每个 AI 各完成 400 条 Risk 和 400 条
+  Alignment 的工程审核目标，不暴露 seed labels；AI 分析器和预注册质量门已实现；
 - ✅ readiness 聚合与协议锁框架已实现：会重放 candidate manifest、结构/near-duplicate
   报告和双人审核分析；integrity v3 绑定四个 split 与当前 policy 哈希；聚合器同时绑定
   公开报告，并在任一证据缺失或漂移时保持
   `formal_training_authorized=false`；
-- ⛔ 协议 `2.0.0` 尚未最终冻结，第二名独立人工审核者和两人审核尚未完成；
-- ⛔ v2 **真实** readiness 聚合报告尚未完成；框架预检必须因审核和冻结证据缺失而
-  fail-closed；
+- ⛔ 两个不同 provider/model/revision 的 AI 尚未提交结构化审核结果与 metadata；
+- ⛔ `2.1.0-ai-draft.1` AI 工程证据分析尚未完成；即使通过也保持
+  `human_verified=false` 与 `formal_training_authorized=false`；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
 
-- `docs/route_b_data_protocol.md` 第 7 节所有质量门同时通过；
+- `docs/route_b_ai_review_protocol.md` 的双 AI metadata、哈希和质量门全部通过；
 - 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
 - 只提交框架、配置、文档和允许公开的聚合 Markdown 证据；
-- 阶段退出后准确停在模型训练命令之前，由项目所有者执行训练。
+- 阶段退出后仍停在正式模型训练授权之前；如需工程训练，须另行形成项目所有者明确
+  的非论文级实验决定。
 
 ---
 
@@ -617,7 +623,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-25：
 
 - Ruff 静态检查通过；
-- 126 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 128 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -657,4 +663,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已批准路线 B 2.0 方向、外部许可排除边界和项目自有离线 corpus 构造。C1B candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双人盲审包、分析器、readiness 聚合器和协议锁框架也已生成。当前准确停止点仍是两名独立人类各自完成 400 条 Risk 与 400 条 Alignment 审核；在审核、可能的裁决、协议冻结和真实 readiness 报告完成前不进入 C2a。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
+C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已将 C1B 选择为 AI-only 工程/简历演示路线：原 `2.0.0` 人类审核草案保留为历史，新增 `2.1.0-ai-draft.1` 双 AI 审核协议。candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双 AI 输入包、AI 分析器、readiness 聚合器和协议锁框架均已生成。当前准确停止点是两个不同 provider/model/revision 的 AI 完成各自 400 条 Risk 与 400 条 Alignment 审核并提交 metadata；AI 证据只能支持工程演示，`human_verified=false`，不自动开放正式训练或最终测试。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。

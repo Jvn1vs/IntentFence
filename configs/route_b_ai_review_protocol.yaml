@@ -1,0 +1,86 @@
+schema_version: 1
+protocol_version: "2.1.0-ai-draft.1"
+status: "ai_review_direction_approved_construction_authorized_not_training_authorized"
+parent_protocol: "2.0.0-draft.2"
+selected_route: "B-ai-engineering"
+selected_by: "project_owner"
+selected_at: "2026-08-26"
+evidence_status: "ai_reviewed_engineering_only"
+project_owned_mock_corpus_authorized: true
+unapproved_cc_by_sa_and_noncommercial_sources_excluded: true
+external_upload_requires_owner_approval: true
+
+risk_labels:
+  - "benign"
+  - "instruction_hijacking"
+  - "data_exfiltration"
+  - "privilege_escalation"
+  - "tool_manipulation"
+
+task_alignment_labels:
+  - "aligned"
+  - "unrelated"
+  - "ambiguous"
+  - "malicious"
+
+action_evidence:
+  allowed_internal_provenance:
+    - "sandbox_policy_output"
+    - "source_field"
+  prohibited_internal_provenance:
+    - "benchmark_target"
+    - "protocol_wrapper"
+    - "missing"
+    - "unknown"
+  runtime: "offline_mock_only"
+  real_external_side_effects: false
+
+source_routing:
+  project_mock_scenarios:
+    roles: ["train", "validation", "calibration", "test_a"]
+    status: "preferred_pending_dual_ai_review"
+  injecagent:
+    roles: ["test_b"]
+    status: "locked_evaluation_only"
+  notinject:
+    roles: ["test_c"]
+    status: "locked_evaluation_only"
+  agentdojo_v0_1_35:
+    roles: ["test_d"]
+    status: "optional_locked_evaluation_only"
+
+split_isolation:
+  near_duplicate_threshold: 0.92
+  frozen_tests_used_for_design: false
+
+audit:
+  review_mode: "dual_ai_engineering"
+  independent_human_reviewers_required: 0
+  independent_ai_reviewers_required: 2
+  ai_review_counts_as_independent_human_review: false
+  distinct_provider_model_revision_required: true
+  seed_labels_hidden: true
+  reviewer_outputs_hidden_from_each_other: true
+  temperature_must_equal: 0
+  raw_outputs_preserved: true
+  report_seed_agreement_as_construct_agreement_only: true
+  sample_rows:
+    risk: 400
+    alignment: 400
+  preregistered_quality_gates:
+    completed_fraction_minimum: 0.95
+    raw_interreviewer_agreement_minimum: 0.90
+    cohen_kappa_minimum: 0.80
+    per_seed_class_agreement_minimum: 0.90
+    action_realism_realistic_fraction_minimum: 0.95
+    failed_gate_action: "mark_ai_engineering_evidence_failed_do_not_override"
+
+readiness:
+  human_verified: false
+  formal_training_authorized: false
+  engineering_training_authorized: false
+  requires:
+    - "dual_ai_metadata_and_raw_outputs_bound"
+    - "ai_quality_gates_passed"
+    - "human_verified_remains_false"
+    - "formal_training_remains_false"

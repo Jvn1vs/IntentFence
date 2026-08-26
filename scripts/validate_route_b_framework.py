@@ -54,6 +54,14 @@ def validate() -> list[str]:
         "configs/route_b_mock_corpus.yaml",
         "docs/route_b_audit_rubric.md",
         "src/intentfence/route_b_readiness.py",
+        "configs/route_b_ai_review_protocol.yaml",
+        "configs/route_b_ai_review_manifest.example.json",
+        "docs/route_b_ai_review_protocol.md",
+        "docs/route_b_ai_review_prompt.md",
+        "docs/route_b_ai_review_runbook.md",
+        "scripts/analyze_route_b_ai_reviews.py",
+        "scripts/validate_route_b_ai_review_framework.py",
+        "src/intentfence/route_b_ai_review.py",
     ):
         if not (ROOT / relative).is_file():
             errors.append(f"Route B framework file is missing: {relative}")
