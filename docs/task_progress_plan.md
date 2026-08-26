@@ -68,7 +68,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 | P0 | 冻结推进计划与协作规则 | Markdown、Git 状态审查 | ✅ | 不适用 | 用户确认本计划 |
 | C0 | 冻结研究协议与文献定位 | 论文原文、官方文档、实验注册表 | ✅ 已冻结 | ✅ 文献证据已核验；实验结果尚未产生 | 用户已批准协议 1.0.0 |
 | C1 | 数据质量与必要基线框架 | 严格适配器、manifest、审计、泄漏检查、基线接口 | ✅ 框架与真实执行闭环完成 | ✅ 证据 validated；⛔ 训练就绪失败 | 真实 manifest、审核和报告已生成；按训练入口决策补数据/修订协议前停止 |
-| C1B | Route B 训练前数据扩充（双 AI 工程路线） | 五分类训练来源、独立 Alignment、动作构造与双 AI 审核、v2 manifest | 🟡 candidate 4 与 AI 输入包完成 | ⛔ 双 AI 结果/metadata 未完成 | 五类与正负类覆盖、AI 一致性证据、许可和新 split 全部通过 |
+| C1B | Route B 训练前数据扩充（双 AI 工程路线） | 五分类训练来源、独立 Alignment、动作构造与双 AI 审核、v2 manifest | ✅ 双 AI 包、metadata 与分析器完成 | ⛔ 两次 AI B 运行均未通过预注册质量门；已接受为工程负结果 | 负结果已记录；正式训练与最终测试继续锁定 |
 | C2a | Small 模型流水线与输入消融 | PyTorch、Transformers、DeBERTa-v3-small | 🟡 | ⬜ | CPU 冒烟通过，A/B/C 可重复训练和加载 |
 | C2b | Base 主实验与困难负样本 | 云 GPU、DeBERTa-v3-base、3 seeds | 🟡 | ⛔ | H1～H4 主实验完成，结果可追溯 |
 | C2c | 独立校准与阈值冻结 | Temperature Scaling、校准集 | 🟡 | ⬜ | H5 完成，温度和阈值冻结 |
@@ -286,14 +286,18 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   报告和双人审核分析；integrity v3 绑定四个 split 与当前 policy 哈希；聚合器同时绑定
   公开报告，并在任一证据缺失或漂移时保持
   `formal_training_authorized=false`；
-- ⛔ 两个不同 provider/model/revision 的 AI 尚未提交结构化审核结果与 metadata；
-- ⛔ `2.1.0-ai-draft.1` AI 工程证据分析尚未完成；即使通过也保持
+- ✅ DeepSeek V4 Pro、Kimi K3 和 DeepSeek V4 Flash 的结构化审核结果、metadata、Prompt
+  与输出哈希均已登记；每套审核均完成 400 条 Risk 和 400 条 Alignment；
+- ⛔ `2.1.0-ai-draft.1` 分析已完成，但 Kimi K3 与 DeepSeek V4 Flash 两次 AI B 运行均未
+  通过预注册质量门；失败结果已接受并记录为工程负证据，仍保持
   `human_verified=false` 与 `formal_training_authorized=false`；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
 
 - `docs/route_b_ai_review_protocol.md` 的双 AI metadata、哈希和质量门全部通过；
+- 若质量门未通过，必须保留失败报告并在 `docs/route_b_ai_review_results.md` 如实记录，
+  不得修改阈值或手工调整标签；本阶段不得进入训练；
 - 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
 - 只提交框架、配置、文档和允许公开的聚合 Markdown 证据；
 - 阶段退出后仍停在正式模型训练授权之前；如需工程训练，须另行形成项目所有者明确
@@ -663,4 +667,4 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已将 C1B 选择为 AI-only 工程/简历演示路线：原 `2.0.0` 人类审核草案保留为历史，新增 `2.1.0-ai-draft.1` 双 AI 审核协议。candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双 AI 输入包、AI 分析器、readiness 聚合器和协议锁框架均已生成。当前准确停止点是两个不同 provider/model/revision 的 AI 完成各自 400 条 Risk 与 400 条 Alignment 审核并提交 metadata；AI 证据只能支持工程演示，`human_verified=false`，不自动开放正式训练或最终测试。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
+C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已将 C1B 选择为 AI-only 工程/简历演示路线：原 `2.0.0` 人类审核草案保留为历史，新增 `2.1.0-ai-draft.1` 双 AI 审核协议。candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双 AI 输入包、AI 分析器、readiness 聚合器和协议锁框架均已生成。Kimi K3 与 DeepSeek V4 Flash 两次独立 AI B 运行均完成各自 400 条 Risk 与 400 条 Alignment 审核，但分别在 Alignment `malicious` 和 Risk `instruction_hijacking` 的逐类 seed agreement 质量门失败；负结果已记录并接受为工程证据。AI 证据只能支持工程演示，`human_verified=false`，不开放正式训练或最终测试。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
