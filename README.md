@@ -120,6 +120,30 @@ python -m pip install -e ".[ml,dev]" --index-url https://pypi.org/simple
 - `context`：用户任务 + 外部内容；
 - `action`：用户任务 + 外部内容 + 拟执行动作。
 
+训练入口会在加载 tokenizer 或模型前检查 train/validation 的角色、benign/attack 覆盖和
+action provenance。可先运行无副作用预检；这一步不需要安装 ML 依赖，也不会读取 calibration
+或任何测试集：
+
+```powershell
+intentfence-train `
+  --config configs/deberta_small.yaml `
+  --train data/processed/AUTHORIZED_VERSION/train.jsonl `
+  --validation data/processed/AUTHORIZED_VERSION/validation.jsonl `
+  --dry-run
+```
+
+项目所有者进行 CPU 冒烟时，可用固定 seed 的分层限额保留 benign/attack 覆盖：
+
+```powershell
+intentfence-train `
+  --config configs/deberta_small.yaml `
+  --train data/processed/AUTHORIZED_VERSION/train.jsonl `
+  --validation data/processed/AUTHORIZED_VERSION/validation.jsonl `
+  --output-dir checkpoints/small-action-smoke-seed42 `
+  --max-train-samples 300 `
+  --max-validation-samples 100
+```
+
 ```powershell
 intentfence-train `
   --config configs/deberta_small.yaml `

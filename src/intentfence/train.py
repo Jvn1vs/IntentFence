@@ -16,6 +16,11 @@ from intentfence.metrics import evaluate_risk_predictions, softmax
 from intentfence.modeling import ModelMetadata, create_multitask_model, save_multitask_model
 from intentfence.schema import IntentSample, read_jsonl
 from intentfence.text import build_model_text
+from intentfence.training_contract import (
+    TrainingDataSummary,
+    deterministic_stratified_subset,
+    validate_training_inputs,
+)
 
 
 def _require_training() -> tuple[Any, Any, Any, Any]:
@@ -62,14 +67,42 @@ def set_seed(seed: int, torch: Any) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def train(config: TrainingConfig, train_path: Path, validation_path: Path, output_dir: Path) -> None:
+def load_training_samples(
+    config: TrainingConfig,
+    train_path: Path,
+    validation_path: Path,
+) -> tuple[list[IntentSample], list[IntentSample], TrainingDataSummary]:
+    train_samples, validation_samples = read_jsonl(train_path), read_jsonl(validation_path)
+    summary = validate_training_inputs(
+        train_samples, validation_samples, input_mode=config.input_mode
+    )
+    return train_samples, validation_samples, summary
+
+
+def train(
+    config: TrainingConfig,
+    train_path: Path,
+    validation_path: Path,
+    output_dir: Path,
+    *,
+    max_train_samples: int | None = None,
+    max_validation_samples: int | None = None,
+) -> None:
+    train_samples, validation_samples, _ = load_training_samples(
+        config, train_path, validation_path
+    )
+    train_samples = deterministic_stratified_subset(
+        train_samples, max_train_samples, seed=config.seed
+    )
+    validation_samples = deterministic_stratified_subset(
+        validation_samples, max_validation_samples, seed=config.seed + 1
+    )
     torch, nn, loader_types, transformer_types = _require_training()
     DataLoader, Dataset = loader_types
     AutoTokenizer, get_linear_schedule_with_warmup = transformer_types
     set_seed(config.seed, torch)
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
-    train_samples, validation_samples = read_jsonl(train_path), read_jsonl(validation_path)
 
     class EncodedDataset(Dataset):
         def __init__(self, samples: list[IntentSample]) -> None:
@@ -129,7 +162,7 @@ def train(config: TrainingConfig, train_path: Path, validation_path: Path, outpu
             risk_labels = batch.pop("risk_label").to(device)
             alignment_labels = batch.pop("alignment_label").to(device)
             inputs = {key: value.to(device) for key, value in batch.items()}
-            with torch.amp.autocast("cuda", enabled=use_amp):
+            with torch.amp.autocast(device_type=device.type, enabled=use_amp):
                 output = model(**inputs)
                 risk_loss = risk_loss_fn(output["risk_logits"], risk_labels)
                 alignment_loss = alignment_loss_fn(output["alignment_logits"], alignment_labels)
@@ -194,13 +227,43 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--train", type=Path, required=True)
     parser.add_argument("--validation", type=Path, required=True)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument(
+        "--max-train-samples",
+        type=int,
+        help="Deterministically cap the train role for an owner-operated smoke run",
+    )
+    parser.add_argument(
+        "--max-validation-samples",
+        type=int,
+        help="Deterministically cap the validation role for an owner-operated smoke run",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run split/action/coverage preflight without loading ML dependencies or a model",
+    )
     return parser
 
 
 def main() -> None:
-    args = build_parser().parse_args()
-    train(TrainingConfig.from_yaml(args.config), args.train, args.validation, args.output_dir)
+    parser = build_parser()
+    args = parser.parse_args()
+    config = TrainingConfig.from_yaml(args.config)
+    if args.dry_run:
+        _, _, summary = load_training_samples(config, args.train, args.validation)
+        print(json.dumps({"status": "preflight_passed", **summary.as_dict()}, sort_keys=True))
+        return
+    if args.output_dir is None:
+        parser.error("--output-dir is required unless --dry-run is used")
+    train(
+        config,
+        args.train,
+        args.validation,
+        args.output_dir,
+        max_train_samples=args.max_train_samples,
+        max_validation_samples=args.max_validation_samples,
+    )
 
 
 if __name__ == "__main__":

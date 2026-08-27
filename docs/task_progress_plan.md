@@ -325,7 +325,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 #### 当前状态
 
 - 🟡 双头模型、训练循环、输入 A/B/C、类别权重、早停和 checkpoint 代码已实现；
+- ✅ 训练入口已增加模型加载前的 split/benign-attack/action preflight、确定性分层
+  smoke 样本限额和无 ML 依赖的 `--dry-run`；CPU AMP 路径改为按实际 device 选择；
 - ✅ 核心 Python 代码通过静态检查和编译；
+- ✅ 新增训练契约 fixture 测试，覆盖角色错配、覆盖不足、action 缺失和 seed 可重复性；
 - ⬜ `ml` 依赖和 DeBERTa 权重尚未安装/下载；
 - ⬜ 未执行真实 forward/backward、tiny overfit 或 checkpoint reload；
 - ⬜ 未生成 A/B/C 训练结果。
