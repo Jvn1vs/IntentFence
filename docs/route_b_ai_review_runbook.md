@@ -58,3 +58,14 @@ AI 的输出。每个 AI 需要完成 400 条 Risk 和 400 条 Alignment/action�
 
 哈希漂移、固定列被修改、身份重复、seed labels 暴露、外部上传未批准或质量门失败时，
 报告必须保持失败状态。保留原始 CSV 和原始 AI 结构化输出，不手工修改结果来提高一致率。
+
+## 5. 第三个 AI 补充审核
+
+如果项目所有者要增加一个独立 AI，使用 `scripts/build_route_b_third_ai_package.py` 生成
+`data/interim/route_b_v2_candidate_4_audit_v3_third_ai/`。第三个 AI 必须审核完整 400 条
+Alignment，而不是只审核既有 13 条分歧。它是补充证据，不是事后裁判；原双 AI 失败结果、
+`human_verified=false` 和 `formal_training_authorized=false` 必须保留。
+
+第三个 AI 使用不同的 provider/model/revision、温度 0、独立 prompt；不能看到 AI A/B 输出
+或 `sealed_seed_labels.json`。第三个 AI 的结果只能按补充协议
+`configs/route_b_ai_review_protocol_third.yaml` 解释，不能自动把原质量门改为通过。

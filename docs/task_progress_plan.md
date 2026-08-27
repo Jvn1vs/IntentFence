@@ -291,6 +291,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ⛔ `2.1.0-ai-draft.1` 分析已完成，但 Kimi K3 与 DeepSeek V4 Flash 两次 AI B 运行均未
   通过预注册质量门；失败结果已接受并记录为工程负证据，仍保持
   `human_verified=false` 与 `formal_training_authorized=false`；
+- ✅ 已新增第三 AI 补充审核协议、全量 400 条 Alignment 盲审包构造器和独立提示词；第三
+  AI 不能覆盖既有双 AI 失败结果，也不能只审核 13 条分歧；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件

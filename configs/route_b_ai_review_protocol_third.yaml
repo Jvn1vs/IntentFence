@@ -1,0 +1,41 @@
+schema_version: 1
+protocol_version: "2.1.0-ai-draft.2"
+status: "third_ai_supplementary_direction_draft_not_training_authorized"
+parent_protocol: "2.1.0-ai-draft.1"
+review_mode: "dual_ai_plus_third_supplementary_alignment"
+purpose: "independent_full_alignment_review_without_overriding_prior_negative_evidence"
+selected_by: "project_owner"
+selected_at: "2026-08-27"
+evidence_status: "awaiting_third_ai_engineering_review"
+human_verified: false
+formal_training_authorized: false
+engineering_training_authorized: false
+
+review_scope:
+  task: "alignment_only"
+  rows: 400
+  same_audit_sample_as_existing_dual_ai_package: true
+  review_all_rows_not_only_prior_disagreements: true
+  seed_labels_hidden: true
+  prior_reviewer_outputs_hidden: true
+
+reviewer_c:
+  identity_required: "distinct provider/model/revision from ai_a and ai_b"
+  temperature: 0
+  execution_mode: "local_or_external"
+  external_upload_requires_owner_approval: true
+  output_columns_immutable: true
+
+analysis_rules:
+  existing_dual_ai_result_is_preserved: true
+  third_ai_is_not_an_adjudicator: true
+  prior_quality_gate_failure_cannot_be_overridden: true
+  three_way_majority_is_supplementary_only: true
+  agreement_is_construct_agreement_not_ground_truth_accuracy: true
+  no_human_verified_transition: true
+
+quality_gates:
+  completion_minimum: 0.95
+  action_realism_minimum: 0.95
+  per_seed_class_agreement_minimum: 0.90
+  failed_gate_action: "record_supplementary_failure_and_preserve_all_prior_results"
