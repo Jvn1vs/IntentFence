@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import asdict
+from pathlib import Path
+
 import pytest
 
 from intentfence.schema import IntentSample
+from intentfence.train import TrainingConfig, prepare_training_samples
 from intentfence.training_contract import (
+    calculate_optimizer_steps,
     deterministic_stratified_subset,
     validate_training_inputs,
 )
@@ -21,6 +26,12 @@ def _sample(index: int, risk: str, *, split: str) -> IntentSample:
         template_group=f"group-{index}",
         split=split,
         action_provenance="source_field",
+    )
+
+
+def _write_jsonl(path: Path, rows: list[IntentSample]) -> None:
+    path.write_text(
+        "".join(f"{row.model_dump_json()}\n" for row in rows), encoding="utf-8"
     )
 
 
@@ -76,3 +87,71 @@ def test_stratified_subset_is_reproducible_and_keeps_binary_coverage() -> None:
     right = deterministic_stratified_subset(samples, 5, seed=42)
     assert [sample.sample_id for sample in left] == [sample.sample_id for sample in right]
     assert {sample.risk_label for sample in left} == {"benign", "instruction_hijacking"}
+
+
+def test_optimizer_step_calculation_matches_training_loop() -> None:
+    assert calculate_optimizer_steps(
+        200, batch_size=8, gradient_accumulation_steps=1, epochs=1
+    ) == 25
+    assert calculate_optimizer_steps(
+        201, batch_size=8, gradient_accumulation_steps=2, epochs=3
+    ) == 39
+    with pytest.raises(ValueError, match="must be positive"):
+        calculate_optimizer_steps(
+            0, batch_size=8, gradient_accumulation_steps=1, epochs=1
+        )
+
+
+def test_cpu_smoke_config_enforces_sample_and_step_contract(tmp_path: Path) -> None:
+    config = TrainingConfig.from_yaml("configs/deberta_small_cpu_smoke.yaml")
+    train_rows = [
+        _sample(index, "benign" if index % 2 == 0 else "instruction_hijacking", split="train")
+        for index in range(210)
+    ]
+    validation_rows = [
+        _sample(
+            index + 1_000,
+            "benign" if index % 2 == 0 else "instruction_hijacking",
+            split="validation",
+        )
+        for index in range(110)
+    ]
+    train_path, validation_path = tmp_path / "train.jsonl", tmp_path / "validation.jsonl"
+    _write_jsonl(train_path, train_rows)
+    _write_jsonl(validation_path, validation_rows)
+
+    _, _, summary, optimizer_steps = prepare_training_samples(
+        config, train_path, validation_path
+    )
+
+    assert summary.train_count == 200
+    assert summary.validation_count == 100
+    assert optimizer_steps == 25
+
+
+def test_small_abc_configs_only_change_run_name_and_input_mode() -> None:
+    configs = [
+        TrainingConfig.from_yaml(path)
+        for path in (
+            "configs/deberta_small_text.yaml",
+            "configs/deberta_small_context.yaml",
+            "configs/deberta_small.yaml",
+        )
+    ]
+    normalized = []
+    for config in configs:
+        payload = asdict(config)
+        payload.pop("run_name")
+        payload.pop("input_mode")
+        normalized.append(payload)
+    assert normalized[0] == normalized[1] == normalized[2]
+    assert [config.input_mode for config in configs] == ["text", "context", "action"]
+
+
+def test_training_config_requires_full_model_revision() -> None:
+    with pytest.raises(ValueError, match="40-character Git SHA"):
+        TrainingConfig(
+            run_name="invalid",
+            model_name="microsoft/deberta-v3-small",
+            model_revision="main",
+        )

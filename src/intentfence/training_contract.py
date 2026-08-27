@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 from collections import Counter
 from collections.abc import Iterable
@@ -29,6 +30,28 @@ class TrainingDataSummary:
             "train_alignment_counts": self.train_alignment_counts,
             "validation_alignment_counts": self.validation_alignment_counts,
         }
+
+
+def calculate_optimizer_steps(
+    sample_count: int,
+    *,
+    batch_size: int,
+    gradient_accumulation_steps: int,
+    epochs: int,
+) -> int:
+    """Calculate optimizer updates without importing a training framework."""
+
+    values = {
+        "sample_count": sample_count,
+        "batch_size": batch_size,
+        "gradient_accumulation_steps": gradient_accumulation_steps,
+        "epochs": epochs,
+    }
+    invalid = {name: value for name, value in values.items() if value <= 0}
+    if invalid:
+        raise ValueError(f"optimizer-step inputs must be positive; observed {invalid}")
+    batches_per_epoch = math.ceil(sample_count / batch_size)
+    return math.ceil(batches_per_epoch / gradient_accumulation_steps) * epochs
 
 
 def _counts(samples: Iterable[IntentSample], field: str) -> dict[str, int]:

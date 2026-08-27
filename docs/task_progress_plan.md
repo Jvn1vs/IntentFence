@@ -329,6 +329,17 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   smoke 样本限额和无 ML 依赖的 `--dry-run`；CPU AMP 路径改为按实际 device 选择；
 - ✅ 核心 Python 代码通过静态检查和编译；
 - ✅ 新增训练契约 fixture 测试，覆盖角色错配、覆盖不足、action 缺失和 seed 可重复性；
+- ✅ Small/Base Hugging Face 模型已锁定完整 40 位 revision，并贯穿 tokenizer、encoder 与
+  checkpoint metadata；
+- ✅ 新增 200 train + 100 validation、25 optimizer step 的 CPU smoke 配置和项目所有者一键
+  脚本，预检会在加载 ML 依赖前强制样本数与 20～50 step 窗口；
+- ✅ Small A/B/C 配置已拆分，fixture 测试约束除 `run_name`/`input_mode` 外其他条件相同；
+- ✅ 双头 `[B,5]`/`[B,2]`、token-type 路由、固定 revision 传递和 checkpoint 保存/加载已由
+  无 PyTorch mock 测试覆盖；
+- ✅ CPU 一键脚本会自动记录 Git commit/dirty 状态、配置与数据 SHA-256、环境版本、耗时、
+  成本和 checkpoint 逐文件哈希；manifest 生成器已通过 fixture 测试；
+- ✅ 本轮完整框架验证通过：Ruff、137 个 pytest、compileall、wheel 构建、PowerShell 脚本
+  语法检查和无模型 CLI dry-run；
 - ⬜ `ml` 依赖和 DeBERTa 权重尚未安装/下载；
 - ⬜ 未执行真实 forward/backward、tiny overfit 或 checkpoint reload；
 - ⬜ 未生成 A/B/C 训练结果。

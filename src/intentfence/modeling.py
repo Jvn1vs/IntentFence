@@ -13,7 +13,8 @@ class ModelMetadata:
     input_mode: str
     max_length: int
     alignment_loss_weight: float
-    version: str = "1"
+    model_revision: str | None = None
+    version: str = "2"
 
 
 def _require_ml() -> tuple[Any, Any, Any]:
@@ -31,6 +32,7 @@ def _require_ml() -> tuple[Any, Any, Any]:
 def create_multitask_model(
     model_name: str,
     *,
+    revision: str | None = None,
     num_risk_labels: int = 5,
     dropout: float | None = None,
 ) -> Any:
@@ -39,7 +41,8 @@ def create_multitask_model(
     class MultiTaskIntentFence(nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.encoder = AutoModel.from_pretrained(model_name)
+            model_kwargs = {"revision": revision} if revision is not None else {}
+            self.encoder = AutoModel.from_pretrained(model_name, **model_kwargs)
             hidden_size = int(self.encoder.config.hidden_size)
             probability = float(
                 dropout

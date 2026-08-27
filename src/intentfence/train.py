@@ -4,6 +4,7 @@ import argparse
 import json
 import math
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from intentfence.schema import IntentSample, read_jsonl
 from intentfence.text import build_model_text
 from intentfence.training_contract import (
     TrainingDataSummary,
+    calculate_optimizer_steps,
     deterministic_stratified_subset,
     validate_training_inputs,
 )
@@ -38,6 +40,7 @@ def _require_training() -> tuple[Any, Any, Any, Any]:
 class TrainingConfig:
     run_name: str
     model_name: str
+    model_revision: str
     input_mode: str = "action"
     max_length: int = 384
     train_batch_size: int = 8
@@ -53,6 +56,32 @@ class TrainingConfig:
     early_stopping_patience: int = 2
     alignment_loss_weight: float = 0.5
     seed: int = 42
+    max_train_samples: int | None = None
+    max_validation_samples: int | None = None
+    expected_train_samples: int | None = None
+    expected_validation_samples: int | None = None
+    optimizer_steps_min: int | None = None
+    optimizer_steps_max: int | None = None
+
+    def __post_init__(self) -> None:
+        if not re.fullmatch(r"[0-9a-f]{40}", self.model_revision):
+            raise ValueError("model_revision must be a full lowercase 40-character Git SHA")
+        positive_fields = {
+            "max_length": self.max_length,
+            "train_batch_size": self.train_batch_size,
+            "eval_batch_size": self.eval_batch_size,
+            "gradient_accumulation_steps": self.gradient_accumulation_steps,
+            "epochs": self.epochs,
+        }
+        invalid = {name: value for name, value in positive_fields.items() if value <= 0}
+        if invalid:
+            raise ValueError(f"training configuration values must be positive; observed {invalid}")
+        if (
+            self.optimizer_steps_min is not None
+            and self.optimizer_steps_max is not None
+            and self.optimizer_steps_min > self.optimizer_steps_max
+        ):
+            raise ValueError("optimizer_steps_min cannot exceed optimizer_steps_max")
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> TrainingConfig:
@@ -79,6 +108,60 @@ def load_training_samples(
     return train_samples, validation_samples, summary
 
 
+def prepare_training_samples(
+    config: TrainingConfig,
+    train_path: Path,
+    validation_path: Path,
+    *,
+    max_train_samples: int | None = None,
+    max_validation_samples: int | None = None,
+) -> tuple[list[IntentSample], list[IntentSample], TrainingDataSummary, int]:
+    train_samples, validation_samples, _ = load_training_samples(
+        config, train_path, validation_path
+    )
+    train_limit = config.max_train_samples if max_train_samples is None else max_train_samples
+    validation_limit = (
+        config.max_validation_samples
+        if max_validation_samples is None
+        else max_validation_samples
+    )
+    train_samples = deterministic_stratified_subset(
+        train_samples, train_limit, seed=config.seed
+    )
+    validation_samples = deterministic_stratified_subset(
+        validation_samples, validation_limit, seed=config.seed + 1
+    )
+    summary = validate_training_inputs(
+        train_samples, validation_samples, input_mode=config.input_mode
+    )
+    expected_counts = {
+        "train": (config.expected_train_samples, summary.train_count),
+        "validation": (config.expected_validation_samples, summary.validation_count),
+    }
+    for role, (expected, observed) in expected_counts.items():
+        if expected is not None and observed != expected:
+            raise ValueError(
+                f"{role} smoke sample contract requires {expected} rows; observed {observed}"
+            )
+    optimizer_steps = calculate_optimizer_steps(
+        summary.train_count,
+        batch_size=config.train_batch_size,
+        gradient_accumulation_steps=config.gradient_accumulation_steps,
+        epochs=config.epochs,
+    )
+    if config.optimizer_steps_min is not None and optimizer_steps < config.optimizer_steps_min:
+        raise ValueError(
+            f"optimizer step plan is below minimum {config.optimizer_steps_min}; "
+            f"observed {optimizer_steps}"
+        )
+    if config.optimizer_steps_max is not None and optimizer_steps > config.optimizer_steps_max:
+        raise ValueError(
+            f"optimizer step plan exceeds maximum {config.optimizer_steps_max}; "
+            f"observed {optimizer_steps}"
+        )
+    return train_samples, validation_samples, summary, optimizer_steps
+
+
 def train(
     config: TrainingConfig,
     train_path: Path,
@@ -88,21 +171,21 @@ def train(
     max_train_samples: int | None = None,
     max_validation_samples: int | None = None,
 ) -> None:
-    train_samples, validation_samples, _ = load_training_samples(
-        config, train_path, validation_path
-    )
-    train_samples = deterministic_stratified_subset(
-        train_samples, max_train_samples, seed=config.seed
-    )
-    validation_samples = deterministic_stratified_subset(
-        validation_samples, max_validation_samples, seed=config.seed + 1
+    train_samples, validation_samples, _, _ = prepare_training_samples(
+        config,
+        train_path,
+        validation_path,
+        max_train_samples=max_train_samples,
+        max_validation_samples=max_validation_samples,
     )
     torch, nn, loader_types, transformer_types = _require_training()
     DataLoader, Dataset = loader_types
     AutoTokenizer, get_linear_schedule_with_warmup = transformer_types
     set_seed(config.seed, torch)
 
-    tokenizer = AutoTokenizer.from_pretrained(config.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(
+        config.model_name, revision=config.model_revision
+    )
 
     class EncodedDataset(Dataset):
         def __init__(self, samples: list[IntentSample]) -> None:
@@ -131,7 +214,11 @@ def train(
         EncodedDataset(validation_samples), batch_size=config.eval_batch_size, shuffle=False
     )
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = create_multitask_model(config.model_name, num_risk_labels=len(RISK_LABELS)).to(device)
+    model = create_multitask_model(
+        config.model_name,
+        revision=config.model_revision,
+        num_risk_labels=len(RISK_LABELS),
+    ).to(device)
     if config.gradient_checkpointing:
         model.encoder.gradient_checkpointing_enable()
 
@@ -190,6 +277,7 @@ def train(
                 input_mode=config.input_mode,
                 max_length=config.max_length,
                 alignment_loss_weight=config.alignment_loss_weight,
+                model_revision=config.model_revision,
             )
             save_multitask_model(model, tokenizer, metadata, output_dir / "best")
         else:
@@ -251,8 +339,23 @@ def main() -> None:
     args = parser.parse_args()
     config = TrainingConfig.from_yaml(args.config)
     if args.dry_run:
-        _, _, summary = load_training_samples(config, args.train, args.validation)
-        print(json.dumps({"status": "preflight_passed", **summary.as_dict()}, sort_keys=True))
+        _, _, summary, optimizer_steps = prepare_training_samples(
+            config,
+            args.train,
+            args.validation,
+            max_train_samples=args.max_train_samples,
+            max_validation_samples=args.max_validation_samples,
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "preflight_passed",
+                    **summary.as_dict(),
+                    "planned_optimizer_steps": optimizer_steps,
+                },
+                sort_keys=True,
+            )
+        )
         return
     if args.output_dir is None:
         parser.error("--output-dir is required unless --dry-run is used")

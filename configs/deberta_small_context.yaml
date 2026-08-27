@@ -1,7 +1,7 @@
-run_name: deberta-v3-small-action
+run_name: deberta-v3-small-context
 model_name: microsoft/deberta-v3-small
 model_revision: a36c739020e01763fe789b4b85e2df55d6180012
-input_mode: action
+input_mode: context
 max_length: 384
 train_batch_size: 16
 eval_batch_size: 32

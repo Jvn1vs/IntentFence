@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from intentfence.run_manifest import build_run_manifest, sha256_file, write_run_manifest
+
+
+def test_run_manifest_records_inputs_environment_and_checkpoint_hashes(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    train_path = tmp_path / "train.jsonl"
+    validation_path = tmp_path / "validation.jsonl"
+    checkpoint_dir = tmp_path / "best"
+    checkpoint_dir.mkdir()
+    config_path.write_text(
+        "\n".join(
+            (
+                "run_name: fixture",
+                "model_name: microsoft/deberta-v3-small",
+                "model_revision: a36c739020e01763fe789b4b85e2df55d6180012",
+                "input_mode: action",
+                "seed: 42",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    train_path.write_text('{"fixture": "train"}\n', encoding="utf-8")
+    validation_path.write_text('{"fixture": "validation"}\n', encoding="utf-8")
+    (checkpoint_dir / "metadata.json").write_text("{}\n", encoding="utf-8")
+
+    payload = build_run_manifest(
+        repository_root=Path.cwd(),
+        config_path=config_path,
+        train_path=train_path,
+        validation_path=validation_path,
+        checkpoint_dir=checkpoint_dir,
+        started_at="2026-08-27T07:00:00Z",
+        ended_at="2026-08-27T07:01:00Z",
+        duration_seconds=60.0,
+        cost_usd=0.0,
+    )
+    output_path = tmp_path / "run_manifest.json"
+    write_run_manifest(payload, output_path)
+    loaded = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert loaded["configuration"]["model_revision"].startswith("a36c739")
+    assert loaded["data"]["train"]["sha256"] == sha256_file(train_path)
+    assert loaded["checkpoint_files"]["metadata.json"]["bytes"] == 4
+    assert loaded["environment"]["python"]
+    assert loaded["environment"]["system_memory_bytes"]
+    assert "cuda_available" in loaded["environment"]["accelerator"]
+    assert loaded["executor"] == "project_owner"
+    assert loaded["cost_usd"] == 0.0

@@ -1,5 +1,6 @@
 run_name: deberta-v3-base-action
 model_name: microsoft/deberta-v3-base
+model_revision: 8ccc9b6f36199bec6961081d44eb72fb3f7353f3
 input_mode: action
 max_length: 384
 train_batch_size: 8

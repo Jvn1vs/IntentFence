@@ -114,7 +114,8 @@ conda activate intentfence
 python -m pip install -e ".[ml,dev]" --index-url https://pypi.org/simple
 ```
 
-先使用 DeBERTa-v3-small 做 200–500 样本的冒烟训练，再运行完整数据。配置里的 `input_mode` 可取：
+先使用锁定 revision 的 DeBERTa-v3-small 做 300 条（200 train + 100 validation）、
+25 optimizer step 的冒烟训练，再运行完整数据。配置里的 `input_mode` 可取：
 
 - `text`：只有 `untrusted_content`；
 - `context`：用户任务 + 外部内容；
@@ -126,33 +127,37 @@ action provenance。可先运行无副作用预检；这一步不需要安装 ML
 
 ```powershell
 intentfence-train `
-  --config configs/deberta_small.yaml `
+  --config configs/deberta_small_cpu_smoke.yaml `
   --train data/processed/AUTHORIZED_VERSION/train.jsonl `
   --validation data/processed/AUTHORIZED_VERSION/validation.jsonl `
   --dry-run
 ```
 
-项目所有者进行 CPU 冒烟时，可用固定 seed 的分层限额保留 benign/attack 覆盖：
+项目所有者在明确批准工程训练后，可运行一键脚本；脚本先预检固定样本数与 20–50 step
+契约，再训练并对最佳 checkpoint 做两次独立 reload 和 logits 一致性检查。Codex 不运行该脚本：
 
 ```powershell
-intentfence-train `
-  --config configs/deberta_small.yaml `
-  --train data/processed/AUTHORIZED_VERSION/train.jsonl `
-  --validation data/processed/AUTHORIZED_VERSION/validation.jsonl `
-  --output-dir checkpoints/small-action-smoke-seed42 `
-  --max-train-samples 300 `
-  --max-validation-samples 100
+.\scripts\run_c2a_cpu_smoke.ps1 `
+  -TrainPath data\processed\AUTHORIZED_VERSION\train.jsonl `
+  -ValidationPath data\processed\AUTHORIZED_VERSION\validation.jsonl
 ```
 
+只检查命令和数据契约时加 `-PreflightOnly`。详见 `docs/c2a_user_runbook.md`。
+
 ```powershell
 intentfence-train `
-  --config configs/deberta_small.yaml `
+  --config configs/deberta_small_text.yaml `
   --train data/processed/v1/train.jsonl `
   --validation data/processed/v1/validation.jsonl `
-  --output-dir checkpoints/small-action-seed42
+  --output-dir checkpoints/small-text-seed42
 ```
 
-最佳 checkpoint 位于输出目录的 `best/`，由基础 encoder、tokenizer、两个分类头和结构元数据组成。训练日志记录每 epoch 的损失和验证结果。正式实验还需在外部 run manifest 中记录 Git commit、数据哈希、GPU/CUDA/PyTorch/Transformers 版本与成本。
+Small A/B/C 分别使用 `deberta_small_text.yaml`、`deberta_small_context.yaml` 和
+`deberta_small.yaml`；测试会约束三者除了 `run_name` 与 `input_mode` 外完全一致。最佳
+checkpoint 位于输出目录的 `best/`，由基础 encoder、tokenizer、两个分类头和结构元数据组成，
+其中会记录模型 revision。训练日志记录每 epoch 的损失和验证结果。正式实验还需在外部 run
+manifest 中记录 Git commit、数据哈希、GPU/CUDA/PyTorch/Transformers 版本与成本；CPU
+一键脚本会自动生成 `run_manifest.json` 并逐文件哈希 checkpoint。
 
 ## 校准与阈值
 
