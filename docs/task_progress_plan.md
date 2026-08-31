@@ -641,8 +641,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 #### 当前状态
 
 - ✅ 规则后端 API、策略和故障模式已通过单元/API 测试；
-- ✅ 规则后端本机延迟脚本已运行，仅证明基准工具可用；
-- 🟡 PyTorch/ONNX 后端和导出/INT8 代码已实现；
+- ✅ 规则后端本机延迟脚本已运行；基准现在记录冷启动、预热后分位数、并发吞吐、artifact
+  哈希/大小和进程峰值内存；该 smoke 只证明工具可用；
+- ✅ PyTorch/ONNX 导出前置校验、不可覆盖目录、ONNX/INT8/tokenizer 哈希绑定元数据和运行时
+  篡改拒绝已实现，并由合成 fixture 验证；
+- ✅ `/health` 与 `/v1/evaluate` 暴露应用版本、模型版本/revision；检测器异常的 read
+  restricted fail-open 与 external fail-closed 已由 TestClient mock 验证；
 - ⬜ 没有真实 checkpoint，尚未导出 ONNX 或 INT8；
 - ⬜ 未测量真实模型安全变化、内存和 P50/P95；
 - ⬜ Docker 镜像尚未实际构建/启动测试。
@@ -772,13 +776,14 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 183 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 195 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
 - 合成 fixture 已覆盖来源/转换 replay、人工审计 key、merge、去重、六角色划分、manifest、完整性报告、规则与 word/char TF-IDF 接口及正式测试锁；
 - 上述结果属于静态与合成验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
-- 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型。
+- 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型；C3b 当前新增内容仍
+  只属于静态/fixture/规则后端工程验证。
 
 ## 9. 每阶段汇报模板
 
@@ -827,4 +832,6 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 preflight 和 owner authorization gate 已准备，但没有真实 logits、温度或阈值。不得在授权文件
 和项目所有者亲自执行之前产生 checkpoint 或拟合校准参数，不得进入最终测试或 Small/Base 训练
 结果汇总。C3a 的固定阈值评测、分组/错误分析、cluster bootstrap、Wilson 区间和一次性
-final-test ledger 也已准备，但没有读取或生成真实 Test A/B/C 预测。
+final-test ledger 也已准备，但没有读取或生成真实 Test A/B/C 预测。按用户指示，已先继续
+推进不依赖 checkpoint 的 C3b 工程框架；C3b 的真实导出、INT8 安全重跑和 CPU 实测仍等待
+冻结模型与对应阶段确认，不改变人工审核、训练、校准和最终测试门。

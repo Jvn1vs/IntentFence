@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -9,6 +8,7 @@ import numpy as np
 
 from intentfence.calibration import MultiHeadCalibration
 from intentfence.constants import LEGACY_ALIGNMENT_LABELS, RISK_LABELS
+from intentfence.deployment import validate_export_artifacts
 from intentfence.metrics import softmax
 from intentfence.modeling import load_multitask_model
 from intentfence.rules import RuleDetector
@@ -41,12 +41,16 @@ class BackendPrediction:
 
 class InferenceBackend(Protocol):
     name: str
+    model_version: str
+    model_revision: str | None
 
     def predict(self, user_goal: str, untrusted_content: str, proposed_action: str) -> BackendPrediction: ...
 
 
 class RuleBackend:
     name = "rules-v1"
+    model_version = name
+    model_revision = None
 
     def __init__(self) -> None:
         self.detector = RuleDetector()
@@ -87,6 +91,8 @@ class TorchBackend:
         )
         self.model.to(device).eval()
         self.device = device
+        self.model_revision = self.metadata.model_revision
+        self.model_version = self.metadata.model_revision or self.metadata.version
         self.calibration = (
             MultiHeadCalibration.load(calibration_path) if calibration_path and Path(calibration_path).exists() else None
         )
@@ -136,29 +142,40 @@ class OnnxBackend:
         max_length: int = 384,
         metadata_path: str | Path | None = None,
     ) -> None:
+        model_path = Path(model_path)
+        inferred_metadata = Path(metadata_path) if metadata_path else model_path.parent / "export_metadata.json"
+        export_metadata = None
+        if inferred_metadata.exists():
+            export_metadata = validate_export_artifacts(
+                inferred_metadata.parent,
+                model_path=model_path,
+            )
+            expected_tokenizer = inferred_metadata.parent / "tokenizer"
+            if Path(tokenizer_path).resolve() != expected_tokenizer.resolve():
+                raise ValueError("tokenizer_path does not match the hash-bound export tokenizer")
         try:
             import onnxruntime as ort
             from transformers import AutoTokenizer
         except ImportError as exc:
             raise RuntimeError("Install intentfence[ml,onnx] for ONNX inference") from exc
-        model_path = Path(model_path)
         self.session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         self.calibration = (
             MultiHeadCalibration.load(calibration_path) if calibration_path and Path(calibration_path).exists() else None
         )
-        inferred_metadata = Path(metadata_path) if metadata_path else model_path.parent / "export_metadata.json"
-        if inferred_metadata.exists():
-            payload = json.loads(inferred_metadata.read_text(encoding="utf-8"))
-            self.risk_labels = tuple(payload.get("risk_labels", RISK_LABELS))
-            self.alignment_labels = tuple(
-                payload.get("alignment_labels", LEGACY_ALIGNMENT_LABELS)
-            )
-            self.max_length = int(payload.get("max_length", max_length))
+        if export_metadata is not None:
+            export = export_metadata["export"]
+            self.risk_labels = tuple(export["risk_labels"])
+            self.alignment_labels = tuple(export["alignment_labels"])
+            self.max_length = int(export["max_length"])
+            self.model_revision = str(export_metadata["source_model"]["model_revision"])
+            self.model_version = self.model_revision
         else:
             self.risk_labels = RISK_LABELS
             self.alignment_labels = LEGACY_ALIGNMENT_LABELS
             self.max_length = max_length
+            self.model_revision = None
+            self.model_version = model_path.stem
 
     def predict(self, user_goal: str, untrusted_content: str, proposed_action: str) -> BackendPrediction:
         separator = self.tokenizer.sep_token or "[SEP]"

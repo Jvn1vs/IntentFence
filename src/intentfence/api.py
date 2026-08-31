@@ -34,6 +34,7 @@ class EvaluateResponse(BaseModel):
     evidence: list[str]
     backend: str
     model_version: str
+    model_revision: str | None
     calibration_version: str | None
     policy_version: str
     latency_ms: float
@@ -43,6 +44,8 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     backend: str
+    model_version: str
+    model_revision: str | None
     model_loaded: bool
     calibrated: bool
     policy_version: str
@@ -50,6 +53,19 @@ class HealthResponse(BaseModel):
 
 def _project_path(value: str) -> Path:
     return Path(value).expanduser().resolve()
+
+
+def _backend_model_version(inference: Any) -> str:
+    value = getattr(inference, "model_version", None)
+    if isinstance(value, str) and value.strip():
+        return value
+    name = getattr(inference, "name", "unknown")
+    return str(name)
+
+
+def _backend_model_revision(inference: Any) -> str | None:
+    value = getattr(inference, "model_revision", None)
+    return value if isinstance(value, str) and value.strip() else None
 
 
 def build_backend() -> InferenceBackend:
@@ -114,7 +130,9 @@ def create_app(
             status="ok",
             version=__version__,
             backend=inference.name,
-            model_loaded=inference.name != "rules-v1",
+            model_version=_backend_model_version(inference),
+            model_revision=_backend_model_revision(inference),
+            model_loaded=bool(getattr(inference, "model_loaded", inference.name != "rules-v1")),
             calibrated=calibrated,
             policy_version=engine.config.version,
         )
@@ -144,6 +162,9 @@ def create_app(
                     "decision": failure.decision.value,
                     "reason_codes": failure.reason_codes,
                     "message": "Detector unavailable; policy failure mode applied",
+                    "model_version": _backend_model_version(inference),
+                    "model_revision": _backend_model_revision(inference),
+                    "policy_version": failure.policy_version,
                 },
             ) from exc
         elapsed_ms = (time.perf_counter() - started) * 1000
@@ -159,7 +180,8 @@ def create_app(
             reason_codes=list(result.reason_codes),
             evidence=list(prediction.evidence),
             backend=prediction.backend,
-            model_version=__version__,
+            model_version=_backend_model_version(inference),
+            model_revision=_backend_model_revision(inference),
             calibration_version=getattr(calibration, "version", None),
             policy_version=result.policy_version,
             latency_ms=elapsed_ms,

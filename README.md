@@ -222,27 +222,36 @@ Codex 不读取最终测试数据或启动正式模型评测。
 
 ## ONNX / INT8 / API
 
+C3b 的导出哈希契约、只读预检、FP32/INT8 变体校验、CPU 冷启动/P50/P95/吞吐/内存报告和
+FastAPI 故障策略见 [C3b 运行手册](docs/c3b_user_runbook.md)。当前仓库没有真实 checkpoint
+或 ONNX 产物；下面的真实导出命令只能由项目所有者在冻结模型可用后执行。
+
 ```powershell
 conda activate intentfence
 python -m pip install -e ".[ml,onnx]" --index-url https://pypi.org/simple
 python deployment/export_onnx.py `
-  --model-dir checkpoints/base-action-seed42/best `
-  --output-dir artifacts/onnx-base-action `
+  --model-dir checkpoints/base-action-multitask-seed42/best `
+  --output-dir artifacts/c3b/onnx-seed42 `
+  --opset 17 `
   --quantize
 
 $env:INTENTFENCE_BACKEND = "onnx"
-$env:INTENTFENCE_MODEL_DIR = "artifacts/onnx-base-action"
-$env:INTENTFENCE_CALIBRATION_PATH = "artifacts/calibration.json"
+$env:INTENTFENCE_MODEL_DIR = "artifacts/c3b/onnx-seed42"
+$env:INTENTFENCE_CALIBRATION_PATH = "artifacts/c2c/seed42/calibration.json"
 intentfence-api
 
 python benchmarks/latency.py `
   --backend onnx `
-  --model-dir artifacts/onnx-base-action `
-  --calibration artifacts/calibration.json `
-  --output reports/tables/onnx_latency.json
+  --model-dir artifacts/c3b/onnx-seed42 `
+  --calibration artifacts/c2c/seed42/calibration.json `
+  --onnx-variant int8 `
+  --case short `
+  --output reports/c3b/onnx-int8-short.json
 ```
 
-量化前后必须在相同冻结测试集重跑安全指标。延迟脚本先预热，再测单请求 P50/P95；README 不预填方案中的目标值。
+首次使用真实 checkpoint 时，应先加 `--preflight-only` 验证源目录和空输出目录。量化前后必须
+在相同冻结测试集重跑安全指标。延迟脚本记录冷启动、预热后 P50/P95、吞吐、artifact/校准
+哈希和内存测量；README 不预填方案中的目标值。
 
 ## API 语义
 
@@ -253,6 +262,7 @@ python benchmarks/latency.py `
 - 模型是否独立校准；
 - 文档是否经过 chunk 聚合；
 - 模型后端、模型/校准/策略版本；
+- 应用版本与实际模型 revision；
 - 策略风险、决策和确定性 reason codes；
 - 单次服务端推理延迟。
 

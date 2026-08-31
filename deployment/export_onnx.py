@@ -5,16 +5,52 @@ import json
 from pathlib import Path
 from typing import Any
 
+from intentfence.deployment import (
+    ONNX_INPUT_NAMES,
+    ONNX_OUTPUT_NAMES,
+    build_export_metadata,
+    validate_export_artifacts,
+    validate_export_inputs,
+    write_export_metadata,
+)
 from intentfence.modeling import load_multitask_model
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Export IntentFence to ONNX and optionally INT8")
+    parser = argparse.ArgumentParser(
+        description="Export IntentFence to ONNX and optionally INT8"
+    )
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--opset", type=int, default=17)
     parser.add_argument("--quantize", action="store_true")
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="Validate the source and output paths without loading a model or writing files",
+    )
     args = parser.parse_args()
+    source_metadata = validate_export_inputs(
+        args.model_dir,
+        args.output_dir,
+        opset=args.opset,
+    )
+    if args.preflight_only:
+        print(
+            json.dumps(
+                {
+                    "status": "passed",
+                    "model_dir": str(args.model_dir.resolve()),
+                    "output_dir": str(args.output_dir.resolve()),
+                    "opset": args.opset,
+                    "quantize": args.quantize,
+                    "model_revision": source_metadata["model_revision"],
+                },
+                sort_keys=True,
+            )
+        )
+        return
+
     try:
         import torch
     except ImportError as exc:
@@ -22,7 +58,7 @@ def main() -> None:
 
     model, tokenizer, metadata = load_multitask_model(args.model_dir)
     model.eval()
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    args.output_dir.mkdir(parents=True)
     tokenizer.save_pretrained(args.output_dir / "tokenizer")
     sample = tokenizer(
         "Summarize the page [SEP] This is a public article. [SEP] return_summary()",
@@ -45,8 +81,8 @@ def main() -> None:
         ExportWrapper(model),
         (sample["input_ids"], sample["attention_mask"]),
         target,
-        input_names=["input_ids", "attention_mask"],
-        output_names=["risk_logits", "alignment_logits"],
+        input_names=list(ONNX_INPUT_NAMES),
+        output_names=list(ONNX_OUTPUT_NAMES),
         dynamic_axes={
             "input_ids": {0: "batch", 1: "sequence"},
             "attention_mask": {0: "batch", 1: "sequence"},
@@ -64,24 +100,15 @@ def main() -> None:
             raise SystemExit("Install intentfence[onnx] to quantize the exported model") from exc
         quantized = args.output_dir / "model.int8.onnx"
         quantize_dynamic(str(target), str(quantized), weight_type=QuantType.QInt8)
-    (args.output_dir / "export_metadata.json").write_text(
-        json.dumps(
-            {
-                "source_model": str(args.model_dir.resolve()),
-                "onnx": str(target.name),
-                "quantized": quantized.name if quantized else None,
-                "opset": args.opset,
-                "max_length": metadata.max_length,
-                "risk_labels": list(metadata.risk_labels),
-                "alignment_labels": list(metadata.alignment_labels),
-                "alignment_target": metadata.alignment_target,
-                "metadata_version": metadata.version,
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    export_metadata = build_export_metadata(
+        args.output_dir,
+        args.model_dir,
+        model_metadata=source_metadata,
+        opset=args.opset,
+        quantized_path=quantized,
     )
+    write_export_metadata(args.output_dir, export_metadata)
+    validate_export_artifacts(args.output_dir, model_path=target)
     print(target)
 
 
