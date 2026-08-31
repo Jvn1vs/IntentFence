@@ -101,7 +101,16 @@ def build_run_manifest(
     ended_at: str,
     duration_seconds: float,
     cost_usd: float,
+    cost_cny: float | None = None,
+    stage: str | None = None,
+    authorization_path: Path | None = None,
 ) -> dict[str, Any]:
+    if cost_usd < 0:
+        raise ValueError("cost_usd cannot be negative")
+    if cost_cny is not None and cost_cny < 0:
+        raise ValueError("cost_cny cannot be negative")
+    if authorization_path is not None and not authorization_path.is_file():
+        raise FileNotFoundError(f"training authorization file does not exist: {authorization_path}")
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     checkpoint_files = {
         str(path.relative_to(checkpoint_dir)).replace("\\", "/"): {
@@ -112,7 +121,7 @@ def build_run_manifest(
         if path.is_file()
     }
     git_status = _git_value(repository_root, "status", "--porcelain")
-    return {
+    payload: dict[str, Any] = {
         "schema_version": 1,
         "status": "completed",
         "started_at": started_at,
@@ -154,6 +163,16 @@ def build_run_manifest(
         },
         "checkpoint_files": checkpoint_files,
     }
+    if cost_cny is not None:
+        payload["actual_cost_cny"] = cost_cny
+    if stage is not None:
+        payload["stage"] = stage
+    if authorization_path is not None:
+        payload["training_authorization"] = {
+            "path": str(authorization_path),
+            "sha256": sha256_file(authorization_path),
+        }
+    return payload
 
 
 def write_run_manifest(payload: dict[str, Any], output_path: Path) -> None:

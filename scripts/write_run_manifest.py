@@ -19,6 +19,9 @@ def main() -> None:
     parser.add_argument("--ended-at", required=True)
     parser.add_argument("--duration-seconds", type=float, required=True)
     parser.add_argument("--cost-usd", type=float, default=0.0)
+    parser.add_argument("--cost-cny", type=float)
+    parser.add_argument("--stage")
+    parser.add_argument("--authorization-file", type=Path)
     args = parser.parse_args()
     payload = build_run_manifest(
         repository_root=args.repository_root,
@@ -30,6 +33,9 @@ def main() -> None:
         ended_at=args.ended_at,
         duration_seconds=args.duration_seconds,
         cost_usd=args.cost_usd,
+        cost_cny=args.cost_cny,
+        stage=args.stage,
+        authorization_path=args.authorization_file,
     )
     write_run_manifest(payload, args.output)
     print(json.dumps({"status": "run_manifest_written", "output": str(args.output)}))

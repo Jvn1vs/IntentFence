@@ -496,10 +496,19 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 #### 当前状态
 
-- 🟡 Base 配置和训练代码已存在；
+- ✅ Base A/B/C risk-only 与 C multitask 配置已拆分，统一锁定 DeBERTa-v3-base revision、
+  batch/学习率/epoch/max length 和预注册 seed；fixture 测试约束只允许输入模式、run name
+  和 multitask loss weight 按协议变化；
+- ✅ `scripts/run_c2b_base.ps1` 已实现 Base revision/seed/dependency/CUDA/data preflight、
+  独立输出目录、显式项目所有者授权文件、checkpoint reload、实际人民币成本和 run manifest
+  绑定；`-PreflightOnly` 不加载 tokenizer、模型或 checkpoint，失败不自动重试；
+- ✅ `intentfence.statistics` 已实现预注册的 paired cluster percentile bootstrap（seed outer
+  stratum）、配对差值、Cohen's dz、跨 seed 汇总和 Holm 校正；合成 fixture 测试通过；
+- ✅ `scripts/summarize_seed_runs.py` 已实现不补造 seed 的标量结果汇总，并显式声明它不能
+  替代逐样本 paired bootstrap；
 - ⬜ 未租 GPU；
 - ⬜ 未执行任何 Base 训练；
-- ⬜ Bootstrap CI、跨 seed 汇总和显著性/效应量报告尚未实现。
+- ⬜ 没有真实 checkpoint、跨 seed 结果或正式显著性/效应量报告。
 
 #### 要测试什么
 
@@ -752,7 +761,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 153 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 162 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -802,4 +811,6 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 双 AI 补充审核已按用户指示完成，但它仍是 `ai_reviewed_engineering_only` 负证据，不能替代
 独立人类签核。当前停止点仍是 candidate 8 v2 人工审核包，详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
-不构成进入训练的授权；不得生成或运行 candidate 8 的训练启动脚本，不得进入 Small B/C。
+不构成进入训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
+任何模型运行。不得在授权文件和项目所有者亲自执行之前产生 checkpoint，不得进入正式校准或
+Small/Base 训练结果汇总。

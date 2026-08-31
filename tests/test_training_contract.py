@@ -227,6 +227,39 @@ def test_candidate_6_multitask_only_enables_alignment_loss() -> None:
     assert multitask.alignment_loss_weight == 0.5
 
 
+def test_base_abc_configs_share_hyperparameters_and_backbone() -> None:
+    configs = [
+        TrainingConfig.from_yaml(path)
+        for path in (
+            "configs/deberta_base_text_risk.yaml",
+            "configs/deberta_base_context_risk.yaml",
+            "configs/deberta_base_action_risk.yaml",
+        )
+    ]
+    normalized = []
+    for config in configs:
+        payload = asdict(config)
+        payload.pop("run_name")
+        payload.pop("input_mode")
+        normalized.append(payload)
+    assert normalized[0] == normalized[1] == normalized[2]
+    assert all(config.model_name == "microsoft/deberta-v3-base" for config in configs)
+    assert [config.input_mode for config in configs] == ["text", "context", "action"]
+    assert all(config.alignment_loss_weight == 0.0 for config in configs)
+
+
+def test_base_action_multitask_only_changes_loss_weight_from_action_risk() -> None:
+    risk = TrainingConfig.from_yaml("configs/deberta_base_action_risk.yaml")
+    multitask = TrainingConfig.from_yaml("configs/deberta_base_action_multitask.yaml")
+    risk_payload = asdict(risk)
+    multitask_payload = asdict(multitask)
+    for payload in (risk_payload, multitask_payload):
+        payload.pop("run_name")
+        payload.pop("alignment_loss_weight")
+    assert risk_payload == multitask_payload
+    assert multitask.alignment_loss_weight == 0.5
+
+
 def test_training_config_requires_full_model_revision() -> None:
     with pytest.raises(ValueError, match="40-character Git SHA"):
         TrainingConfig(

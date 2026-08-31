@@ -159,6 +159,11 @@ checkpoint 位于输出目录的 `best/`，由基础 encoder、tokenizer、两�
 manifest 中记录 Git commit、数据哈希、GPU/CUDA/PyTorch/Transformers 版本与成本；CPU
 一键脚本会自动生成 `run_manifest.json` 并逐文件哈希 checkpoint。
 
+Base 主实验的四个冻结配置、CUDA/授权 preflight、独立输出目录和 run manifest 入口见
+[C2b Base 运行准备手册](docs/c2b_user_runbook.md)。其中 `scripts/run_c2b_base.ps1`
+只在 `-PreflightOnly` 下可由 Codex 进行只读验证；真实 Base 训练必须由项目所有者亲自
+授权和执行。
+
 ## 校准与阈值
 
 冻结最佳权重后，在独立 calibration split 上导出 logits：
