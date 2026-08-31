@@ -218,6 +218,32 @@ if ($LASTEXITCODE -ne 0) { throw "Route B 双人盲审分析失败" }
 `unable_to_determine`，并计算原始一致率、Cohen's kappa、逐类 seed agreement 和动作
 realism。即使全部通过，报告仍保持 `formal_training_authorized=false`，直到协议冻结。
 
+## 6.1 当前 candidate 8 v2 正式独立人类双盲包
+
+上面的 candidate 4 仅作历史记录。当前正式审核目录为
+`data/interim/route_b_v2_candidate_8_human_audit_v2`，与双 AI 输出及项目所有者 AI 分歧
+复核包完全隔离。必须由两名独立人类分别完成各自的 400 条 Risk 和 400 条 Alignment；AI
+模型不能充当第二名人类审核者。具体分发和 attestation 规则见
+`docs/route_b_candidate_8_human_audit_handoff.md`。
+
+两名审核者完成并保存原始副本后，由项目所有者在未把封存 seed labels 提供给审核者的前提下，
+运行 candidate 8 的确定性分析：
+
+```powershell
+& $IntentFencePython scripts/analyze_route_b_blind_audits.py `
+  --reviewer-a-risk data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_a_risk.csv `
+  --reviewer-b-risk data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_b_risk.csv `
+  --reviewer-a-alignment data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_a_alignment.csv `
+  --reviewer-b-alignment data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_b_alignment.csv `
+  --sealed-seed-labels data/interim/route_b_v2_candidate_8_human_audit_v2/sealed_seed_labels.json `
+  --audit-manifest data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json `
+  --output data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json
+if ($LASTEXITCODE -ne 0) { throw "Route B candidate 8 双人盲审分析失败" }
+```
+
+该命令只能在四张表和两份 attestation 均完成后执行；补充 AI 分歧 receipt 不能替代这一步。
+即使分析通过，`formal_training_authorized=false` 仍保持到协议冻结和项目所有者明确授权。
+
 ## 7. Readiness 聚合与协议封存
 
 readiness 工具会重放 candidate manifest、核对完整性报告与候选 split、重放双人盲审
