@@ -7,7 +7,10 @@ import numpy as np
 from intentfence.calibration import TemperatureScaler
 from intentfence.metrics import (
     binary_operating_point,
+    calibration_metrics,
+    classwise_ece,
     evaluate_risk_predictions,
+    reliability_diagram,
     softmax,
     threshold_at_fpr,
 )
@@ -49,3 +52,58 @@ def test_temperature_is_positive_and_softens_overconfidence():
     scaler = TemperatureScaler().fit(logits, labels)
     assert scaler.temperature > 1.0
     assert scaler.predict_proba(logits)[0, 0] < softmax(logits)[0, 0]
+
+
+def test_reliability_diagram_has_complete_bins_and_json_ready_values():
+    probabilities = np.array(
+        [
+            [0.9, 0.1],
+            [0.8, 0.2],
+            [0.4, 0.6],
+            [0.3, 0.7],
+        ]
+    )
+    diagram = reliability_diagram(probabilities, np.array([0, 1, 0, 1]), n_bins=2)
+
+    assert len(diagram) == 2
+    assert sum(point["count"] for point in diagram) == 4
+    assert all(set(point) == {
+        "bin_index",
+        "lower",
+        "upper",
+        "count",
+        "fraction",
+        "mean_confidence",
+        "accuracy",
+        "gap",
+    } for point in diagram)
+
+
+def test_classwise_ece_marks_insufficient_support_and_calibration_metrics_include_details():
+    probabilities = np.array(
+        [
+            [0.9, 0.1, 0.0],
+            [0.8, 0.2, 0.0],
+            [0.1, 0.8, 0.1],
+            [0.1, 0.7, 0.2],
+            [0.1, 0.2, 0.7],
+        ]
+    )
+    labels = np.array([0, 0, 1, 1, 2])
+
+    classwise = classwise_ece(probabilities, labels, n_bins=3, min_class_samples=2)
+    metrics = calibration_metrics(probabilities, labels, n_bins=3, min_class_samples=2)
+
+    assert classwise["0"]["sufficient"] is True
+    assert classwise["1"]["sufficient"] is True
+    assert classwise["2"]["status"] == "insufficient_class_support"
+    assert classwise["2"]["ece"] is None
+    assert len(metrics["reliability_diagram"]) == 3
+    assert set(metrics) == {
+        "n_samples",
+        "ece",
+        "brier",
+        "nll",
+        "reliability_diagram",
+        "classwise_ece",
+    }

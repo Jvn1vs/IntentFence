@@ -10,7 +10,7 @@
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> C1 数据执行闭环已完成并生成可重放证据。项目所有者已批准 Route B 2.0 方向；项目自有离线 candidate 4 已完成 27,000 条五分类 × 四类独立 Alignment/action 数据及完整性验证，当前等待双人盲审和协议冻结，模型训练入口仍关闭。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md) 与 [Route B 数据协议](docs/route_b_data_protocol.md)。
+> C1 数据执行闭环已完成并生成可重放证据。项目所有者已批准 Route B 2.0 方向；当前活动的 project-owned 离线 candidate 8 已完成 27,000 条五分类 × 四类独立 Alignment/action 数据、完整性验证和双 AI 工程预审，独立人类 v2 审核仍是训练入口前置门。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md)、[Route B 数据协议](docs/route_b_data_protocol.md) 与 [candidate 8 人审交接](docs/route_b_candidate_8_human_audit_handoff.md)。
 
 > 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据及 JSON/CSV 证据不得提交，只提交经检查、不含样本内容的公开聚合 Markdown 报告。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 
@@ -166,6 +166,10 @@ Base 主实验的四个冻结配置、CUDA/授权 preflight、独立输出目录
 
 ## 校准与阈值
 
+独立校准的 calibration split、logits sidecar、哈希校验、只读预检和项目所有者授权格式见
+[C2c 校准运行手册](docs/c2c_user_runbook.md)。下面的真实 logits 导出和温度/阈值拟合命令
+只能由项目所有者在冻结权重后执行；Codex 只维护框架和合成 fixture。
+
 冻结最佳权重后，在独立 calibration split 上导出 logits：
 
 ```powershell
@@ -192,10 +196,13 @@ python scripts/calibrate.py `
   --logits artifacts/calibration_logits.npz `
   --output artifacts/calibration.json `
   --report reports/calibration/seed42.json `
+  --authorization-file data/interim/AUTHORIZED_VERSION/calibration_authorization.json `
   --target-fpr 0.01
 ```
 
-报告同时包含校准前后 ECE、Brier、NLL 和安全指标。少数类不足时不能据此制定独立类别阈值，应记录为证据不足并使用整体攻击风险与保守确认策略。
+报告同时包含 Risk 与 Alignment 校准前后的 ECE、Brier、NLL、reliability diagram 分箱、
+classwise ECE 和安全指标。少数类不足时不能据此制定独立类别阈值，对应指标会明确标记为
+证据不足，并使用整体攻击风险与保守确认策略。
 
 ## C3 正式最终评测（当前不要运行）
 

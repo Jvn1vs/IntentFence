@@ -547,8 +547,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 #### 当前状态
 
 - ✅ Temperature Scaling、ECE/Brier/NLL 和低 FPR 阈值函数有单元测试；
+- ✅ `reliability_diagram`、classwise ECE（含样本不足状态）和双头校准指标报告已实现，
+  由合成 fixture 覆盖；
+- ✅ logits 导出和校准 CLI 已增加 calibration split、输入哈希、数组形状、输出拒绝覆盖和
+  只读 preflight；正式校准要求项目所有者授权绑定到精确 logits/input/model metadata；
 - 🟡 logits 导出和校准 CLI 已实现，但没有真实 checkpoint；
-- ⬜ reliability diagram 和 classwise ECE 尚未实现；
 - ⬜ 真实温度和阈值尚未拟合。
 
 #### 要测试什么
@@ -761,7 +764,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 162 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 172 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -812,5 +815,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 独立人类签核。当前停止点仍是 candidate 8 v2 人工审核包，详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
 不构成进入训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
-任何模型运行。不得在授权文件和项目所有者亲自执行之前产生 checkpoint，不得进入正式校准或
-Small/Base 训练结果汇总。
+任何模型运行。C2c 的 reliability diagram/classwise ECE、calibration split 哈希校验、只读
+preflight 和 owner authorization gate 已准备，但没有真实 logits、温度或阈值。不得在授权文件
+和项目所有者亲自执行之前产生 checkpoint 或拟合校准参数，不得进入最终测试或 Small/Base 训练
+结果汇总。
