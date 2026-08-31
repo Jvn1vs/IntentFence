@@ -27,7 +27,7 @@ except ImportError:  # pragma: no cover - exercised when run as a script
 LOCAL_LINK_PATTERN = re.compile(r"\[[^\]]+\]\((<[^>]+>|[^)\s]+)")
 REQUIRED_CI_COMMANDS = (
     "python -m pip install -e",
-    "scripts/audit_public_release.py --include-untracked",
+    "python scripts/audit_public_release.py --include-untracked",
     "python -m ruff check .",
     "python -m pytest",
     "python -m compileall -q",
@@ -77,6 +77,7 @@ def find_local_link_issues(
 
 
 def find_ci_contract_issues(workflow: str) -> list[ReleaseIssue]:
+    run_text = _extract_ci_run_text(workflow)
     return [
         ReleaseIssue(
             ".github/workflows/ci.yml",
@@ -84,8 +85,32 @@ def find_ci_contract_issues(workflow: str) -> list[ReleaseIssue]:
             f"required CI command is missing: {command}",
         )
         for command in REQUIRED_CI_COMMANDS
-        if command not in workflow
+        if not _has_shell_command(run_text, command)
     ]
+
+
+def _extract_ci_run_text(workflow: str) -> str:
+    """Extract GitHub Actions ``run`` step bodies without counting comments."""
+    lines = workflow.splitlines()
+    runs: list[str] = []
+    for index, line in enumerate(lines):
+        match = re.match(r"^(?P<indent>\s*)-?\s*run:\s*(?P<body>.*)$", line)
+        if match is None:
+            continue
+        body = match.group("body").strip()
+        runs.append(body if body not in {"|", ">"} else "")
+        if body in {"|", ">"}:
+            parent_indent = len(match.group("indent"))
+            for continuation in lines[index + 1 :]:
+                if continuation.strip() and len(continuation) - len(continuation.lstrip()) <= parent_indent:
+                    break
+                runs.append(continuation.strip())
+    return "\n".join(runs)
+
+
+def _has_shell_command(run_text: str, command: str) -> bool:
+    pattern = re.compile(rf"(?m)(?:^|&&?\s*|;\s*){re.escape(command)}(?:\s|$)")
+    return pattern.search(run_text) is not None
 
 
 def check_release_readiness(root: str | Path, ref: str = "HEAD") -> list[ReleaseIssue]:

@@ -103,6 +103,36 @@ def test_public_release_audit_checks_the_committed_git_tree(tmp_path: Path) -> N
     assert ("model.bin", "weight") in {(issue.path, issue.category) for issue in issues}
 
 
+def test_public_release_git_tree_scans_committed_secret_content(tmp_path: Path) -> None:
+    secret_file = tmp_path / "notes.txt"
+    secret_file.write_bytes(
+        b"OPENAI_API_"
+        + b"KEY=sk-live-"
+        + b"12345678901234567890\n"
+    )
+    subprocess.run(["git", "init", "--quiet"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "notes.txt"], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=IntentFence test",
+            "-c",
+            "user.email=intentfence-test@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "fixture",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+
+    issues = audit_public_release_git_tree(tmp_path, require_documents=False)
+
+    assert ("notes.txt", "secret") in {(issue.path, issue.category) for issue in issues}
+
+
 def test_public_release_audit_detects_high_confidence_secret(tmp_path: Path) -> None:
     secret_file = tmp_path / "notes.txt"
     secret_file.write_text(

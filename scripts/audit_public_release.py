@@ -207,10 +207,16 @@ def _git_archive_secret_issues(root: Path, ref: str) -> list[ReleaseIssue]:
                             "high-confidence credential pattern detected",
                         )
                     )
+        error = process.stderr.read().decode("utf-8", errors="replace").strip()
+        return_code = process.wait()
+    except BaseException:
+        if process.poll() is None:
+            process.kill()
+        process.wait()
+        raise
     finally:
         process.stdout.close()
-    error = process.stderr.read().decode("utf-8", errors="replace").strip()
-    return_code = process.wait()
+        process.stderr.close()
     if return_code != 0:
         raise RuntimeError(f"cannot archive Git tree {ref}: {error}")
     return issues

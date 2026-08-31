@@ -26,7 +26,22 @@ def test_local_link_check_detects_missing_targets() -> None:
 
 
 def test_ci_contract_check_reports_missing_commands() -> None:
-    issues = find_ci_contract_issues(REQUIRED_CI_COMMANDS[0])
+    issues = find_ci_contract_issues(f"- run: {REQUIRED_CI_COMMANDS[0]}")
 
     assert len(issues) == len(REQUIRED_CI_COMMANDS) - 1
     assert all(issue.category == "ci" for issue in issues)
+
+
+def test_ci_contract_ignores_comments_and_echo_text() -> None:
+    workflow = "\n".join(
+        [
+            f"# {command}" for command in REQUIRED_CI_COMMANDS
+        ]
+        + ["- run: echo 'python -m pytest'", "- run: python -m ruff check ."]
+    )
+
+    issues = find_ci_contract_issues(workflow)
+
+    missing = {issue.message for issue in issues}
+    assert any("python -m pytest" in message for message in missing)
+    assert any("python -m build --wheel" in message for message in missing)
