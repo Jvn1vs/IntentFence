@@ -1,4 +1,4 @@
-.PHONY: install test lint smoke api baseline public-audit
+.PHONY: install test lint smoke api baseline public-audit release-readiness
 
 install:
 	python -m pip install -e ".[dev]"
@@ -20,3 +20,6 @@ baseline:
 
 public-audit:
 	python scripts/audit_public_release.py --include-untracked
+
+release-readiness:
+	python scripts/check_release_readiness.py --ref HEAD

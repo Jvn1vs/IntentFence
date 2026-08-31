@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from scripts.audit_public_release import audit_public_release
+from scripts.audit_public_release import audit_public_release, audit_public_release_git_tree
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,6 +75,32 @@ def test_public_release_audit_can_include_nonignored_untracked_paths(tmp_path: P
     categories = {(issue.path, issue.category) for issue in issues}
     assert ("predictions/final.json", "artifact") in categories
     assert ("predictions/final.json", "data") in categories
+
+
+def test_public_release_audit_checks_the_committed_git_tree(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "--quiet"], cwd=tmp_path, check=True)
+    unsafe = tmp_path / "model.bin"
+    unsafe.write_bytes(b"not a model for this fixture")
+    subprocess.run(["git", "add", "model.bin"], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=IntentFence test",
+            "-c",
+            "user.email=intentfence-test@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "fixture",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+
+    issues = audit_public_release_git_tree(tmp_path, require_documents=False)
+
+    assert ("model.bin", "weight") in {(issue.path, issue.category) for issue in issues}
 
 
 def test_public_release_audit_detects_high_confidence_secret(tmp_path: Path) -> None:

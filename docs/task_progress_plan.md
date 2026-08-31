@@ -732,10 +732,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 #### 当前状态
 
 - ✅ 本地 Git 已初始化；
-- ✅ 当前工作分支为 `feat/intentfence-core`；
-- ✅ 公开仓库已由用户创建；
-- 🔵 首次代码推送属于独立的仓库初始化检查点；
-- ⬜ G1 的最终材料复核、Release 和简历包装尚未开始。
+- ✅ 公开仓库 `Jvn1vs/IntentFence` 已存在，当前工作分支为 `codex/c4-publication-readiness`；
+- ✅ C4 分支已推送，远端 SHA 与本地提交一致；
+- ✅ `scripts/check_release_readiness.py` 已加入，对 committed Git tree、README 本地链接和 CI
+  质量门做不发布预检；
+- ⬜ G1 的最终材料复核、合并、Release 和简历包装尚未开始，仍需项目所有者批准。
 
 #### 要测试什么
 
@@ -790,6 +791,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   只属于静态/fixture/规则后端工程验证。
 - C4 的公开发布审计、论文模板和主张证据矩阵已通过 fixture/静态检查，但不等于最终公开
   内容已获项目所有者批准。
+- G1 的 committed release-tree、README 链接和 CI 契约预检已实现并通过；这不等于已合并到
+  `main` 或已发布 Release。
 
 ## 9. 每阶段汇报模板
 

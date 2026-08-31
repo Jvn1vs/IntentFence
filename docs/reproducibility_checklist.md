@@ -40,7 +40,8 @@ Status: engineering checklist; unchecked items are not silently treated as passe
 
 ## Public release gate
 
-- [ ] `python scripts/audit_public_release.py` passes on tracked files.
+- [ ] `python scripts/audit_public_release.py --include-untracked` passes on the working tree.
+- [ ] `python scripts/check_release_readiness.py --ref HEAD` passes on the committed tree.
 - [ ] `python -m ruff check .` passes.
 - [ ] `python -m pytest -q` passes without unreviewed failures.
 - [ ] `python -m compileall -q src baselines benchmarks scripts deployment` passes.

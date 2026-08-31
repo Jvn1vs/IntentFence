@@ -4,9 +4,11 @@ import argparse
 import json
 import re
 import subprocess
+import tarfile
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 REQUIRED_PUBLIC_DOCUMENTS = (
     "README.md",
@@ -145,19 +147,73 @@ def _filesystem_paths(root: Path) -> list[str]:
     )
 
 
+def _stream_contains_secret(handle: BinaryIO) -> bool:
+    overlap = b""
+    while chunk := handle.read(SECRET_SCAN_CHUNK_BYTES):
+        payload = overlap + chunk
+        if any(pattern.search(payload) for pattern in SECRET_PATTERNS):
+            return True
+        overlap = payload[-SECRET_SCAN_OVERLAP_BYTES:]
+    return False
+
+
 def _contains_secret(path: Path) -> bool:
     """Scan arbitrarily sized files, including binary files, for known secrets."""
     try:
         with path.open("rb") as handle:
-            overlap = b""
-            while chunk := handle.read(SECRET_SCAN_CHUNK_BYTES):
-                payload = overlap + chunk
-                if any(pattern.search(payload) for pattern in SECRET_PATTERNS):
-                    return True
-                overlap = payload[-SECRET_SCAN_OVERLAP_BYTES:]
+            return _stream_contains_secret(handle)
     except OSError:
         return False
-    return False
+
+
+def _git_tree_paths(root: Path, ref: str) -> list[str]:
+    result = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", "-z", ref],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"cannot inspect Git tree {ref}: {detail}")
+    return sorted(
+        _normalise(value)
+        for value in result.stdout.decode("utf-8").split("\0")
+        if value
+    )
+
+
+def _git_archive_secret_issues(root: Path, ref: str) -> list[ReleaseIssue]:
+    process = subprocess.Popen(
+        ["git", "archive", "--format=tar", ref],
+        cwd=root,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    issues: list[ReleaseIssue] = []
+    assert process.stdout is not None
+    assert process.stderr is not None
+    try:
+        with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+            for member in archive:
+                if not member.isfile():
+                    continue
+                handle = archive.extractfile(member)
+                if handle is not None and _stream_contains_secret(handle):
+                    issues.append(
+                        ReleaseIssue(
+                            _normalise(member.name),
+                            "secret",
+                            "high-confidence credential pattern detected",
+                        )
+                    )
+    finally:
+        process.stdout.close()
+    error = process.stderr.read().decode("utf-8", errors="replace").strip()
+    return_code = process.wait()
+    if return_code != 0:
+        raise RuntimeError(f"cannot archive Git tree {ref}: {error}")
+    return issues
 
 
 def _path_issues(relative: str) -> list[ReleaseIssue]:
@@ -219,6 +275,29 @@ def audit_public_release(
     return sorted(set(issues), key=lambda issue: (issue.path, issue.category, issue.message))
 
 
+def audit_public_release_git_tree(
+    root: str | Path,
+    ref: str = "HEAD",
+    *,
+    require_documents: bool = True,
+) -> list[ReleaseIssue]:
+    """Audit the exact committed Git tree that would be archived for a release."""
+    repository = Path(root).resolve()
+    if not repository.is_dir():
+        raise FileNotFoundError(f"repository root does not exist: {repository}")
+    candidates = _git_tree_paths(repository, ref)
+    issues = [issue for candidate in candidates for issue in _path_issues(candidate)]
+    if require_documents:
+        candidate_set = set(candidates)
+        issues.extend(
+            ReleaseIssue(path, "missing", "required public document is missing")
+            for path in REQUIRED_PUBLIC_DOCUMENTS
+            if path not in candidate_set
+        )
+    issues.extend(_git_archive_secret_issues(repository, ref))
+    return sorted(set(issues), key=lambda issue: (issue.path, issue.category, issue.message))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Audit the tracked source tree before public release")
     parser.add_argument("--root", type=Path, default=Path("."))
@@ -227,9 +306,20 @@ def main() -> int:
         action="store_true",
         help="also audit non-ignored untracked files in the working tree",
     )
+    parser.add_argument(
+        "--git-tree",
+        metavar="REF",
+        help="audit the exact committed Git tree at REF instead of the working tree",
+    )
     parser.add_argument("--json", action="store_true", help="print a machine-readable report")
     args = parser.parse_args()
-    issues = audit_public_release(args.root, include_untracked=args.include_untracked)
+    if args.git_tree and args.include_untracked:
+        parser.error("--git-tree cannot be combined with --include-untracked")
+    issues = (
+        audit_public_release_git_tree(args.root, args.git_tree)
+        if args.git_tree
+        else audit_public_release(args.root, include_untracked=args.include_untracked)
+    )
     report = {"status": "blocked" if issues else "passed", "issues": [asdict(issue) for issue in issues]}
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))

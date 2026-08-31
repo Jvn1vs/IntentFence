@@ -11,6 +11,7 @@ Run from the repository root:
 conda activate intentfence
 python scripts/audit_public_release.py
 python scripts/audit_public_release.py --include-untracked
+python scripts/check_release_readiness.py --ref HEAD
 python -m ruff check .
 python -m pytest -q
 python -m compileall -q src baselines benchmarks scripts deployment
@@ -23,6 +24,10 @@ private/output directories, unlisted JSON, common tabular/serialized/binary form
 and high-confidence secret patterns. Only the recorded protocol JSON files and the synthetic smoke
 fixture are allowed by explicit rule; `.gitkeep`, `.env.example` and public Markdown cards are
 also allowed where the path rules permit them.
+
+The release-tree preflight audits the exact committed `HEAD` archive, checks local README targets,
+and verifies that CI contains the same audit, test, compile, dependency and wheel-build gates. It
+does not merge branches, create tags or publish a Release.
 
 ## Manual gate
 
