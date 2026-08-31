@@ -375,6 +375,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   0.99875。分析状态为 `ai_quality_gates_failed_engineering_only`，负结果已写入
   `reports/data_quality/route_b_candidate_8_human_v2_ai_pair_failure.md`；它不替代独立人类
   审核、不修改人工 v2 包，也不解除 `human_verified=false` 或 `formal_training_authorized=false`；
+- ✅ 已生成与正式人工 v2 包隔离的项目所有者 AI 分歧复核包：风险分歧 80 条、对齐/动作现实性
+  分歧 57 条，共 137 条；输出 manifest 绑定两份 AI 原始 CSV、AI manifest、AI 分析和 audit
+  manifest 的 SHA-256，封存 seed labels 未复制，且明确不满足独立人工双盲门；交接与填写规则见
+  `docs/route_b_ai_disagreement_handoff.md`，当前加固版目录为
+  `data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2/`。该包等待项目所有者
+  逐条填写，不改变正式人工 v2 包；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
@@ -781,7 +787,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 210 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 219 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -831,10 +837,18 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 人类审核：两轮 AI 输出仍各有原始分歧，`human_verified=false` 与
 `formal_training_authorized=false` 不变，Test B/C/D 和最终测试锁继续保持。
 
+为便于项目所有者复核最新双 AI 结果，已另外生成只包含 137 条分歧的项目所有者复核包（当前加固版
+目录为 `data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2/`；Risk 80、
+Alignment/action realism 57）。该包保留双方 AI 意见和源文件哈希，但不包含 seed labels，也不
+满足两名独立人类审核门；项目所有者填写后只能作为可追溯的工程分歧裁决记录，不能直接把
+`human_verified` 或 `formal_training_authorized` 改为 true。正式人工 v2 包仍须由两名独立人类
+各完成 400 条 Risk 和 400 条 Alignment 审核。
+
 为满足尚未完成的协议门，已生成独立于 AI 输出的 candidate 8 v2 人工双盲包；两名独立人类审核者各
 须完成 400 条 Risk 和 400 条 Alignment，之后才可运行确定性人工审核聚合与任何后续授权判断。
 双 AI 补充审核已按用户指示完成，但它仍是 `ai_reviewed_engineering_only` 负证据，不能替代
-独立人类签核。当前停止点仍是 candidate 8 v2 人工审核包，详情见
+独立人类签核。最新双 AI 分歧的项目所有者补充复核包详情见
+`docs/route_b_ai_disagreement_handoff.md`；正式两名独立人类 v2 审核包详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
 不构成进入训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
 任何模型运行。C2c 的 reliability diagram/classwise ECE、calibration split 哈希校验、只读
