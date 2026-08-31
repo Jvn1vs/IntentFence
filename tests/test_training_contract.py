@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
 import pytest
 
+import intentfence.train as train_module
 from intentfence.schema import IntentSample
 from intentfence.train import TrainingConfig, prepare_training_samples
 from intentfence.training_contract import (
@@ -267,3 +269,26 @@ def test_training_config_requires_full_model_revision() -> None:
             model_name="microsoft/deberta-v3-small",
             model_revision="main",
         )
+
+
+def test_base_training_cli_requires_c2b_authorization(monkeypatch, capsys, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "intentfence.train",
+            "--config",
+            "configs/deberta_base_action_risk.yaml",
+            "--train",
+            str(tmp_path / "train.jsonl"),
+            "--validation",
+            str(tmp_path / "validation.jsonl"),
+            "--output-dir",
+            str(tmp_path / "output"),
+        ],
+    )
+
+    with pytest.raises(SystemExit, match="2"):
+        train_module.main()
+
+    assert "C2b authorization arguments" in capsys.readouterr().err

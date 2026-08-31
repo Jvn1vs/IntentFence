@@ -41,7 +41,7 @@ def main() -> int:
             audit_manifest_path=args.audit_manifest,
             public_report_path=args.public_report,
         )
-    except (OSError, ValueError) as exc:
+    except (OSError, TypeError, ValueError, KeyError) as exc:
         print(f"ERROR: {exc}")
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))

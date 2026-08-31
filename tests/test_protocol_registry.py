@@ -4,7 +4,10 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
 import yaml
+
+from intentfence.c2b_config import validate_c2b_config
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate_protocol.py"
@@ -67,6 +70,8 @@ def test_validator_rejects_codex_as_training_executor() -> None:
 def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
     script = (ROOT / "scripts" / "run_c2b_base.ps1").read_text(encoding="utf-8")
 
+    assert "validate_c2b_config.py" in script
+    assert "validate_c2b_preflight.py" in script
     assert "validate_c2b_training_authorization.py" in script
     assert "$ProtocolLockPath" in script
     assert "--protocol-lock" in script
@@ -74,4 +79,23 @@ def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
     assert "--readiness-report" in script
     assert "--train-path" in script
     assert "--validation-path" in script
+    assert "--c2b-authorization-file" in script
+    assert '"This C2b entrypoint only supports $SupportedCandidate."' in script
     assert "-PreflightOnly" in script
+
+
+def test_c2b_registered_configs_are_frozen() -> None:
+    for path in sorted((ROOT / "configs").glob("deberta_base_*.yaml")):
+        payload = validate_c2b_config(path)
+        assert payload["model_revision"] == "8ccc9b6f36199bec6961081d44eb72fb3f7353f3"
+
+
+def test_c2b_config_rejects_hyperparameter_drift(tmp_path: Path) -> None:
+    source = ROOT / "configs" / "deberta_base_action_risk.yaml"
+    payload = yaml.safe_load(source.read_text(encoding="utf-8"))
+    payload["learning_rate"] = 1.0e-5
+    candidate = tmp_path / source.name
+    candidate.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="learning_rate"):
+        validate_c2b_config(candidate)

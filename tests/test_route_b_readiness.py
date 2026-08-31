@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -8,7 +9,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from intentfence.c2b_authorization import validate_c2b_training_authorization
+from intentfence.c2b_authorization import (
+    validate_c2b_candidate_inputs,
+    validate_c2b_training_authorization,
+)
 from intentfence.data import file_sha256
 from intentfence.route_b import load_route_b_policy
 from intentfence.route_b_audit import build_blind_audit_package
@@ -23,6 +27,19 @@ from intentfence.route_b_readiness import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _reseal_json(payload: dict) -> dict:
+    unsigned = dict(payload)
+    unsigned.pop("sha256", None)
+    serialized = json.dumps(
+        unsigned,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    unsigned["sha256"] = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    return unsigned
 
 
 def _fill_review(path: Path, truth: dict, *, reviewer: str, task: str) -> None:
@@ -196,6 +213,22 @@ def test_protocol_lock_detects_policy_drift(tmp_path: Path) -> None:
     assert any("protocol lock file hash mismatch" in item for item in report["validation_errors"])
 
 
+def test_protocol_lock_requires_schema_and_algorithm(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    lock = json.loads(paths["protocol_lock"].read_text(encoding="utf-8"))
+    lock["schema_version"] = 2
+    lock["algorithm"] = "SHA-1"
+    paths["protocol_lock"].write_text(
+        json.dumps(_reseal_json(lock), sort_keys=True), encoding="utf-8"
+    )
+
+    report = evaluate_route_b_readiness(**paths)
+
+    assert report["formal_training_authorized"] is False
+    assert "protocol lock schema_version must be 1" in report["validation_errors"]
+    assert "protocol lock algorithm must be SHA-256" in report["validation_errors"]
+
+
 def test_ai_review_mode_cannot_satisfy_human_audit_gate(tmp_path: Path) -> None:
     paths = _fixture(tmp_path)
     analysis = json.loads(paths["audit_analysis"].read_text(encoding="utf-8"))
@@ -270,6 +303,19 @@ def test_c2b_authorization_requires_replayable_frozen_evidence(tmp_path: Path) -
 
     assert result["status"] == "c2b_training_authorization_validated"
     assert result["protocol_version"] == "2.0.0"
+
+
+def test_c2b_candidate_preflight_binds_manifest_inputs(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+
+    result = validate_c2b_candidate_inputs(
+        expected_candidate=paths["expected_candidate"],
+        candidate_manifest_path=paths["candidate_manifest_path"],
+        train_path=paths["train_path"],
+        validation_path=paths["validation_path"],
+    )
+
+    assert result["status"] == "c2b_candidate_preflight_validated"
 
 
 def test_c2b_authorization_rejects_legacy_protocol_version(tmp_path: Path) -> None:

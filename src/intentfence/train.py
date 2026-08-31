@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 import yaml
 
+from intentfence.c2b_authorization import validate_c2b_training_authorization
+from intentfence.c2b_config import C2B_MODEL_NAME, validate_c2b_config
 from intentfence.constants import (
     ALIGNMENT_TARGETS,
     LEGACY_ALIGNMENT_LABELS,
@@ -191,7 +193,17 @@ def train(
     *,
     max_train_samples: int | None = None,
     max_validation_samples: int | None = None,
+    c2b_authorization: dict[str, Any] | None = None,
 ) -> None:
+    authorization_inputs: dict[str, Any] | None = None
+    if config.model_name == C2B_MODEL_NAME:
+        if c2b_authorization is None:
+            raise ValueError(
+                "Base training requires a validated C2b training authorization"
+            )
+        authorization_inputs = dict(c2b_authorization)
+        authorization_inputs["train_path"] = train_path
+        authorization_inputs["validation_path"] = validation_path
     train_samples, validation_samples, _, _ = prepare_training_samples(
         config,
         train_path,
@@ -199,6 +211,8 @@ def train(
         max_train_samples=max_train_samples,
         max_validation_samples=max_validation_samples,
     )
+    if authorization_inputs is not None:
+        validate_c2b_training_authorization(**authorization_inputs)
     torch, nn, loader_types, transformer_types = _require_training()
     DataLoader, Dataset = loader_types
     AutoTokenizer, get_linear_schedule_with_warmup = transformer_types
@@ -369,6 +383,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run split/action/coverage preflight without loading ML dependencies or a model",
     )
+    parser.add_argument("--c2b-authorization-file", type=Path)
+    parser.add_argument("--c2b-expected-candidate")
+    parser.add_argument("--c2b-candidate-manifest", type=Path)
+    parser.add_argument("--c2b-readiness-report", type=Path)
+    parser.add_argument("--c2b-protocol-lock", type=Path)
+    parser.add_argument("--c2b-policy", type=Path)
+    parser.add_argument("--c2b-protocol-document", type=Path)
+    parser.add_argument("--c2b-integrity-report", type=Path)
+    parser.add_argument("--c2b-audit-analysis", type=Path)
+    parser.add_argument("--c2b-audit-manifest", type=Path)
+    parser.add_argument("--c2b-public-report", type=Path)
     return parser
 
 
@@ -397,6 +422,32 @@ def main() -> None:
         return
     if args.output_dir is None:
         parser.error("--output-dir is required unless --dry-run is used")
+    c2b_authorization: dict[str, Any] | None = None
+    if config.model_name == C2B_MODEL_NAME:
+        try:
+            validate_c2b_config(args.config)
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
+        c2b_fields = {
+            "authorization_path": args.c2b_authorization_file,
+            "expected_candidate": args.c2b_expected_candidate,
+            "candidate_manifest_path": args.c2b_candidate_manifest,
+            "readiness_report_path": args.c2b_readiness_report,
+            "protocol_lock_path": args.c2b_protocol_lock,
+            "policy_path": args.c2b_policy,
+            "protocol_document_path": args.c2b_protocol_document,
+            "integrity_report_path": args.c2b_integrity_report,
+            "audit_analysis_path": args.c2b_audit_analysis,
+            "audit_manifest_path": args.c2b_audit_manifest,
+            "public_report_path": args.c2b_public_report,
+        }
+        missing = [name for name, value in c2b_fields.items() if value is None]
+        if missing:
+            parser.error(
+                "Base training requires C2b authorization arguments: "
+                + ", ".join(missing)
+            )
+        c2b_authorization = c2b_fields
     train(
         config,
         args.train,
@@ -404,6 +455,7 @@ def main() -> None:
         args.output_dir,
         max_train_samples=args.max_train_samples,
         max_validation_samples=args.max_validation_samples,
+        c2b_authorization=c2b_authorization,
     )
 
 

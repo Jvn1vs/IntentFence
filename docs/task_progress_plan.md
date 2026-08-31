@@ -513,7 +513,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   绑定；非预检训练还必须通过独立校验器，将项目所有者授权绑定到冻结 Route B 2.0.0 的
   protocol lock、candidate manifest、readiness 报告、完整性报告和正式人类审核证据，并将实际
   train/validation 路径与字节哈希绑定到 candidate manifest；
-  `-PreflightOnly` 不加载 tokenizer、模型或 checkpoint，失败不自动重试；
+  `-PreflightOnly` 同样绑定 candidate manifest 的 train/validation 路径与字节哈希，不加载
+  tokenizer、模型或 checkpoint，失败不自动重试；Base 训练 CLI 还会再次要求并重验同一组授权；
+- ✅ C2b 配置校验器只接受已登记的四个 Base 变体、固定 DeBERTa revision、完整冻结超参数、
+  `task_alignment` 目标和预注册 seeds；当前入口固定服务 candidate 8，避免任意配置或候选
+  manifest 被误带入主实验；protocol lock 同时严格校验 schema 1 与 SHA-256 算法；
 - ✅ 2026-08-31 对 candidate 8 的 Small/Base A、B、C 和 C multitask 共 8 个配置完成 dry-run；
   每个配置均通过 5,000 train/2,000 validation、五类 Risk、四类 Alignment 和 939 optimizer
   steps 检查；未加载 tokenizer/模型、未创建 checkpoint，CUDA 不可用时只保留 preflight；
@@ -796,7 +800,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 226 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 231 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；

@@ -25,6 +25,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+$SupportedCandidate = "route_b_v2_candidate_8"
 
 function Resolve-RepositoryPath {
     param(
@@ -47,6 +48,9 @@ $ResolvedOutputDirectory = Resolve-RepositoryPath $OutputDirectory $RepositoryRo
 
 if ($CostCny -lt -1) {
     throw "CostCny must be -1 for preflight or a non-negative actual cost for a training run."
+}
+if ($ExpectedCandidate -ne $SupportedCandidate) {
+    throw "This C2b entrypoint only supports $SupportedCandidate."
 }
 if (-not (Get-Command conda -ErrorAction SilentlyContinue)) {
     throw "Unable to resolve conda. Open an Anaconda PowerShell prompt and retry."
@@ -75,30 +79,20 @@ Write-Host "Train: $CandidateTrainPath"
 Write-Host "Validation: $CandidateValidationPath"
 Write-Host "Output: $ResolvedOutputDirectory"
 
-$ConfigCheck = @'
-import re
-import sys
-from pathlib import Path
-
-import yaml
-
-payload = yaml.safe_load(Path(sys.argv[1]).read_text(encoding="utf-8"))
-if not isinstance(payload, dict):
-    raise SystemExit("config must be a mapping")
-if payload.get("model_name") != "microsoft/deberta-v3-base":
-    raise SystemExit("C2b requires microsoft/deberta-v3-base")
-revision = str(payload.get("model_revision", ""))
-if not re.fullmatch(r"[0-9a-f]{40}", revision):
-    raise SystemExit("config model_revision must be a full lowercase 40-character Git SHA")
-if payload.get("seed") not in {42, 52, 62}:
-    raise SystemExit("C2b seed must be one of the preregistered seeds: 42, 52, 62")
-if payload.get("input_mode") not in {"text", "context", "action"}:
-    raise SystemExit("config input_mode must be text, context, or action")
-print(f"base_config_passed seed={payload['seed']} input_mode={payload['input_mode']}")
-'@
-& $IntentFencePython -c $ConfigCheck $ResolvedConfigPath
+$ConfigValidationScript = Join-Path $RepositoryRoot "scripts/validate_c2b_config.py"
+& $IntentFencePython $ConfigValidationScript --config $ResolvedConfigPath
 if ($LASTEXITCODE -ne 0) {
     throw "C2b config preflight failed."
+}
+
+$PreflightValidationScript = Join-Path $RepositoryRoot "scripts/validate_c2b_preflight.py"
+& $IntentFencePython $PreflightValidationScript `
+    --expected-candidate $ExpectedCandidate `
+    --candidate-manifest (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot) `
+    --train-path $CandidateTrainPath `
+    --validation-path $CandidateValidationPath
+if ($LASTEXITCODE -ne 0) {
+    throw "C2b candidate preflight is not bound to the expected manifest."
 }
 
 & $IntentFencePython -c "import torch, transformers; print(f'torch={torch.__version__}; transformers={transformers.__version__}')"
@@ -170,7 +164,18 @@ $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     --config $ResolvedConfigPath `
     --train $ResolvedTrainPath `
     --validation $ResolvedValidationPath `
-    --output-dir $ResolvedOutputDirectory
+    --output-dir $ResolvedOutputDirectory `
+    --c2b-authorization-file $ResolvedAuthorizationFile `
+    --c2b-expected-candidate $ExpectedCandidate `
+    --c2b-candidate-manifest (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot) `
+    --c2b-readiness-report (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot) `
+    --c2b-protocol-lock (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot) `
+    --c2b-policy (Resolve-RepositoryPath $PolicyPath $RepositoryRoot) `
+    --c2b-protocol-document (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot) `
+    --c2b-integrity-report (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot) `
+    --c2b-audit-analysis (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot) `
+    --c2b-audit-manifest (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot) `
+    --c2b-public-report (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
 if ($LASTEXITCODE -ne 0) {
     throw "C2b Base training failed; no automatic retry is performed."
 }

@@ -23,9 +23,11 @@
 
 ## 2. 只读 preflight
 
-`run_c2b_base.ps1` 会先解析唯一的 `intentfence` Conda Python，检查 Base revision、预注册
-seed、依赖、CUDA 信息，再调用 `intentfence.train --dry-run` 检查 split、benign/attack
-覆盖、action 和 optimizer-step 计划。`-PreflightOnly` 不加载 tokenizer、模型或 checkpoint：
+`run_c2b_base.ps1` 目前只接受 candidate 8，并会先解析唯一的 `intentfence` Conda Python，检查已冻结的 Base 配置契约
+（revision、超参数、输入模式、loss 目标和预注册 seed），再绑定 candidate manifest 的
+train/validation 路径与字节哈希，最后检查依赖、CUDA 信息并调用 `intentfence.train --dry-run`
+检查 split、benign/attack 覆盖、action 和 optimizer-step 计划。`-PreflightOnly` 不加载
+tokenizer、模型或 checkpoint，也不会接受脱离 candidate manifest 的替代数据：
 
 ```powershell
 Set-Location E:\IntentFence
@@ -63,8 +65,9 @@ Set-Location E:\IntentFence
 candidate 8 Base 训练授权。脚本会在任何非预检训练启动前，校验授权文件、candidate manifest、
 readiness 报告、协议锁、完整性报告和正式人类审核证据的路径与哈希绑定，并核对实际传入的
 train/validation 文件路径与字节哈希确实对应 candidate manifest；缺少冻结证据、训练输入漂移
-或使用旧授权文件都会被拒绝。上面三个哈希是文件字节 SHA-256，不是 manifest 内嵌的 sealed
-canonical 哈希。
+或使用旧授权文件都会被拒绝。实际 Base 训练 CLI 也会再次要求同一组授权参数并重验授权，
+不会只依赖外层 PowerShell 包装器。上面三个哈希是文件字节 SHA-256，不是 manifest 内嵌的
+sealed canonical 哈希。
 
 完整运行命令由项目所有者亲自执行，并且必须显式提供 CUDA、实际人民币成本和独立输出目录：
 

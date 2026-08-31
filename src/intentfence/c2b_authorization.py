@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from datetime import datetime
@@ -10,6 +11,7 @@ from intentfence.data import file_sha256
 from intentfence.route_b_readiness import evaluate_route_b_readiness
 
 C2B_PROTOCOL_VERSION = "2.0.0"
+_C2B_CONSTRUCTION_ROLES = {"train", "validation", "calibration", "test_a"}
 
 
 def _read_object(path: Path, *, description: str) -> dict[str, Any]:
@@ -30,6 +32,18 @@ def _has_timezone(value: Any) -> bool:
     except ValueError:
         return False
     return parsed.tzinfo is not None
+
+
+def _sealed_hash(payload: dict[str, Any]) -> str:
+    unsigned = dict(payload)
+    unsigned.pop("sha256", None)
+    serialized = json.dumps(
+        unsigned,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def _same_path(left: str | Path, right: str | Path) -> bool:
@@ -124,6 +138,69 @@ def _validate_training_split_binding(
         if entry.get("sha256") != observed_sha256:
             errors.append(f"training {split_name} split hash does not match candidate manifest")
     return errors
+
+
+def _validate_candidate_manifest_identity(
+    candidate_manifest: dict[str, Any],
+    *,
+    expected_candidate: str,
+) -> list[str]:
+    errors: list[str] = []
+    if candidate_manifest.get("data_version") != expected_candidate:
+        errors.append("candidate manifest data_version does not match the expected candidate")
+    if candidate_manifest.get("sha256") != _sealed_hash(candidate_manifest):
+        errors.append("candidate manifest self-hash mismatch")
+    if candidate_manifest.get("formal_training_authorized") is not False:
+        errors.append("candidate manifest must keep formal_training_authorized=false")
+    splits = candidate_manifest.get("splits")
+    if not isinstance(splits, dict) or set(splits) != _C2B_CONSTRUCTION_ROLES:
+        errors.append("candidate manifest must contain exactly train/validation/calibration/test_a")
+    return errors
+
+
+def validate_c2b_candidate_inputs(
+    *,
+    expected_candidate: str,
+    candidate_manifest_path: str | Path,
+    train_path: str | Path,
+    validation_path: str | Path,
+) -> dict[str, Any]:
+    paths = {
+        "candidate_manifest": Path(candidate_manifest_path),
+        "train": Path(train_path),
+        "validation": Path(validation_path),
+    }
+    errors: list[str] = []
+    for name, path in paths.items():
+        _require_file(path, name, errors)
+    if errors:
+        raise ValueError("; ".join(errors))
+    candidate_manifest = _read_object(
+        paths["candidate_manifest"], description="candidate manifest"
+    )
+    errors.extend(
+        _validate_candidate_manifest_identity(
+            candidate_manifest,
+            expected_candidate=expected_candidate,
+        )
+    )
+    errors.extend(
+        _validate_training_split_binding(
+            candidate_manifest,
+            candidate_manifest_path=paths["candidate_manifest"],
+            train_path=paths["train"],
+            validation_path=paths["validation"],
+        )
+    )
+    if errors:
+        raise ValueError("; ".join(errors))
+    return {
+        "status": "c2b_candidate_preflight_validated",
+        "candidate_id": expected_candidate,
+        "candidate_manifest_sha256": file_sha256(paths["candidate_manifest"]),
+        "train_sha256": file_sha256(paths["train"]),
+        "validation_sha256": file_sha256(paths["validation"]),
+    }
 
 
 def _validate_readiness_binding(
@@ -253,8 +330,12 @@ def validate_c2b_training_authorization(
     candidate_manifest = _read_object(
         paths["candidate_manifest"], description="candidate manifest"
     )
-    if candidate_manifest.get("data_version") != expected_candidate:
-        errors.append("candidate manifest data_version does not match the expected candidate")
+    errors.extend(
+        _validate_candidate_manifest_identity(
+            candidate_manifest,
+            expected_candidate=expected_candidate,
+        )
+    )
     errors.extend(
         _validate_training_split_binding(
             candidate_manifest,

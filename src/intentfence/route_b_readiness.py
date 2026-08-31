@@ -111,6 +111,10 @@ def _validate_protocol_lock(
     errors: list[str] = []
     if lock.get("sha256") != _sealed_hash(lock):
         errors.append("protocol lock self-hash mismatch")
+    if lock.get("schema_version") != 1:
+        errors.append("protocol lock schema_version must be 1")
+    if lock.get("algorithm") != "SHA-256":
+        errors.append("protocol lock algorithm must be SHA-256")
     if lock.get("protocol_version") != "2.0.0" or lock.get("status") != "frozen":
         errors.append("protocol lock is not frozen version 2.0.0")
     if lock.get("approved_by") != "project_owner" or not _has_timezone(
