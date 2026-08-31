@@ -9,6 +9,15 @@ param(
     [string]$OutputDirectory,
     [string]$AuthorizationFile = "data/interim/route_b_v2_candidate_8/training_authorization.json",
     [string]$ExpectedCandidate = "route_b_v2_candidate_8",
+    [string]$CandidateManifestPath = "data/interim/route_b_v2_candidate_8/manifest.json",
+    [string]$ReadinessReportPath = "data/interim/route_b_v2_candidate_8/readiness.json",
+    [string]$ProtocolLockPath = "configs/route_b_protocol_lock.json",
+    [string]$PolicyPath = "configs/route_b_data_protocol.yaml",
+    [string]$ProtocolDocumentPath = "docs/route_b_data_protocol.md",
+    [string]$IntegrityReportPath = "data/interim/route_b_v2_candidate_8/integrity_v2_data_protocol.json",
+    [string]$AuditAnalysisPath = "data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json",
+    [string]$AuditManifestPath = "data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json",
+    [string]$PublicReportPath = "reports/data_quality/route_b_candidate_8_card.md",
     [double]$CostCny = -1,
     [switch]$RequireCuda,
     [switch]$PreflightOnly
@@ -32,8 +41,8 @@ function Resolve-RepositoryPath {
 }
 
 $ResolvedConfigPath = (Resolve-Path -LiteralPath (Resolve-RepositoryPath $ConfigPath $RepositoryRoot)).Path
-$ResolvedTrainPath = (Resolve-Path -LiteralPath (Resolve-RepositoryPath $TrainPath $RepositoryRoot)).Path
-$ResolvedValidationPath = (Resolve-Path -LiteralPath (Resolve-RepositoryPath $ValidationPath $RepositoryRoot)).Path
+$CandidateTrainPath = Resolve-RepositoryPath $TrainPath $RepositoryRoot
+$CandidateValidationPath = Resolve-RepositoryPath $ValidationPath $RepositoryRoot
 $ResolvedOutputDirectory = Resolve-RepositoryPath $OutputDirectory $RepositoryRoot
 
 if ($CostCny -lt -1) {
@@ -62,8 +71,8 @@ if (-not (Test-Path -LiteralPath $IntentFencePython -PathType Leaf)) {
 
 Write-Host "Using intentfence Python: $IntentFencePython"
 Write-Host "Config: $ResolvedConfigPath"
-Write-Host "Train: $ResolvedTrainPath"
-Write-Host "Validation: $ResolvedValidationPath"
+Write-Host "Train: $CandidateTrainPath"
+Write-Host "Validation: $CandidateValidationPath"
 Write-Host "Output: $ResolvedOutputDirectory"
 
 $ConfigCheck = @'
@@ -106,6 +115,30 @@ if ($RequireCuda -and ($CudaOutput -notmatch "cuda_available=True")) {
     throw "C2b full run requires CUDA; pass only -PreflightOnly on a CPU host."
 }
 
+if (-not $PreflightOnly) {
+    $AuthorizationValidationScript = Join-Path $RepositoryRoot "scripts/validate_c2b_training_authorization.py"
+    & $IntentFencePython $AuthorizationValidationScript `
+        --authorization-file (Resolve-RepositoryPath $AuthorizationFile $RepositoryRoot) `
+        --expected-candidate $ExpectedCandidate `
+        --candidate-manifest (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot) `
+        --train-path $CandidateTrainPath `
+        --validation-path $CandidateValidationPath `
+        --readiness-report (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot) `
+        --protocol-lock (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot) `
+        --policy (Resolve-RepositoryPath $PolicyPath $RepositoryRoot) `
+        --protocol-document (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot) `
+        --integrity-report (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot) `
+        --audit-analysis (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot) `
+        --audit-manifest (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot) `
+        --public-report (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
+    if ($LASTEXITCODE -ne 0) {
+        throw "C2b training authorization is not bound to frozen Route B evidence."
+    }
+}
+
+$ResolvedTrainPath = (Resolve-Path -LiteralPath $CandidateTrainPath).Path
+$ResolvedValidationPath = (Resolve-Path -LiteralPath $CandidateValidationPath).Path
+
 & $IntentFencePython -m intentfence.train `
     --config $ResolvedConfigPath `
     --train $ResolvedTrainPath `
@@ -127,31 +160,6 @@ if ($CostCny -lt 0) {
     throw "A non-preflight run must provide the actual cost with -CostCny, using 0 for free execution."
 }
 $ResolvedAuthorizationFile = Resolve-RepositoryPath $AuthorizationFile $RepositoryRoot
-if (-not (Test-Path -LiteralPath $ResolvedAuthorizationFile -PathType Leaf)) {
-    throw "Training authorization file is missing: $ResolvedAuthorizationFile"
-}
-$Authorization = Get-Content -Raw -LiteralPath $ResolvedAuthorizationFile | ConvertFrom-Json
-if ($Authorization.candidate_id -ne $ExpectedCandidate) {
-    throw "Training authorization candidate_id does not match ExpectedCandidate."
-}
-if ($Authorization.human_verified -ne $true) {
-    throw "Training authorization requires human_verified=true."
-}
-if ($Authorization.formal_training_authorized -ne $true) {
-    throw "Training authorization requires formal_training_authorized=true."
-}
-if (-not [string]$Authorization.approved_by_project_owner) {
-    throw "Training authorization requires approved_by_project_owner."
-}
-try {
-    $ApprovedAt = [string]$Authorization.approved_at
-    if ($ApprovedAt -notmatch "(?:Z|[+-]\d{2}:\d{2})$") {
-        throw "timestamp has no explicit timezone offset"
-    }
-    [DateTimeOffset]::Parse($ApprovedAt) | Out-Null
-} catch {
-    throw "Training authorization approved_at must be a timezone-aware ISO-8601 timestamp."
-}
 if (Test-Path -LiteralPath $ResolvedOutputDirectory) {
     throw "Refusing to overwrite existing output directory: $ResolvedOutputDirectory"
 }

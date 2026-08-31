@@ -62,3 +62,16 @@ def test_validator_rejects_codex_as_training_executor() -> None:
     errors = validator.validate_freeze_consistency(registry, lock)
 
     assert "the project owner must remain the sole training executor" in errors
+
+
+def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
+    script = (ROOT / "scripts" / "run_c2b_base.ps1").read_text(encoding="utf-8")
+
+    assert "validate_c2b_training_authorization.py" in script
+    assert "$ProtocolLockPath" in script
+    assert "--protocol-lock" in script
+    assert "$ReadinessReportPath" in script
+    assert "--readiness-report" in script
+    assert "--train-path" in script
+    assert "--validation-path" in script
+    assert "-PreflightOnly" in script

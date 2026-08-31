@@ -5,8 +5,10 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
 import yaml
 
+from intentfence.c2b_authorization import validate_c2b_training_authorization
 from intentfence.data import file_sha256
 from intentfence.route_b import load_route_b_policy
 from intentfence.route_b_audit import build_blind_audit_package
@@ -217,3 +219,101 @@ def test_public_report_must_bind_candidate_manifest(tmp_path: Path) -> None:
         "public aggregate report does not bind the candidate manifest sealed SHA-256" in item
         for item in report["validation_errors"]
     )
+
+
+def _c2b_authorization_fixture(tmp_path: Path) -> dict[str, Path | str]:
+    paths = _fixture(tmp_path)
+    candidate_id = json.loads(paths["candidate_manifest"].read_text(encoding="utf-8"))["data_version"]
+    readiness = evaluate_route_b_readiness(**paths)
+    readiness_path = tmp_path / "readiness.json"
+    readiness_path.write_text(json.dumps(readiness, sort_keys=True), encoding="utf-8")
+    authorization_path = tmp_path / "training_authorization.json"
+    authorization_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "candidate_id": candidate_id,
+                "protocol_version": "2.0.0",
+                "human_verified": True,
+                "formal_training_authorized": True,
+                "approved_by_project_owner": "owner-test",
+                "approved_at": "2026-08-25T10:30:00+08:00",
+                "candidate_manifest_sha256": file_sha256(paths["candidate_manifest"]),
+                "readiness_report_sha256": file_sha256(readiness_path),
+                "protocol_lock_sha256": file_sha256(paths["protocol_lock"]),
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return {
+        "authorization_path": authorization_path,
+        "expected_candidate": candidate_id,
+        "candidate_manifest_path": paths["candidate_manifest"],
+        "train_path": paths["candidate_manifest"].parent / "train.jsonl",
+        "validation_path": paths["candidate_manifest"].parent / "validation.jsonl",
+        "readiness_report_path": readiness_path,
+        "protocol_lock_path": paths["protocol_lock"],
+        "policy_path": paths["policy_path"],
+        "protocol_document_path": paths["protocol_document"],
+        "integrity_report_path": paths["integrity_report"],
+        "audit_analysis_path": paths["audit_analysis"],
+        "audit_manifest_path": paths["audit_manifest"],
+        "public_report_path": paths["public_report"],
+    }
+
+
+def test_c2b_authorization_requires_replayable_frozen_evidence(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+
+    result = validate_c2b_training_authorization(**paths)
+
+    assert result["status"] == "c2b_training_authorization_validated"
+    assert result["protocol_version"] == "2.0.0"
+
+
+def test_c2b_authorization_rejects_legacy_protocol_version(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+    authorization = json.loads(paths["authorization_path"].read_text(encoding="utf-8"))
+    authorization["protocol_version"] = "1.0.0"
+    paths["authorization_path"].write_text(
+        json.dumps(authorization, sort_keys=True), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="protocol_version must be 2.0.0"):
+        validate_c2b_training_authorization(**paths)
+
+
+def test_c2b_authorization_rejects_readiness_drift(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+    readiness = json.loads(paths["readiness_report_path"].read_text(encoding="utf-8"))
+    readiness["formal_training_authorized"] = False
+    paths["readiness_report_path"].write_text(
+        json.dumps(readiness, sort_keys=True), encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="readiness report does not authorize"):
+        validate_c2b_training_authorization(**paths)
+
+
+def test_c2b_authorization_rejects_unbound_training_input(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+    alternate_train = tmp_path / "alternate_train.jsonl"
+    alternate_train.write_bytes(paths["train_path"].read_bytes())
+    paths["train_path"] = alternate_train
+
+    with pytest.raises(ValueError, match="training train path does not match"):
+        validate_c2b_training_authorization(**paths)
+
+
+def test_c2b_authorization_rejects_candidate_manifest_mismatch(tmp_path: Path) -> None:
+    paths = _c2b_authorization_fixture(tmp_path)
+    authorization = json.loads(paths["authorization_path"].read_text(encoding="utf-8"))
+    authorization["candidate_id"] = "route_b_v2_candidate_other"
+    paths["authorization_path"].write_text(
+        json.dumps(authorization, sort_keys=True), encoding="utf-8"
+    )
+    paths["expected_candidate"] = "route_b_v2_candidate_other"
+
+    with pytest.raises(ValueError, match="candidate manifest data_version"):
+        validate_c2b_training_authorization(**paths)

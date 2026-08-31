@@ -510,7 +510,13 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   和 multitask loss weight 按协议变化；
 - ✅ `scripts/run_c2b_base.ps1` 已实现 Base revision/seed/dependency/CUDA/data preflight、
   独立输出目录、显式项目所有者授权文件、checkpoint reload、实际人民币成本和 run manifest
-  绑定；`-PreflightOnly` 不加载 tokenizer、模型或 checkpoint，失败不自动重试；
+  绑定；非预检训练还必须通过独立校验器，将项目所有者授权绑定到冻结 Route B 2.0.0 的
+  protocol lock、candidate manifest、readiness 报告、完整性报告和正式人类审核证据，并将实际
+  train/validation 路径与字节哈希绑定到 candidate manifest；
+  `-PreflightOnly` 不加载 tokenizer、模型或 checkpoint，失败不自动重试；
+- ✅ 2026-08-31 对 candidate 8 的 Small/Base A、B、C 和 C multitask 共 8 个配置完成 dry-run；
+  每个配置均通过 5,000 train/2,000 validation、五类 Risk、四类 Alignment 和 939 optimizer
+  steps 检查；未加载 tokenizer/模型、未创建 checkpoint，CUDA 不可用时只保留 preflight；
 - ✅ `intentfence.statistics` 已实现预注册的 paired cluster percentile bootstrap（seed outer
   stratum）、配对差值、Cohen's dz、跨 seed 汇总和 Holm 校正；合成 fixture 测试通过；
 - ✅ `scripts/summarize_seed_runs.py` 已实现不补造 seed 的标量结果汇总，并显式声明它不能
@@ -790,7 +796,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 220 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 226 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；

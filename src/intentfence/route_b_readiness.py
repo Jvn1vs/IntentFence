@@ -430,6 +430,11 @@ def evaluate_route_b_readiness(
             "sha256": file_sha256(audit_analysis),
             "status": analysis.get("status") if analysis else None,
         }
+    if audit_manifest is not None and Path(audit_manifest).is_file():
+        evidence["audit_manifest"] = {
+            "path": str(Path(audit_manifest).resolve()),
+            "sha256": file_sha256(audit_manifest),
+        }
     authorized = all(gates.values()) and not validation_errors
     return {
         "schema_version": 1,

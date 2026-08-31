@@ -46,14 +46,25 @@ Set-Location E:\IntentFence
 
 ```json
 {
+  "schema_version": 1,
   "candidate_id": "route_b_v2_candidate_8",
   "human_verified": true,
   "formal_training_authorized": true,
   "approved_by_project_owner": "<owner id>",
   "approved_at": "<timezone-aware ISO-8601 timestamp>",
-  "protocol_version": "1.0.0"
+  "protocol_version": "2.0.0",
+  "candidate_manifest_sha256": "<file SHA-256 of candidate manifest>",
+  "readiness_report_sha256": "<file SHA-256 of readiness.json>",
+  "protocol_lock_sha256": "<file SHA-256 of route_b_protocol_lock.json>"
 }
 ```
+
+这里的 `protocol_version` 必须是已冻结的 Route B `2.0.0`；旧的通用 `1.0.0` 协议锁不能作为
+candidate 8 Base 训练授权。脚本会在任何非预检训练启动前，校验授权文件、candidate manifest、
+readiness 报告、协议锁、完整性报告和正式人类审核证据的路径与哈希绑定，并核对实际传入的
+train/validation 文件路径与字节哈希确实对应 candidate manifest；缺少冻结证据、训练输入漂移
+或使用旧授权文件都会被拒绝。上面三个哈希是文件字节 SHA-256，不是 manifest 内嵌的 sealed
+canonical 哈希。
 
 完整运行命令由项目所有者亲自执行，并且必须显式提供 CUDA、实际人民币成本和独立输出目录：
 
