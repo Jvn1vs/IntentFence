@@ -1,12 +1,17 @@
 # IntentFence C1 data card
 
-Status: project-owner generated derivative dataset. The BIPIA training pool has a human-label audit gate; Test B/C have schema, provenance, and integrity gates but not an equivalent human-label audit.
+Status: project-owner-authorized derivative dataset/report, C1 legacy-binary snapshot. The BIPIA training
+pool has a human-label audit gate; Test B/C have schema, provenance, and integrity gates but not an
+equivalent human-label audit. This card must not be read as the Route B v2 four-label training
+release or as evidence that a model was trained.
 
 ## Version and intended use
 
 - Split manifest SHA-256: `bdd9fe80de528083591652bc743d878777adb55bb082bf4d5df6fc5f7d1f0063`
 - Intended use: offline research on indirect prompt-injection detection under the frozen IntentFence protocol.
 - Not intended for: production safety guarantees, authorization decisions, or claims about observed Agent actions.
+- Alignment schema: legacy binary (`aligned=0`, `conflict=1`); the Route B v2 four-label schema is
+  documented separately and is not silently substituted here.
 
 ## Sources
 

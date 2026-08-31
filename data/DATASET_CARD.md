@@ -4,7 +4,12 @@ No third-party dataset is redistributed in this repository. `data/examples/smoke
 
 ## Canonical schema
 
-Every JSONL row contains the user goal, untrusted content, proposed action, five-class risk label, binary alignment label, source/provenance, scenario, severity, template group, split, language, and verification status. Validation is implemented by `IntentSample` in `src/intentfence/schema.py`.
+This card describes the public C1/smoke legacy schema. Every row contains the user goal, untrusted
+content, proposed action, five-class risk label, binary alignment label, source/provenance,
+scenario, severity, template group, split, language, and verification status. Route B v2 uses a
+separate four-label `task_alignment_label` field (`aligned`, `unrelated`, `ambiguous`, `malicious`)
+and must not be silently mixed with this snapshot. Validation is implemented by `IntentSample` in
+`src/intentfence/schema.py`.
 
 ## Public sources and strict adapters
 
@@ -29,4 +34,8 @@ Every converted row records adapter, label and action provenance. Missing BIPIA 
 
 The adapters deliberately set `human_verified=false`. Conversion success does not imply label validity.
 
-Real dataset download, conversion, merging, splitting and auditing are executed by the project owner. Codex only maintains the framework and synthetic fixture tests.
+The real-data workflow is project-owner-authorized: Codex may execute the pinned download,
+conversion, merge, deduplication, split construction, quality inspection, label-audit pre-review
+and reproducibility-report steps recorded in the repository. The project owner remains the
+independent human sign-off authority and sole executor of training-related work; each run must
+record the actual executor, source hashes, license terms and review status in its manifest.

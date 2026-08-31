@@ -6,11 +6,11 @@
 用户原始任务 [SEP] 不可信外部内容 [SEP] 拟执行动作
 ```
 
-项目目标不是宣称“彻底解决提示注入”，也不是首次提出任务一致性防御。它把 Task Shield 类目标/动作一致性检查落实为一个可监督微调、可独立校准、可在 CPU 上部署的轻量编码器，并用低误报运行点评估安全性。
+项目目标不是宣称“彻底解决提示注入”，也不是首次提出任务一致性防御。项目拟评估一个可监督微调、可独立校准、面向 CPU 部署的轻量编码器，是否能把 Task Shield 类目标/动作一致性检查落实为可测量的安全闸门，并在冻结协议下评估误报。
 
 > 当前仓库提供可运行的核心工程闭环和合成冒烟数据；没有附带训练后的 DeBERTa 权重，也没有声称真实公开基准结果。README 中只会加入由冻结数据、代码提交和结果文件追溯得到的实测数字。
 
-> C1 数据执行闭环已完成并生成可重放证据。项目所有者已批准 Route B 2.0 方向；当前活动的 project-owned 离线 candidate 8 已完成 27,000 条五分类 × 四类独立 Alignment/action 数据、完整性验证和双 AI 工程预审，独立人类 v2 审核仍是训练入口前置门。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md)、[Route B 数据协议](docs/route_b_data_protocol.md) 与 [candidate 8 人审交接](docs/route_b_candidate_8_human_audit_handoff.md)。
+> C1 数据执行闭环已完成并生成可重放证据。项目所有者已批准 Route B 2.0 方向；当前活动的 project-owned 离线 candidate 8 已完成 27,000 条五分类 × 四类独立 Alignment/action 数据、完整性验证和双 AI 工程预审。该 AI 预审只属于工程/标签流程证据，不替代独立人类审核，也不授权训练；独立人类 v2 审核仍是训练入口前置门。详见 [C1 data card](reports/data_quality/data_card.md)、[训练入口决策记录](docs/training_entry_decision.md)、[Route B 数据协议](docs/route_b_data_protocol.md) 与 [candidate 8 人审交接](docs/route_b_candidate_8_human_audit_handoff.md)。
 
 > 执行边界：项目所有者已授权 Codex 执行 C1 真实数据下载、转换、合并、去重、划分、数据质量检查和报告生成；第三方数据及 JSON/CSV 证据不得提交，只提交经检查、不含样本内容的公开聚合 Markdown 报告。Codex 可准备并预审标签审核表，但 `human_verified=true` 仍需项目所有者完成独立人类确认。所有会拟合学习参数、更新模型/校准参数或产生训练费用的工作只由项目所有者执行，详见 `configs/execution_policy.yaml`。
 
@@ -21,7 +21,7 @@
 - `template_group` 不跨 split 的组感知划分与版本化 manifest；
 - 规则、词级 TF-IDF、字符级 TF-IDF 基线；
 - ProtectAI 和 PIGuard/InjecGuard 的可选适配器；
-- DeBERTa-v3-small/base 共享编码器、五类 Risk Head、二类 Alignment Head；
+- DeBERTa-v3-small/base 共享编码器、五类 Risk Head、版本化 Alignment Head（legacy binary 或 Route B v2 四标签）；
 - 单文本、上下文、完整动作三种输入消融模式；
 - 类别加权交叉熵、早停、固定种子与训练日志；
 - 独立 risk/alignment Temperature Scaling；
@@ -289,7 +289,9 @@ IntentFence 是纵深防御的一层，可能被自适应攻击绕过。实际�
 
 漏洞报告方式见 [SECURITY.md](SECURITY.md)。完整威胁模型见 [docs/threat_model.md](docs/threat_model.md)，公平比较规则见 [docs/baseline_protocol.md](docs/baseline_protocol.md)。
 
-分阶段任务、当前实现状态和每阶段测试要求见 [docs/task_progress_plan.md](docs/task_progress_plan.md)。项目每通过一个阶段即暂停，等待用户确认后再继续。
+分阶段任务、当前实现状态和每阶段测试要求见 [docs/task_progress_plan.md](docs/task_progress_plan.md)。
+论文式报告模板、主张证据矩阵、AI 使用披露和公开发布审计见
+[C4 材料索引](docs/paper_report_template.md)。项目每通过一个阶段即暂停，等待用户确认后再继续。
 
 ## 参考
 
