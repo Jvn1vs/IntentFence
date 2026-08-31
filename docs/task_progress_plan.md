@@ -589,10 +589,18 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 #### 当前状态
 
+- ✅ `evaluate_risk_predictions` 支持显式 calibration-derived threshold；Test A-D split 未提供
+  固定阈值时拒绝评测，预测文件记录 split、template group、scenario、attack family、长度桶
+  和模型 revision，并拒绝覆盖非空输出目录；
+- ✅ `evaluation.py` 与 `analyze_predictions.py` 已实现固定阈值的总体/分组指标、template-group
+  cluster bootstrap CI、NotInject 风格 Wilson 区间和不复制原文的错误分析；
+- ✅ `compare_predictions.py` 已实现同 case/同标签/同 template group 的 paired
+  candidate-minus-baseline 区间，并分别接受各变体已冻结的 calibration threshold；
+- ✅ `final_test.py` 与 `run_final_matrix.py` 已实现 project-owner authorization、模型/校准/
+  测试输入/阈值哈希绑定及一次性独占 ledger；合成 fixture 覆盖授权、篡改检测和重复拒绝；
 - 🟡 统一评测与预测文件代码已实现；
-- 🟡 基础 metrics 已实现；
 - ⬜ 真实 Test A/B/C 尚未运行；
-- ⬜ Bootstrap CI、完整错误分析和论文图表尚未实现。
+- ⬜ 真实结果上的 Bootstrap/错误分析和论文图表尚未生成。
 
 #### 要测试什么
 
@@ -764,7 +772,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 172 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 183 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -818,4 +826,5 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 任何模型运行。C2c 的 reliability diagram/classwise ECE、calibration split 哈希校验、只读
 preflight 和 owner authorization gate 已准备，但没有真实 logits、温度或阈值。不得在授权文件
 和项目所有者亲自执行之前产生 checkpoint 或拟合校准参数，不得进入最终测试或 Small/Base 训练
-结果汇总。
+结果汇总。C3a 的固定阈值评测、分组/错误分析、cluster bootstrap、Wilson 区间和一次性
+final-test ledger 也已准备，但没有读取或生成真实 Test A/B/C 预测。

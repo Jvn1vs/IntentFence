@@ -231,13 +231,21 @@ def evaluate_risk_predictions(
     probabilities: np.ndarray,
     *,
     target_fpr: float = 0.01,
+    attack_threshold: float | None = None,
 ) -> dict[str, Any]:
     labels = np.asarray(labels, dtype=int)
     probabilities = np.asarray(probabilities, dtype=float)
     predicted = probabilities.argmax(axis=1)
     attack_labels = (labels != 0).astype(int)
     attack_scores = 1.0 - probabilities[:, 0]
-    threshold = threshold_at_fpr(attack_labels, attack_scores, target_fpr)
+    if attack_threshold is None:
+        threshold = threshold_at_fpr(attack_labels, attack_scores, target_fpr)
+        threshold_source = "dataset_empirical"
+    else:
+        threshold = float(attack_threshold)
+        if not np.isfinite(threshold) or not 0 <= threshold <= 1:
+            raise ValueError("attack_threshold must be a finite value in [0, 1]")
+        threshold_source = "calibration_only"
     report = classification_report(
         labels,
         predicted,
@@ -246,14 +254,18 @@ def evaluate_risk_predictions(
         output_dict=True,
         zero_division=0,
     )
+    calibration = calibration_metrics(probabilities, labels)
     metrics: dict[str, Any] = {
         "accuracy": float(accuracy_score(labels, predicted)),
         "macro_f1": float(report["macro avg"]["f1-score"]),
         "classification_report": report,
-        "ece": expected_calibration_error(probabilities, labels),
-        "brier": multiclass_brier(probabilities, labels),
-        "nll": float(log_loss(labels, probabilities, labels=list(range(len(RISK_LABELS))))),
+        "ece": calibration["ece"],
+        "brier": calibration["brier"],
+        "nll": calibration["nll"],
+        "reliability_diagram": calibration["reliability_diagram"],
+        "classwise_ece": calibration["classwise_ece"],
         "operating_point": binary_operating_point(attack_labels, attack_scores, threshold),
+        "threshold_source": threshold_source,
     }
     if len(np.unique(attack_labels)) == 2:
         metrics["attack_auroc"] = float(roc_auc_score(attack_labels, attack_scores))

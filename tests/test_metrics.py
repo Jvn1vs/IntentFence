@@ -46,6 +46,24 @@ def test_threshold_respects_empirical_fpr():
     assert point["tpr"] == 1.0
 
 
+def test_evaluation_can_use_a_calibration_derived_threshold_without_reselecting_it():
+    labels = np.array([0, 0, 1, 1])
+    probabilities = np.array(
+        [
+            [0.8, 0.2, 0.0, 0.0, 0.0],
+            [0.4, 0.6, 0.0, 0.0, 0.0],
+            [0.7, 0.3, 0.0, 0.0, 0.0],
+            [0.1, 0.9, 0.0, 0.0, 0.0],
+        ]
+    )
+
+    metrics = evaluate_risk_predictions(labels, probabilities, attack_threshold=0.5)
+
+    assert metrics["threshold_source"] == "calibration_only"
+    assert metrics["operating_point"]["threshold"] == 0.5
+    assert metrics["operating_point"]["fpr"] == 0.5
+
+
 def test_temperature_is_positive_and_softens_overconfidence():
     logits = np.array([[8.0, 0.0], [8.0, 0.0], [8.0, 0.0], [8.0, 0.0]])
     labels = np.array([0, 0, 1, 1])

@@ -206,16 +206,10 @@ classwise ECE 和安全指标。少数类不足时不能据此制定独立类别
 
 ## C3 正式最终评测（当前不要运行）
 
-下面的命令只展示冻结后的评测入口，不属于当前 C1/C2 训练前流程。只有模型、温度、阈值、运行矩阵和协议版本全部冻结，并确认本协议的唯一一次正式 Test A/B/C 访问尚未使用时，项目所有者才能在 C3 执行；运行后必须登记访问次数，不能根据结果回调模型或配置。
-
-```powershell
-intentfence-evaluate `
-  --backend torch `
-  --model-dir checkpoints/base-action-seed42/best `
-  --calibration artifacts/calibration.json `
-  --input data/processed/v1/test_a.jsonl `
-  --output-dir reports/tables/base-action-test-a
-```
+C3a 的一次性 Test A/B/C 矩阵、授权文件、哈希 ledger、固定阈值分析和错误案例流程见
+[C3a 最终评测手册](docs/c3a_user_runbook.md)。只有模型、校准器、阈值、运行矩阵和协议版本
+全部冻结，并确认本协议的唯一一次正式 Test A/B/C 访问尚未使用时，项目所有者才能执行；
+Codex 不读取最终测试数据或启动正式模型评测。
 
 核心报告顺序：
 
