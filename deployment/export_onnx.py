@@ -72,6 +72,10 @@ def main() -> None:
                 "quantized": quantized.name if quantized else None,
                 "opset": args.opset,
                 "max_length": metadata.max_length,
+                "risk_labels": list(metadata.risk_labels),
+                "alignment_labels": list(metadata.alignment_labels),
+                "alignment_target": metadata.alignment_target,
+                "metadata_version": metadata.version,
             },
             indent=2,
         )

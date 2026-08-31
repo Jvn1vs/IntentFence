@@ -38,6 +38,11 @@ def _validate_ai_manifest(
 ) -> list[str]:
     errors: list[str] = []
     audit_policy = policy.get("audit", {})
+    if (
+        audit_policy.get("codex_executed_audit_default")
+        != "exactly_two_independent_ai_reviewers"
+    ):
+        errors.append("AI protocol must require exactly two independent Codex reviewers")
     if manifest.get("schema_version") != 1:
         errors.append("AI review manifest schema_version must be 1")
     if manifest.get("protocol_version") != policy.get("protocol_version"):
@@ -54,6 +59,8 @@ def _validate_ai_manifest(
         errors.append(f"invalid audit manifest: {exc}")
         audit_manifest = {}
     expected_rows = audit_policy.get("sample_rows", {})
+    if audit_manifest.get("review_mode") != "dual_ai_engineering":
+        errors.append("AI review audit manifest must declare review_mode=dual_ai_engineering")
     if audit_manifest.get("risk_rows") != expected_rows.get("risk"):
         errors.append("audit Risk row count differs from the AI protocol")
     if audit_manifest.get("alignment_rows") != expected_rows.get("alignment"):
@@ -174,6 +181,7 @@ def analyze_dual_ai_reviews(
         sealed_seed_labels=sealed_seed_labels,
         audit_manifest=audit_manifest_path,
         policy=policy,
+        review_mode="dual_ai_engineering",
     )
     if not base.get("validation_errors"):
         expected_ids = {

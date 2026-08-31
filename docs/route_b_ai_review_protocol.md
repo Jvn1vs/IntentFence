@@ -29,15 +29,22 @@
 模式、原始输出文件 SHA-256 和是否得到项目所有者的外部上传批准。只保存结构化标签
 和必要的短备注，不要求或保存隐式思维链。
 
+项目所有者的持续操作偏好（2026-08-30）：凡由 Codex 执行的 C1B 审核，默认且必须使用
+恰好两个相互独立的模型；不得将单模型输出作为双审结论，也不得在结果不理想时临时增加模型
+以挑选有利结论。额外模型只能按预先声明的补充协议产生独立的 AI 工程证据。
+
 ## 3. 审核任务
 
 两套审核仍使用现有盲审包中的 400 条 Risk 和 400 条 Alignment/action。Risk 只根据
 `untrusted_content` 标注五分类；Alignment 根据 `user_goal`、`untrusted_content` 和
 `proposed_action` 标注四分类，并单独标注 action realism。完整标签定义见
-[`route_b_audit_rubric.md`](route_b_audit_rubric.md)。
+[`route_b_ai_audit_rubric.md`](route_b_ai_audit_rubric.md)。旧
+[`route_b_audit_rubric.md`](route_b_audit_rubric.md) 只保留给历史人类审核草案。
 
 两个 AI 都必须独立输出与原 CSV 相同的固定列。不可编辑的样本字段必须逐字保留，不能
-重排、删行或补造样本。
+重排、删行或补造样本。审核 CSV 的 `sample_id` 必须是不可逆的、标签中性的 audit ID，
+不得暴露源 `sample_id`、Risk 或 Alignment 种子标签；源 ID 的映射只能留在
+`sealed_seed_labels.json`。
 
 ## 4. 分析和质量门
 

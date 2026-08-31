@@ -39,6 +39,8 @@ def _predict_once(model_dir: Path, text: str) -> tuple[Any, Any, dict[str, Any]]
         "input_mode": metadata.input_mode,
         "risk_shape": list(risk_logits.shape),
         "alignment_shape": list(alignment_logits.shape),
+        "alignment_labels": list(metadata.alignment_labels),
+        "alignment_target": metadata.alignment_target,
     }
     del model, tokenizer, encoded, output
     gc.collect()
@@ -52,7 +54,8 @@ def verify_checkpoint(model_dir: Path) -> dict[str, Any]:
     second_risk, second_alignment, second_details = _predict_once(model_dir, probe)
     if details != second_details:
         raise RuntimeError("checkpoint metadata changed between reloads")
-    if details["risk_shape"] != [1, 5] or details["alignment_shape"] != [1, 2]:
+    expected_alignment_shape = [1, len(details["alignment_labels"])]
+    if details["risk_shape"] != [1, 5] or details["alignment_shape"] != expected_alignment_shape:
         raise RuntimeError(f"unexpected output shapes: {details}")
     torch.testing.assert_close(first_risk, second_risk, rtol=0.0, atol=0.0)
     torch.testing.assert_close(first_alignment, second_alignment, rtol=0.0, atol=0.0)

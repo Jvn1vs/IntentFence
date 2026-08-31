@@ -12,7 +12,14 @@ from typing import Any
 import numpy as np
 import yaml
 
-from intentfence.constants import RISK_LABELS, RISK_TO_ID
+from intentfence.constants import (
+    ALIGNMENT_TARGETS,
+    LEGACY_ALIGNMENT_LABELS,
+    RISK_LABELS,
+    RISK_TO_ID,
+    TASK_ALIGNMENT_LABELS,
+    TASK_ALIGNMENT_TO_ID,
+)
 from intentfence.metrics import evaluate_risk_predictions, softmax
 from intentfence.modeling import ModelMetadata, create_multitask_model, save_multitask_model
 from intentfence.schema import IntentSample, read_jsonl
@@ -55,6 +62,7 @@ class TrainingConfig:
     gradient_checkpointing: bool = False
     early_stopping_patience: int = 2
     alignment_loss_weight: float = 0.5
+    alignment_target: str = "legacy_binary"
     seed: int = 42
     max_train_samples: int | None = None
     max_validation_samples: int | None = None
@@ -82,6 +90,13 @@ class TrainingConfig:
             and self.optimizer_steps_min > self.optimizer_steps_max
         ):
             raise ValueError("optimizer_steps_min cannot exceed optimizer_steps_max")
+        if self.alignment_target not in ALIGNMENT_TARGETS:
+            raise ValueError(
+                f"alignment_target must be one of {ALIGNMENT_TARGETS}; "
+                f"observed {self.alignment_target!r}"
+            )
+        if self.alignment_loss_weight < 0:
+            raise ValueError("alignment_loss_weight cannot be negative")
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> TrainingConfig:
@@ -103,7 +118,10 @@ def load_training_samples(
 ) -> tuple[list[IntentSample], list[IntentSample], TrainingDataSummary]:
     train_samples, validation_samples = read_jsonl(train_path), read_jsonl(validation_path)
     summary = validate_training_inputs(
-        train_samples, validation_samples, input_mode=config.input_mode
+        train_samples,
+        validation_samples,
+        input_mode=config.input_mode,
+        alignment_target=config.alignment_target,
     )
     return train_samples, validation_samples, summary
 
@@ -132,7 +150,10 @@ def prepare_training_samples(
         validation_samples, validation_limit, seed=config.seed + 1
     )
     summary = validate_training_inputs(
-        train_samples, validation_samples, input_mode=config.input_mode
+        train_samples,
+        validation_samples,
+        input_mode=config.input_mode,
+        alignment_target=config.alignment_target,
     )
     expected_counts = {
         "train": (config.expected_train_samples, summary.train_count),
@@ -206,7 +227,12 @@ def train(
             )
             item = {key: value.squeeze(0) for key, value in encoded.items()}
             item["risk_label"] = torch.tensor(RISK_TO_ID[sample.risk_label], dtype=torch.long)
-            item["alignment_label"] = torch.tensor(sample.alignment_label, dtype=torch.long)
+            alignment_id = (
+                TASK_ALIGNMENT_TO_ID[str(sample.task_alignment_label)]
+                if config.alignment_target == "task_alignment"
+                else sample.alignment_label
+            )
+            item["alignment_label"] = torch.tensor(alignment_id, dtype=torch.long)
             return item
 
     train_loader = DataLoader(EncodedDataset(train_samples), batch_size=config.train_batch_size, shuffle=True)
@@ -218,6 +244,11 @@ def train(
         config.model_name,
         revision=config.model_revision,
         num_risk_labels=len(RISK_LABELS),
+        num_alignment_labels=(
+            len(TASK_ALIGNMENT_LABELS)
+            if config.alignment_target == "task_alignment"
+            else len(LEGACY_ALIGNMENT_LABELS)
+        ),
     ).to(device)
     if config.gradient_checkpointing:
         model.encoder.gradient_checkpointing_enable()
@@ -278,6 +309,13 @@ def train(
                 max_length=config.max_length,
                 alignment_loss_weight=config.alignment_loss_weight,
                 model_revision=config.model_revision,
+                version="3" if config.alignment_target == "task_alignment" else "2",
+                alignment_labels=(
+                    TASK_ALIGNMENT_LABELS
+                    if config.alignment_target == "task_alignment"
+                    else LEGACY_ALIGNMENT_LABELS
+                ),
+                alignment_target=config.alignment_target,
             )
             save_multitask_model(model, tokenizer, metadata, output_dir / "best")
         else:

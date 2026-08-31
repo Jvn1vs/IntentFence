@@ -13,6 +13,7 @@ import yaml
 from intentfence.constants import RISK_LABELS, TASK_ALIGNMENT_LABELS
 from intentfence.mock_runtime import capture_candidate_action
 from intentfence.schema import IntentSample
+from intentfence.text import normalize_semantic_template
 
 INTERNAL_ROLES = frozenset({"train", "validation", "calibration"})
 CONSTRUCTION_ROLES = frozenset({"train", "validation", "calibration", "test_a"})
@@ -62,7 +63,14 @@ def validate_route_b_samples(
     pair_groups: dict[str, list[IntentSample]] = defaultdict(list)
     template_roles: dict[str, set[str]] = defaultdict(set)
     action_signature_roles: dict[str, set[str]] = defaultdict(set)
+    semantic_text_roles: dict[str, set[str]] = defaultdict(set)
+    semantic_action_roles: dict[str, set[str]] = defaultdict(set)
     observation_ids: set[str] = set()
+    semantic_isolation = bool(
+        policy.get("split_isolation", {})
+        .get("semantic_template_normalization", {})
+        .get("enabled", False)
+    )
 
     for row in rows:
         split = str(row.split or "unassigned")
@@ -104,6 +112,12 @@ def validate_route_b_samples(
         template_roles[row.template_group].add(split)
         if row.proposed_action:
             action_signature_roles[_normalized_action_signature(row.proposed_action)].add(split)
+        if semantic_isolation and split in CONSTRUCTION_ROLES:
+            semantic_text_roles[normalize_semantic_template(row.untrusted_content)].add(split)
+            if row.proposed_action:
+                semantic_action_roles[
+                    normalize_semantic_template(row.proposed_action)
+                ].add(split)
 
     for template_group, roles in sorted(template_roles.items()):
         internal = roles & CONSTRUCTION_ROLES
@@ -117,6 +131,19 @@ def validate_route_b_samples(
             errors.append(
                 f"normalized action signature crosses internal roles: {signature!r} -> {sorted(internal)}"
             )
+    if semantic_isolation:
+        for signature, roles in sorted(semantic_text_roles.items()):
+            if len(roles) > 1:
+                errors.append(
+                    "semantic text template crosses internal roles after volatile-ID "
+                    f"normalization: {signature!r} -> {sorted(roles)}"
+                )
+        for signature, roles in sorted(semantic_action_roles.items()):
+            if len(roles) > 1:
+                errors.append(
+                    "semantic action template crosses internal roles after volatile-ID "
+                    f"normalization: {signature!r} -> {sorted(roles)}"
+                )
 
     for group, members in sorted(pair_groups.items()):
         base_cases = {
@@ -229,6 +256,17 @@ def validate_route_b_samples(
             risk: sorted(labels) for risk, labels in sorted(risk_to_alignment.items())
         },
         "action_pair_groups": len(pair_groups),
+        "semantic_template_isolation": {
+            "enabled": semantic_isolation,
+            "normalized_text_templates": len(semantic_text_roles),
+            "normalized_action_templates": len(semantic_action_roles),
+            "text_templates_crossing_roles": sum(
+                len(roles) > 1 for roles in semantic_text_roles.values()
+            ),
+            "action_templates_crossing_roles": sum(
+                len(roles) > 1 for roles in semantic_action_roles.values()
+            ),
+        },
         "risk_alignment_contingency": contingency,
         "risk_alignment_mutual_information_bits": (
             mutual_information_nats / math.log(2) if relationship_total else 0.0

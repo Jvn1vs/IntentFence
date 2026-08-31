@@ -47,6 +47,18 @@ def _fill_review(path: Path, truth: dict, *, reviewer: str, task: str) -> None:
         writer.writerows(rows)
 
 
+def _attest(audit_dir: Path, *, reviewer_slot: str, reviewer: str) -> None:
+    path = audit_dir / f"{reviewer_slot}_attestation.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.update(
+        reviewer_id=reviewer,
+        reviewer_kind="independent_human",
+        independence_declared=True,
+        attested_at="2026-08-25T10:05:00+08:00",
+    )
+    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+
 def _fixture(tmp_path: Path) -> dict[str, Path]:
     spec = deepcopy(load_mock_corpus_spec(ROOT / "configs" / "route_b_mock_corpus.yaml"))
     for role in spec["roles"].values():
@@ -119,6 +131,7 @@ def _fixture(tmp_path: Path) -> dict[str, Path]:
             reviewer=reviewer,
             task="alignment",
         )
+        _attest(audit_dir, reviewer_slot=slot, reviewer=reviewer)
     analysis = analyze_blind_audits(
         reviewer_a_risk=audit_dir / "reviewer_a_risk.csv",
         reviewer_b_risk=audit_dir / "reviewer_b_risk.csv",
@@ -174,3 +187,13 @@ def test_protocol_lock_detects_policy_drift(tmp_path: Path) -> None:
     report = evaluate_route_b_readiness(**paths)
     assert report["formal_training_authorized"] is False
     assert any("protocol lock file hash mismatch" in item for item in report["validation_errors"])
+
+
+def test_ai_review_mode_cannot_satisfy_human_audit_gate(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    analysis = json.loads(paths["audit_analysis"].read_text(encoding="utf-8"))
+    analysis["review_mode"] = "dual_ai_engineering"
+    paths["audit_analysis"].write_text(json.dumps(analysis, sort_keys=True), encoding="utf-8")
+    report = evaluate_route_b_readiness(**paths)
+    assert report["formal_training_authorized"] is False
+    assert any("not an independent human blind review" in item for item in report["validation_errors"])

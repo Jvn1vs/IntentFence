@@ -55,6 +55,7 @@ split_isolation:
 
 audit:
   review_mode: "dual_ai_engineering"
+  codex_executed_audit_default: "exactly_two_independent_ai_reviewers"
   independent_human_reviewers_required: 0
   independent_ai_reviewers_required: 2
   ai_review_counts_as_independent_human_review: false

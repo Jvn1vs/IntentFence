@@ -1,9 +1,37 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 from intentfence.calibration import TemperatureScaler
-from intentfence.metrics import binary_operating_point, softmax, threshold_at_fpr
+from intentfence.metrics import (
+    binary_operating_point,
+    evaluate_risk_predictions,
+    softmax,
+    threshold_at_fpr,
+)
+
+
+def test_float32_softmax_is_normalized_without_sklearn_probability_warning():
+    logits = np.array(
+        [
+            [2.1, -0.3, 0.4, 1.2, -1.0],
+            [-1.2, 0.8, 1.1, -0.4, 0.2],
+            [0.1, 0.2, 0.3, 0.4, 0.5],
+            [1.7, -0.9, 0.0, 0.8, -0.2],
+            [-0.2, 1.4, -0.7, 0.6, 0.3],
+        ],
+        dtype=np.float32,
+    )
+    probabilities = softmax(logits)
+
+    assert probabilities.dtype == np.float64
+    np.testing.assert_allclose(probabilities.sum(axis=1), 1.0, rtol=0.0, atol=1e-15)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        metrics = evaluate_risk_predictions(np.arange(5), probabilities)
+    assert np.isfinite(metrics["nll"])
 
 
 def test_threshold_respects_empirical_fpr():

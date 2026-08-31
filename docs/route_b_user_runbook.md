@@ -1,13 +1,17 @@
-# Route B 训练前数据扩充手册（历史人类审核路线）
+# Route B 训练前数据扩充与人类审核签核手册
 
-状态：人类审核版本保留作协议历史；当前 active route 为
-[`route_b_ai_review_runbook.md`](route_b_ai_review_runbook.md) 的双 AI 工程/简历演示路线。
-AI 路线不会产生人工验证证据，`human_verified=false` 且
-`formal_training_authorized=false`。
+状态：当前 active 的工程证据路线为
+[`route_b_ai_review_runbook.md`](route_b_ai_review_runbook.md) 的双 AI 审核；AI 路线不会产生
+人工验证证据，`human_verified=false` 且 `formal_training_authorized=false`。本手册所保留的人类
+审核协议是训练前独立签核依据，不得被 AI 审核替代或用于为 AI 审核背书。
 
 本手册覆盖静态校验、精度规划、framework fixture、获批的项目自有离线 candidate
 构造、完整性验证和双人盲审。它不会下载外部数据、调用在线工具、拟合参数或生成
 模型权重。
+
+> 2026-08-30 更新：candidate 4、6 和 7 均为历史证据。当前候选为
+> `data/interim/route_b_v2_candidate_8`；AI 工程审核不替代人类门，待提交的人工双盲包为
+> `data/interim/route_b_v2_candidate_8_human_audit_v2`。人类审核与独立裁决完成前不得训练。
 
 ## 0. 从哪里执行
 
@@ -111,7 +115,7 @@ if ($LASTEXITCODE -ne 0) { throw "Route B fixture 结构校验失败" }
 不要对当前 fixture 使用 `--require-ready`，因为它故意不是训练数据。正式 v2 数据只有
 在协议、来源、双人盲审、split、manifest 和质量报告全部完成后才允许通过该选项。
 
-## 5. 正式 candidate 4（已由 Codex 完成）
+## 5. 历史 candidate 4（不得继续训练）
 
 当前不可覆盖目录：
 
@@ -144,7 +148,31 @@ if ($LASTEXITCODE -ne 0) { throw "Route B candidate 完整性复核失败" }
 
 预期 `errors=[]`，同时仍显示协议、审核和训练授权 blocker。
 
-## 6. 双人盲审包（已由 Codex 生成）
+candidate 4 后续通过 Small A 暴露出更强的语义泄漏：移除随机 ID、邮箱等易变片段后，
+train/validation 各只有 50 个文本模板且 50/50 全部重叠，validation 的 Risk 可由训练模板
+确定映射。其 100% validation 指标只保留为工程负结果。
+
+## 5.1 历史 candidate 6（结构检查通过，但 AI 审核失败）
+
+candidate 5 因一个归一化动作模板跨 train/Test A 被验证器拒绝，失败报告原样保留。candidate 6
+增加角色作用域并通过完整检查：27,000 条记录、归一化文本模板跨角色 0、归一化动作模板跨角色
+0，manifest 自哈希为
+`92ffd89a51a8aa0a0f801e361a89f7d93438b56a77d48caaba179f3a5993c550`。
+
+```powershell
+& $IntentFencePython scripts/validate_route_b_manifest.py `
+  --manifest data/interim/route_b_v2_candidate_6/manifest.json
+
+& $IntentFencePython scripts/validate_route_b_dataset.py `
+  --input data/interim/route_b_v2_candidate_6/train.jsonl `
+  --input data/interim/route_b_v2_candidate_6/validation.jsonl `
+  --input data/interim/route_b_v2_candidate_6/calibration.jsonl `
+  --input data/interim/route_b_v2_candidate_6/test_a.jsonl
+```
+
+通过结构检查不等于标签审核通过，也不改变 `formal_training_authorized=false`。
+
+## 6. 历史 candidate 4 双人盲审包
 
 审核目录：
 

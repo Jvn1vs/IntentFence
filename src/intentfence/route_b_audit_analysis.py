@@ -11,6 +11,8 @@ from intentfence.constants import RISK_LABELS, TASK_ALIGNMENT_LABELS
 from intentfence.data import file_sha256
 from intentfence.route_b_audit import (
     ALIGNMENT_REVIEW_FIELDS,
+    HUMAN_REVIEWER_ATTESTATION_KIND,
+    HUMAN_REVIEWER_ATTESTATION_SCHEMA_VERSION,
     RISK_REVIEW_FIELDS,
 )
 
@@ -75,7 +77,7 @@ def _validate_sheet(
         expected = truth.get(audit_id)
         if expected is None:
             continue
-        if row["sample_id"] != expected["sample_id"]:
+        if row["sample_id"] != expected["review_sample_id"]:
             errors.append(f"{path}/{audit_id}: sample_id was modified")
         if _content_hash(row, task=task) != expected["content_hash"]:
             errors.append(f"{path}/{audit_id}: immutable review content was modified")
@@ -204,6 +206,66 @@ def _task_metrics(
     return result
 
 
+def _validate_human_reviewer_attestations(
+    audit_manifest: dict[str, Any],
+    *,
+    audit_manifest_path: Path,
+    reviewer_ids: dict[str, str],
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    declared = audit_manifest.get("reviewer_attestations")
+    if not isinstance(declared, dict) or set(declared) != {"reviewer_a", "reviewer_b"}:
+        return {}, ["human audit manifest must bind reviewer A/B attestations"]
+    evidence: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for reviewer_slot in ("reviewer_a", "reviewer_b"):
+        specification = declared[reviewer_slot]
+        if not isinstance(specification, dict):
+            errors.append(f"{reviewer_slot} attestation specification is invalid")
+            continue
+        required_kind = specification.get("required_reviewer_kind")
+        if required_kind != HUMAN_REVIEWER_ATTESTATION_KIND:
+            errors.append(f"{reviewer_slot} attestation does not require an independent human")
+        if specification.get("must_declare_independence") is not True:
+            errors.append(f"{reviewer_slot} attestation does not require independence declaration")
+        relative = specification.get("path")
+        source = audit_manifest_path.parent / str(relative)
+        try:
+            payload = json.loads(source.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"{reviewer_slot} attestation is missing or invalid: {exc}")
+            continue
+        if not isinstance(payload, dict):
+            errors.append(f"{reviewer_slot} attestation must be a JSON object")
+            continue
+        if payload.get("schema_version") != HUMAN_REVIEWER_ATTESTATION_SCHEMA_VERSION:
+            errors.append(f"{reviewer_slot} attestation schema_version is invalid")
+        if payload.get("reviewer_slot") != reviewer_slot:
+            errors.append(f"{reviewer_slot} attestation reviewer_slot differs from manifest")
+        if payload.get("reviewer_id") != reviewer_ids[reviewer_slot]:
+            errors.append(f"{reviewer_slot} attestation reviewer_id differs from submitted CSV")
+        if payload.get("reviewer_kind") != HUMAN_REVIEWER_ATTESTATION_KIND:
+            errors.append(f"{reviewer_slot} attestation is not declared as independent_human")
+        if payload.get("independence_declared") is not True:
+            errors.append(f"{reviewer_slot} independence declaration is missing")
+        attested_at = payload.get("attested_at")
+        if not isinstance(attested_at, str) or not attested_at:
+            errors.append(f"{reviewer_slot} attestation timestamp is missing")
+        else:
+            try:
+                _parse_time(attested_at, path=source, audit_id="attestation")
+            except ValueError as exc:
+                errors.append(str(exc))
+        evidence[reviewer_slot] = {
+            "path": str(source.resolve()),
+            "sha256": file_sha256(source),
+            "reviewer_id": payload.get("reviewer_id"),
+            "reviewer_kind": payload.get("reviewer_kind"),
+            "independence_declared": payload.get("independence_declared"),
+            "attested_at": payload.get("attested_at"),
+        }
+    return evidence, errors
+
+
 def analyze_blind_audits(
     *,
     reviewer_a_risk: str | Path,
@@ -213,7 +275,10 @@ def analyze_blind_audits(
     sealed_seed_labels: str | Path,
     audit_manifest: str | Path,
     policy: dict[str, Any],
+    review_mode: str = "independent_human_blind",
 ) -> dict[str, Any]:
+    if review_mode not in {"independent_human_blind", "dual_ai_engineering"}:
+        raise ValueError(f"unsupported review_mode: {review_mode}")
     paths = {
         "reviewer_a_risk": Path(reviewer_a_risk),
         "reviewer_b_risk": Path(reviewer_b_risk),
@@ -282,7 +347,18 @@ def analyze_blind_audits(
     if reviewer_ids["reviewer_b_risk"] != reviewer_ids["reviewer_b_alignment"]:
         validation_errors.append("reviewer B ID differs between Risk and Alignment sheets")
     if reviewer_ids["reviewer_a_risk"] == reviewer_ids["reviewer_b_risk"]:
-        validation_errors.append("reviewer A and reviewer B must be distinct humans")
+        validation_errors.append("reviewer A and reviewer B must be distinct")
+    reviewer_provenance: dict[str, dict[str, Any]] = {}
+    if review_mode == "independent_human_blind":
+        reviewer_provenance, attestation_errors = _validate_human_reviewer_attestations(
+            audit_manifest_payload,
+            audit_manifest_path=audit_manifest_path,
+            reviewer_ids={
+                "reviewer_a": reviewer_ids["reviewer_a_risk"],
+                "reviewer_b": reviewer_ids["reviewer_b_risk"],
+            },
+        )
+        validation_errors.extend(attestation_errors)
     if validation_errors:
         return {
             "status": "invalid_review_package",
@@ -343,11 +419,13 @@ def analyze_blind_audits(
     )
     return {
         "status": status,
+        "review_mode": review_mode,
         "validation_errors": [],
         "reviewer_ids": {
             "reviewer_a": reviewer_ids["reviewer_a_risk"],
             "reviewer_b": reviewer_ids["reviewer_b_risk"],
         },
+        "reviewer_provenance": reviewer_provenance,
         "received_files": {
             name: {"path": str(path.resolve()), "sha256": file_sha256(path)}
             for name, path in paths.items()

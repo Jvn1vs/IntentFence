@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -7,11 +8,23 @@ from typing import Protocol
 import numpy as np
 
 from intentfence.calibration import MultiHeadCalibration
-from intentfence.constants import RISK_LABELS
+from intentfence.constants import LEGACY_ALIGNMENT_LABELS, RISK_LABELS
 from intentfence.metrics import softmax
 from intentfence.modeling import load_multitask_model
 from intentfence.rules import RuleDetector
 from intentfence.text import build_text_from_fields, chunk_untrusted_content
+
+
+def _alignment_conflict_probability(
+    probabilities: np.ndarray,
+    labels: tuple[str, ...],
+) -> float:
+    mapping = dict(zip(labels, probabilities.tolist(), strict=True))
+    if "conflict" in mapping:
+        return float(mapping["conflict"])
+    if "aligned" in mapping:
+        return float(1.0 - mapping["aligned"])
+    raise ValueError(f"alignment labels lack aligned/conflict semantics: {labels}")
 
 
 @dataclass(frozen=True)
@@ -102,7 +115,9 @@ class TorchBackend:
         predicted = max(mapping, key=mapping.get)
         return BackendPrediction(
             probabilities=mapping,
-            alignment_conflict_probability=float(alignment_probabilities[1]),
+            alignment_conflict_probability=_alignment_conflict_probability(
+                alignment_probabilities, self.metadata.alignment_labels
+            ),
             predicted_risk=predicted,
             attack_score=float(1.0 - mapping["benign"]),
             backend=self.name,
@@ -119,18 +134,31 @@ class OnnxBackend:
         tokenizer_path: str | Path,
         calibration_path: str | Path | None = None,
         max_length: int = 384,
+        metadata_path: str | Path | None = None,
     ) -> None:
         try:
             import onnxruntime as ort
             from transformers import AutoTokenizer
         except ImportError as exc:
             raise RuntimeError("Install intentfence[ml,onnx] for ONNX inference") from exc
+        model_path = Path(model_path)
         self.session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
         self.calibration = (
             MultiHeadCalibration.load(calibration_path) if calibration_path and Path(calibration_path).exists() else None
         )
-        self.max_length = max_length
+        inferred_metadata = Path(metadata_path) if metadata_path else model_path.parent / "export_metadata.json"
+        if inferred_metadata.exists():
+            payload = json.loads(inferred_metadata.read_text(encoding="utf-8"))
+            self.risk_labels = tuple(payload.get("risk_labels", RISK_LABELS))
+            self.alignment_labels = tuple(
+                payload.get("alignment_labels", LEGACY_ALIGNMENT_LABELS)
+            )
+            self.max_length = int(payload.get("max_length", max_length))
+        else:
+            self.risk_labels = RISK_LABELS
+            self.alignment_labels = LEGACY_ALIGNMENT_LABELS
+            self.max_length = max_length
 
     def predict(self, user_goal: str, untrusted_content: str, proposed_action: str) -> BackendPrediction:
         separator = self.tokenizer.sep_token or "[SEP]"
@@ -154,11 +182,13 @@ class OnnxBackend:
             if self.calibration
             else softmax(alignment_logits)[0]
         )
-        mapping = dict(zip(RISK_LABELS, risk_probabilities.tolist(), strict=True))
+        mapping = dict(zip(self.risk_labels, risk_probabilities.tolist(), strict=True))
         predicted = max(mapping, key=mapping.get)
         return BackendPrediction(
             probabilities=mapping,
-            alignment_conflict_probability=float(alignment_probabilities[1]),
+            alignment_conflict_probability=_alignment_conflict_probability(
+                alignment_probabilities, self.alignment_labels
+            ),
             predicted_risk=predicted,
             attack_score=float(1.0 - mapping["benign"]),
             backend=self.name,

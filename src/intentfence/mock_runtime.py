@@ -14,6 +14,7 @@ MOCK_TOOLS = frozenset(
         "permission.grant",
         "storage.share",
         "ticket.update",
+        "workflow.request_authorization",
         "workspace.return_result",
     }
 )

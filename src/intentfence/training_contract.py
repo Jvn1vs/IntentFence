@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from intentfence.constants import INPUT_MODES, RISK_LABELS
+from intentfence.constants import ALIGNMENT_TARGETS, INPUT_MODES, RISK_LABELS, TASK_ALIGNMENT_LABELS
 from intentfence.schema import IntentSample
 
 
@@ -20,6 +20,7 @@ class TrainingDataSummary:
     validation_risk_counts: dict[str, int]
     train_alignment_counts: dict[str, int]
     validation_alignment_counts: dict[str, int]
+    alignment_target: str
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -29,6 +30,7 @@ class TrainingDataSummary:
             "validation_risk_counts": self.validation_risk_counts,
             "train_alignment_counts": self.train_alignment_counts,
             "validation_alignment_counts": self.validation_alignment_counts,
+            "alignment_target": self.alignment_target,
         }
 
 
@@ -64,6 +66,7 @@ def validate_training_inputs(
     validation_samples: list[IntentSample],
     *,
     input_mode: str,
+    alignment_target: str = "legacy_binary",
 ) -> TrainingDataSummary:
     """Validate the safety and split contract before tokenizer/model loading.
 
@@ -75,6 +78,10 @@ def validate_training_inputs(
 
     if input_mode not in INPUT_MODES:
         raise ValueError(f"Unknown input_mode {input_mode!r}; expected one of {INPUT_MODES}")
+    if alignment_target not in ALIGNMENT_TARGETS:
+        raise ValueError(
+            f"Unknown alignment_target {alignment_target!r}; expected one of {ALIGNMENT_TARGETS}"
+        )
     if not train_samples or not validation_samples:
         raise ValueError("train and validation inputs must both contain at least one sample")
 
@@ -90,6 +97,10 @@ def validate_training_inputs(
                 raise ValueError(
                     f"{sample.sample_id}: action input mode requires a non-empty proposed_action"
                 )
+            if alignment_target == "task_alignment" and sample.task_alignment_label is None:
+                raise ValueError(
+                    f"{sample.sample_id}: task_alignment target requires task_alignment_label"
+                )
 
     summaries = {
         role: _counts(samples, "risk_label")
@@ -104,13 +115,31 @@ def validate_training_inputs(
                 f"observed risk counts={risk_counts}"
             )
 
+    alignment_field = (
+        "task_alignment_label" if alignment_target == "task_alignment" else "alignment_label"
+    )
+    alignment_summaries = {
+        role: _counts(samples, alignment_field)
+        for role, samples in (("train", train_samples), ("validation", validation_samples))
+    }
+    if alignment_target == "task_alignment":
+        expected = set(TASK_ALIGNMENT_LABELS)
+        for role, alignment_counts in alignment_summaries.items():
+            missing = sorted(expected - set(alignment_counts))
+            if missing:
+                raise ValueError(
+                    f"{role} task_alignment target lacks labels: {missing}; "
+                    f"observed counts={alignment_counts}"
+                )
+
     return TrainingDataSummary(
         train_count=len(train_samples),
         validation_count=len(validation_samples),
         train_risk_counts=summaries["train"],
         validation_risk_counts=summaries["validation"],
-        train_alignment_counts=_counts(train_samples, "alignment_label"),
-        validation_alignment_counts=_counts(validation_samples, "alignment_label"),
+        train_alignment_counts=alignment_summaries["train"],
+        validation_alignment_counts=alignment_summaries["validation"],
+        alignment_target=alignment_target,
     )
 
 

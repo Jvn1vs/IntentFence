@@ -49,7 +49,13 @@ def _fixture(tmp_path: Path) -> dict[str, object]:
         write_jsonl(rows, path)
         input_paths.append(path)
     audit_dir = tmp_path / "audit"
-    build_blind_audit_package(input_paths, audit_dir, risk_rows=40, alignment_rows=80)
+    build_blind_audit_package(
+        input_paths,
+        audit_dir,
+        risk_rows=40,
+        alignment_rows=80,
+        review_mode="dual_ai_engineering",
+    )
     truth = json.loads((audit_dir / "sealed_seed_labels.json").read_text(encoding="utf-8"))
     reviewer_ids = {
         "reviewer_a": "provider_a:model_a@revision_a",
@@ -121,6 +127,23 @@ def test_dual_ai_review_is_engineering_only(tmp_path: Path) -> None:
     assert report["ai_reviewer_models"]["ai_a"]["provider"] != report["ai_reviewer_models"]["ai_b"]["provider"]
 
 
+def test_blind_review_sheets_redact_label_bearing_source_sample_ids(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    for task, path in (
+        ("risk", paths["reviewer_a_risk"]),
+        ("alignment", paths["reviewer_a_alignment"]),
+    ):
+        with path.open(encoding="utf-8-sig", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        assert rows
+        assert all(row["sample_id"].startswith(f"audit-{task}-") for row in rows)
+        assert all(":benign:" not in row["sample_id"] for row in rows)
+        assert all(":instruction_hijacking:" not in row["sample_id"] for row in rows)
+        assert all(":data_exfiltration:" not in row["sample_id"] for row in rows)
+        assert all(":privilege_escalation:" not in row["sample_id"] for row in rows)
+        assert all(":tool_manipulation:" not in row["sample_id"] for row in rows)
+
+
 def test_dual_ai_rejects_same_model_identity(tmp_path: Path) -> None:
     paths = _fixture(tmp_path)
     metadata_path = paths["ai_review_manifest"]
@@ -134,3 +157,11 @@ def test_dual_ai_rejects_same_model_identity(tmp_path: Path) -> None:
     report = analyze_dual_ai_reviews(**paths)
     assert report["status"] == "invalid_ai_review_package"
     assert any("distinct provider/model/revision" in item for item in report["validation_errors"])
+
+
+def test_dual_ai_requires_exactly_two_model_policy(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    paths["policy"]["audit"]["codex_executed_audit_default"] = "single_ai"
+    report = analyze_dual_ai_reviews(**paths)
+    assert report["status"] == "invalid_ai_review_package"
+    assert any("exactly two independent Codex reviewers" in item for item in report["validation_errors"])

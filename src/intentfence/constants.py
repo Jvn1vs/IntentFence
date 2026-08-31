@@ -25,6 +25,9 @@ TASK_ALIGNMENT_TO_ID = {
 }
 ID_TO_TASK_ALIGNMENT = dict(enumerate(TASK_ALIGNMENT_LABELS))
 
+LEGACY_ALIGNMENT_LABELS: tuple[str, ...] = ("aligned", "conflict")
+ALIGNMENT_TARGETS: tuple[str, ...] = ("legacy_binary", "task_alignment")
+
 SPLIT_NAMES: tuple[str, ...] = (
     "train",
     "validation",

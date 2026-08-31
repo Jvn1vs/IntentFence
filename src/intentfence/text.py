@@ -8,12 +8,33 @@ from intentfence.constants import INPUT_MODES
 from intentfence.schema import IntentSample
 
 WHITESPACE_RE = re.compile(r"\s+")
+EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b", re.IGNORECASE)
+URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+VOLATILE_TOKEN_RE = re.compile(
+    r"\b[a-z0-9_./:@-]*\d[a-z0-9_./:@-]*\b",
+    re.IGNORECASE,
+)
 
 
 def normalize_text(value: str) -> str:
     """Normalize for deduplication only; model inputs keep their original form."""
 
     value = unicodedata.normalize("NFKC", value).casefold()
+    return WHITESPACE_RE.sub(" ", value).strip()
+
+
+def normalize_semantic_template(value: str) -> str:
+    """Remove deterministic fixture identifiers before split-isolation checks.
+
+    This normalization is deliberately stricter than ``normalize_text``.  It is
+    used only for detecting generated-template reuse across data roles; model
+    inputs retain the original text.
+    """
+
+    value = normalize_text(value)
+    value = EMAIL_RE.sub("<email>", value)
+    value = URL_RE.sub("<url>", value)
+    value = VOLATILE_TOKEN_RE.sub("<id>", value)
     return WHITESPACE_RE.sub(" ", value).strip()
 
 

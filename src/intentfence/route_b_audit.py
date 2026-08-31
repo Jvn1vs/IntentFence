@@ -41,10 +41,27 @@ ALIGNMENT_REVIEW_FIELDS = (
     "notes",
 )
 
+HUMAN_REVIEWER_ATTESTATION_SCHEMA_VERSION = 1
+HUMAN_REVIEWER_ATTESTATION_KIND = "independent_human"
 
-def _row_hash(row: IntentSample, *, include_action: bool) -> str:
+
+def _audit_id(row: IntentSample, *, task: str) -> str:
+    return hashlib.sha256(f"{task}:{row.sample_id}".encode()).hexdigest()[:20]
+
+
+def _blind_sample_id(*, task: str, audit_id: str) -> str:
+    """Return the stable reviewer-facing identifier without exposing source labels."""
+    return f"audit-{task}-{audit_id}"
+
+
+def _row_hash(
+    row: IntentSample,
+    *,
+    reviewer_sample_id: str,
+    include_action: bool,
+) -> str:
     payload = [
-        row.sample_id,
+        reviewer_sample_id,
         str(row.split),
         row.scenario,
         row.user_goal,
@@ -111,10 +128,10 @@ def _review_rows(
     random.Random(f"{seed}:{task}:{reviewer_slot}").shuffle(ordered)
     output: list[dict[str, str]] = []
     for row in ordered:
-        audit_id = hashlib.sha256(f"{task}:{row.sample_id}".encode()).hexdigest()[:20]
+        audit_id = _audit_id(row, task=task)
         base = {
             "audit_id": audit_id,
-            "sample_id": row.sample_id,
+            "sample_id": _blind_sample_id(task=task, audit_id=audit_id),
             "split": str(row.split),
             "scenario": row.scenario,
             "user_goal": row.user_goal,
@@ -141,6 +158,23 @@ def _write_csv(path: Path, fields: tuple[str, ...], rows: list[dict[str, str]]) 
         writer.writerows(rows)
 
 
+def _write_human_reviewer_attestation_template(path: Path, *, reviewer_slot: str) -> None:
+    """Write a reviewer-supplied provenance declaration outside mutable CSV rows."""
+    payload = {
+        "schema_version": HUMAN_REVIEWER_ATTESTATION_SCHEMA_VERSION,
+        "reviewer_slot": reviewer_slot,
+        "reviewer_id": "",
+        "reviewer_kind": HUMAN_REVIEWER_ATTESTATION_KIND,
+        "independence_declared": False,
+        "attested_at": "",
+        "notes": "",
+    }
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def build_blind_audit_package(
     input_paths: Iterable[str | Path],
     output_dir: str | Path,
@@ -148,9 +182,12 @@ def build_blind_audit_package(
     risk_rows: int = 400,
     alignment_rows: int = 400,
     seed: int = 42,
+    review_mode: str = "independent_human_blind",
 ) -> dict[str, Any]:
     paths = [Path(path) for path in input_paths]
     destination = Path(output_dir)
+    if review_mode not in {"independent_human_blind", "dual_ai_engineering"}:
+        raise ValueError(f"unsupported review_mode: {review_mode}")
     if destination.exists():
         raise FileExistsError(f"Refusing to overwrite Route B audit package: {destination}")
     destination.mkdir(parents=True)
@@ -180,23 +217,51 @@ def build_blind_audit_package(
                 "sha256": file_sha256(path),
                 "labels_exposed": False,
             }
+    reviewer_attestations: dict[str, Any] = {}
+    if review_mode == "independent_human_blind":
+        for reviewer_slot in ("reviewer_a", "reviewer_b"):
+            attestation_path = destination / f"{reviewer_slot}_attestation.json"
+            _write_human_reviewer_attestation_template(
+                attestation_path, reviewer_slot=reviewer_slot
+            )
+            reviewer_attestations[reviewer_slot] = {
+                "path": attestation_path.name,
+                "required_reviewer_kind": HUMAN_REVIEWER_ATTESTATION_KIND,
+                "must_declare_independence": True,
+            }
     truth = {
         "risk": [
             {
-                "audit_id": hashlib.sha256(f"risk:{row.sample_id}".encode()).hexdigest()[:20],
+                "audit_id": _audit_id(row, task="risk"),
                 "sample_id": row.sample_id,
-                "content_hash": _row_hash(row, include_action=False),
+                "review_sample_id": _blind_sample_id(
+                    task="risk", audit_id=_audit_id(row, task="risk")
+                ),
+                "content_hash": _row_hash(
+                    row,
+                    reviewer_sample_id=_blind_sample_id(
+                        task="risk", audit_id=_audit_id(row, task="risk")
+                    ),
+                    include_action=False,
+                ),
                 "seed_risk_label": row.risk_label,
             }
             for row in sorted(selected_risk, key=lambda item: item.sample_id)
         ],
         "alignment": [
             {
-                "audit_id": hashlib.sha256(
-                    f"alignment:{row.sample_id}".encode()
-                ).hexdigest()[:20],
+                "audit_id": _audit_id(row, task="alignment"),
                 "sample_id": row.sample_id,
-                "content_hash": _row_hash(row, include_action=True),
+                "review_sample_id": _blind_sample_id(
+                    task="alignment", audit_id=_audit_id(row, task="alignment")
+                ),
+                "content_hash": _row_hash(
+                    row,
+                    reviewer_sample_id=_blind_sample_id(
+                        task="alignment", audit_id=_audit_id(row, task="alignment")
+                    ),
+                    include_action=True,
+                ),
                 "seed_task_alignment_label": row.task_alignment_label,
             }
             for row in sorted(selected_alignment, key=lambda item: item.sample_id)
@@ -209,11 +274,12 @@ def build_blind_audit_package(
     )
     manifest_payload = {
         "schema_version": 1,
-        "status": "awaiting_two_independent_human_reviewers_not_training_authorized",
+        "status": "awaiting_two_independent_reviewers_not_training_authorized",
         "seed": seed,
         "risk_rows": len(selected_risk),
         "alignment_rows": len(selected_alignment),
         "reviewer_slots": ["reviewer_a", "reviewer_b"],
+        "review_mode": review_mode,
         "inputs": [
             {"path": str(path.resolve()), "rows": len(read_jsonl(path)), "sha256": file_sha256(path)}
             for path in paths
@@ -237,6 +303,8 @@ def build_blind_audit_package(
         ),
         "formal_training_authorized": False,
     }
+    if reviewer_attestations:
+        manifest_payload["reviewer_attestations"] = reviewer_attestations
     serialized = json.dumps(
         manifest_payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     )

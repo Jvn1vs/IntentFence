@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from intentfence.constants import RISK_TO_ID
+from intentfence.constants import RISK_TO_ID, TASK_ALIGNMENT_TO_ID
 from intentfence.modeling import load_multitask_model
 from intentfence.schema import read_jsonl
 from intentfence.text import build_model_text
@@ -48,7 +48,12 @@ def main() -> None:
             )
             item = {key: value.squeeze(0) for key, value in encoded.items()}
             item["risk_label"] = torch.tensor(RISK_TO_ID[sample.risk_label])
-            item["alignment_label"] = torch.tensor(sample.alignment_label)
+            alignment_id = (
+                TASK_ALIGNMENT_TO_ID[str(sample.task_alignment_label)]
+                if metadata.alignment_target == "task_alignment"
+                else sample.alignment_label
+            )
+            item["alignment_label"] = torch.tensor(alignment_id)
             return item
 
     risk_logits, alignment_logits, risk_labels, alignment_labels = [], [], [], []
@@ -76,6 +81,8 @@ def main() -> None:
                 "samples": len(samples),
                 "input_mode": metadata.input_mode,
                 "max_length": metadata.max_length,
+                "alignment_target": metadata.alignment_target,
+                "alignment_labels": list(metadata.alignment_labels),
             },
             indent=2,
             sort_keys=True,

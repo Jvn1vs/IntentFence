@@ -1,0 +1,8 @@
+extends: "route_b_mock_corpus_candidate_5.yaml"
+schema_version: 3
+status: "construction_authorized_not_training_authorized"
+data_version: "route_b_v2_candidate_6"
+prepared_at: "2026-08-28"
+action_policy_id: "intentfence-deterministic-mock-policy-v3-candidate-6"
+semantic_template_isolation: true
+inject_role_action_scope_argument: true

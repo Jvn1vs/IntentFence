@@ -254,6 +254,8 @@ def _audit_gates(
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return gates, [f"invalid audit evidence: {exc}"], None
     errors = _audit_manifest_matches_candidate(audit_manifest, candidate_manifest)
+    if analysis.get("review_mode") != "independent_human_blind":
+        errors.append("audit analysis is not an independent human blind review")
     received = analysis.get("received_files", {})
     required_received = {
         "reviewer_a_risk",

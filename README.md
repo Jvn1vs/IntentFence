@@ -175,7 +175,7 @@ python scripts/export_logits.py `
 
 ```text
 risk_logits          [N, 5]
-alignment_logits     [N, 2]
+alignment_logits     [N, 2]（旧版 binary checkpoint）或 [N, 4]（Task Shield 四分类）
 risk_labels          [N]
 alignment_labels     [N]
 ```

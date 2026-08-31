@@ -47,6 +47,8 @@ def test_audit_package_hides_seed_labels_and_preserves_sealed_truth(tmp_path: Pa
     manifest = result["manifest"]
     assert manifest["formal_training_authorized"] is False
     assert manifest["reviewer_slots"] == ["reviewer_a", "reviewer_b"]
+    assert manifest["review_mode"] == "independent_human_blind"
+    assert set(manifest["reviewer_attestations"]) == {"reviewer_a", "reviewer_b"}
     with (tmp_path / "audit" / "reviewer_a_risk.csv").open(
         encoding="utf-8-sig", newline=""
     ) as handle:
@@ -58,3 +60,25 @@ def test_audit_package_hides_seed_labels_and_preserves_sealed_truth(tmp_path: Pa
     )
     assert len(truth["risk"]) == 40
     assert len(truth["alignment"]) == 80
+
+
+def test_dual_ai_package_does_not_include_human_attestation_templates(
+    tmp_path: Path,
+) -> None:
+    records = _small_records()
+    paths = []
+    for role, rows in records.items():
+        path = tmp_path / f"{role}.jsonl"
+        write_jsonl(rows, path)
+        paths.append(path)
+    result = build_blind_audit_package(
+        paths,
+        tmp_path / "dual-ai-audit",
+        risk_rows=40,
+        alignment_rows=80,
+        review_mode="dual_ai_engineering",
+    )
+    manifest = result["manifest"]
+    assert manifest["review_mode"] == "dual_ai_engineering"
+    assert "reviewer_attestations" not in manifest
+    assert not list((tmp_path / "dual-ai-audit").glob("*_attestation.json"))

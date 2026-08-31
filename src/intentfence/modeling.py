@@ -5,6 +5,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from intentfence.constants import LEGACY_ALIGNMENT_LABELS
+
 
 @dataclass(frozen=True)
 class ModelMetadata:
@@ -15,6 +17,8 @@ class ModelMetadata:
     alignment_loss_weight: float
     model_revision: str | None = None
     version: str = "2"
+    alignment_labels: tuple[str, ...] = LEGACY_ALIGNMENT_LABELS
+    alignment_target: str = "legacy_binary"
 
 
 def _require_ml() -> tuple[Any, Any, Any]:
@@ -34,6 +38,7 @@ def create_multitask_model(
     *,
     revision: str | None = None,
     num_risk_labels: int = 5,
+    num_alignment_labels: int = 2,
     dropout: float | None = None,
 ) -> Any:
     torch, nn, AutoModel = _require_ml()
@@ -51,7 +56,7 @@ def create_multitask_model(
             )
             self.dropout = nn.Dropout(probability)
             self.risk_head = nn.Linear(hidden_size, num_risk_labels)
-            self.alignment_head = nn.Linear(hidden_size, 2)
+            self.alignment_head = nn.Linear(hidden_size, num_alignment_labels)
 
         def forward(
             self,
@@ -106,9 +111,15 @@ def load_multitask_model(model_dir: str | Path, *, map_location: str = "cpu") ->
     source = Path(model_dir)
     metadata_payload = json.loads((source / "metadata.json").read_text(encoding="utf-8"))
     metadata_payload["risk_labels"] = tuple(metadata_payload["risk_labels"])
+    metadata_payload["alignment_labels"] = tuple(
+        metadata_payload.get("alignment_labels", LEGACY_ALIGNMENT_LABELS)
+    )
+    metadata_payload.setdefault("alignment_target", "legacy_binary")
     metadata = ModelMetadata(**metadata_payload)
     model = create_multitask_model(
-        str(source / "encoder"), num_risk_labels=len(metadata.risk_labels)
+        str(source / "encoder"),
+        num_risk_labels=len(metadata.risk_labels),
+        num_alignment_labels=len(metadata.alignment_labels),
     )
     heads = torch.load(source / "heads.pt", map_location=map_location, weights_only=True)
     model.risk_head.load_state_dict(heads["risk_head"])

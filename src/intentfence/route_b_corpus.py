@@ -27,12 +27,35 @@ RISK_METADATA = {
 ROLE_CODES = {"train": "TR", "validation": "VA", "calibration": "CA", "test_a": "TA"}
 
 
+def _deep_merge(base: Mapping[str, Any], override: Mapping[str, Any]) -> dict[str, Any]:
+    result = deepcopy(dict(base))
+    for key, value in override.items():
+        if isinstance(value, Mapping) and isinstance(result.get(key), Mapping):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = deepcopy(value)
+    return result
+
+
 def load_mock_corpus_spec(path: str | Path) -> dict[str, Any]:
-    source = Path(path)
+    source = Path(path).resolve()
     payload = yaml.safe_load(source.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"mock corpus specification must be a mapping: {source}")
-    return payload
+    extends = payload.pop("extends", None)
+    if extends is None:
+        resolved = payload
+        sources: list[dict[str, str]] = []
+    else:
+        parent = (source.parent / str(extends)).resolve()
+        if parent == source:
+            raise ValueError("mock corpus specification cannot extend itself")
+        base = load_mock_corpus_spec(parent)
+        sources = list(base.pop("_resolved_spec_sources", []))
+        resolved = _deep_merge(base, payload)
+    sources.append({"path": str(source), "sha256": file_sha256(source)})
+    resolved["_resolved_spec_sources"] = sources
+    return resolved
 
 
 def _format_value(value: Any, context: Mapping[str, Any]) -> Any:
@@ -51,39 +74,62 @@ def _action_for(
     archetype: Mapping[str, Any],
     global_actions: Mapping[str, Any],
 ) -> tuple[Mapping[str, Any], str]:
+    def prepared(spec: Mapping[str, Any], fallback: str) -> tuple[Mapping[str, Any], str]:
+        return (
+            {key: value for key, value in spec.items() if key != "template_id"},
+            str(spec.get("template_id", fallback)),
+        )
+
     if alignment == "aligned":
-        return archetype["aligned_action"], f"{archetype['id']}:aligned"
+        return prepared(archetype["aligned_action"], f"{archetype['id']}:aligned")
     if alignment == "unrelated":
-        return global_actions["unrelated"], "global:unrelated"
+        return prepared(global_actions["unrelated"], "global:unrelated")
     if alignment == "ambiguous":
-        return global_actions["ambiguous"], "global:ambiguous"
+        return prepared(global_actions["ambiguous"], "global:ambiguous")
     if risk == "benign":
-        return global_actions["benign_malicious"], "global:benign_malicious"
+        return prepared(global_actions["benign_malicious"], "global:benign_malicious")
     if risk == "instruction_hijacking":
-        return archetype["hijack_action"], f"{archetype['id']}:hijack"
+        return prepared(archetype["hijack_action"], f"{archetype['id']}:hijack")
     if risk == "data_exfiltration":
-        return global_actions["exfiltration"], "global:exfiltration"
+        return prepared(global_actions["exfiltration"], "global:exfiltration")
     if risk == "privilege_escalation":
-        return global_actions["privilege"], "global:privilege"
-    return archetype["manipulation_action"], f"{archetype['id']}:manipulation"
+        return prepared(global_actions["privilege"], "global:privilege")
+    return prepared(archetype["manipulation_action"], f"{archetype['id']}:manipulation")
 
 
 def _content_for(
     risk: str,
+    role: str,
     archetype: Mapping[str, Any],
     risk_content: Mapping[str, Any],
+    risk_content_by_role: Mapping[str, Any],
     context: Mapping[str, Any],
 ) -> tuple[str, str]:
     if risk == "benign":
         return str(_format_value(archetype["benign_content"], context)), "benign"
-    if risk == "instruction_hijacking":
-        return str(_format_value(archetype["hijack_content"], context)), "hijack"
-    if risk == "tool_manipulation":
-        return str(_format_value(archetype["manipulation_content"], context)), "manipulation"
     benign = str(_format_value(archetype["benign_content"], context))
     expanded = dict(context)
     expanded["benign_content"] = benign
-    return str(_format_value(risk_content[risk], expanded)), risk
+    role_content = risk_content_by_role.get(role, {})
+    selected = role_content.get(risk, risk_content.get(risk))
+    if selected is None:
+        if risk == "instruction_hijacking":
+            return str(_format_value(archetype["hijack_content"], context)), "hijack"
+        if risk == "tool_manipulation":
+            return (
+                str(_format_value(archetype["manipulation_content"], context)),
+                "manipulation",
+            )
+        raise ValueError(f"{role}/{risk}: missing Risk content template")
+    if isinstance(selected, Mapping):
+        text = selected.get("text")
+        if text is None:
+            raise ValueError(f"{role}/{risk}: role risk content mapping requires text")
+        template_id = str(selected.get("template_id", risk))
+    else:
+        text = selected
+        template_id = risk
+    return str(_format_value(text, expanded)), str(_format_value(template_id, expanded))
 
 
 def build_formal_mock_records(
@@ -97,12 +143,18 @@ def build_formal_mock_records(
     archetypes = spec.get("scenario_archetypes")
     global_actions = spec.get("global_actions")
     risk_content = spec.get("risk_content")
+    risk_content_by_role = spec.get("risk_content_by_role", {})
+    archetype_overrides = spec.get("scenario_archetype_overrides", {})
     if not isinstance(roles, dict) or set(roles) != set(ROLE_CODES):
         raise ValueError("roles must define exactly train/validation/calibration/test_a")
     if not isinstance(archetypes, list) or len(archetypes) < 7:
         raise ValueError("at least seven mock scenario archetypes are required")
     if not isinstance(global_actions, dict) or not isinstance(risk_content, dict):
         raise ValueError("global_actions and risk_content mappings are required")
+    if not isinstance(risk_content_by_role, Mapping):
+        raise ValueError("risk_content_by_role must be a mapping when provided")
+    if not isinstance(archetype_overrides, Mapping):
+        raise ValueError("scenario_archetype_overrides must be a mapping when provided")
 
     data_version = str(spec["data_version"])
     source = str(spec["source"])
@@ -110,6 +162,16 @@ def build_formal_mock_records(
     cases_per_group = int(spec["cases_per_template_group"])
     records: dict[str, list[IntentSample]] = {role: [] for role in ROLE_CODES}
     traces: list[dict[str, Any]] = []
+    archetype_lookup = {str(item["id"]): item for item in archetypes}
+    unknown_override_ids = sorted(set(map(str, archetype_overrides)) - set(archetype_lookup))
+    if unknown_override_ids:
+        raise ValueError(
+            f"scenario_archetype_overrides contains unknown IDs={unknown_override_ids}"
+        )
+    if any(not isinstance(value, Mapping) for value in archetype_overrides.values()):
+        raise ValueError("scenario_archetype_overrides values must be mappings")
+    semantic_isolation = bool(spec.get("semantic_template_isolation", False))
+    configured_archetype_roles: dict[str, str] = {}
 
     for role, role_code in ROLE_CODES.items():
         role_spec = roles[role]
@@ -117,10 +179,35 @@ def build_formal_mock_records(
         style = str(role_spec["style"])
         if group_count <= 0:
             raise ValueError(f"{role}: template_groups must be positive")
+        role_archetype_ids = role_spec.get("archetype_ids")
+        if role_archetype_ids is None:
+            role_archetypes = archetypes
+        else:
+            if not isinstance(role_archetype_ids, list) or not role_archetype_ids:
+                raise ValueError(f"{role}: archetype_ids must be a non-empty list")
+            unknown = sorted(set(map(str, role_archetype_ids)) - set(archetype_lookup))
+            if unknown:
+                raise ValueError(f"{role}: unknown archetype_ids={unknown}")
+            role_archetypes = [archetype_lookup[str(item)] for item in role_archetype_ids]
+            if semantic_isolation:
+                for archetype_id in map(str, role_archetype_ids):
+                    previous = configured_archetype_roles.setdefault(archetype_id, role)
+                    if previous != role:
+                        raise ValueError(
+                            f"semantic template isolation requires disjoint role archetypes; "
+                            f"{archetype_id!r} is assigned to {previous} and {role}"
+                        )
         for group_index in range(group_count):
-            archetype = archetypes[group_index % len(archetypes)]
+            archetype = role_archetypes[group_index % len(role_archetypes)]
             archetype_id = str(archetype["id"])
-            template_group = f"{data_version}:{role}:{archetype_id}:g{group_index:03d}"
+            archetype = _deep_merge(
+                archetype, archetype_overrides.get(archetype_id, {})
+            )
+            template_group = (
+                f"{data_version}:{archetype_id}:g{group_index:03d}"
+                if semantic_isolation
+                else f"{data_version}:{role}:{archetype_id}:g{group_index:03d}"
+            )
             for case_index in range(cases_per_group):
                 serial_number = group_index * cases_per_group + case_index
                 serial = f"{serial_number:04d}"
@@ -138,13 +225,19 @@ def build_formal_mock_records(
                     "role_code": namespace,
                     "serial": serial,
                     "style": style,
+                    "style_token": str(role_spec.get("style_token", role)),
                     "ticket_id": f"T-{namespace}-{serial}",
                     "unique_token": f"MARK-{namespace}-{serial}",
                 }
                 user_goal = str(_format_value(archetype["user_goal"], context))
                 for risk in RISK_LABELS:
                     untrusted_content, attack_template = _content_for(
-                        risk, archetype, risk_content, context
+                        risk,
+                        role,
+                        archetype,
+                        risk_content,
+                        risk_content_by_role,
+                        context,
                     )
                     attack_family, severity = RISK_METADATA[risk]
                     pair_group = f"{base_id}:{risk}"
@@ -152,7 +245,20 @@ def build_formal_mock_records(
                         action_spec, action_template = _action_for(
                             alignment, risk, archetype, global_actions
                         )
+                        action_template = str(_format_value(action_template, context))
                         resolved_action = _format_value(action_spec, context)
+                        if semantic_isolation and spec.get(
+                            "inject_role_action_scope_argument", False
+                        ):
+                            resolved_action = deepcopy(dict(resolved_action))
+                            arguments = dict(resolved_action.get("arguments", {}))
+                            arguments["workflow_scope"] = context["style_token"]
+                            resolved_action["arguments"] = arguments
+                            provenance = dict(
+                                resolved_action.get("field_provenance", {})
+                            )
+                            provenance["workflow_scope"] = ["fixture_constant"]
+                            resolved_action["field_provenance"] = provenance
                         action, trace = capture_candidate_action(
                             case_id=pair_group,
                             policy_id=policy_id,
@@ -178,22 +284,42 @@ def build_formal_mock_records(
                                 split=role,
                                 human_verified=False,
                                 source_record_id=pair_group,
-                                adapter_profile="route_b_project_mock_v2_candidate",
+                                adapter_profile=(
+                                    "route_b_project_mock_v3_candidate"
+                                    if semantic_isolation
+                                    else "route_b_project_mock_v2_candidate"
+                                ),
                                 adapter_missing_action=False,
                                 action_provenance="sandbox_policy_output",
                                 action_observation_id=trace["action_observation_id"],
                                 action_policy_id=policy_id,
                                 label_provenance=(
-                                    "deterministic_route_b_protocol_draft2_pending_human_audit"
+                                    "deterministic_route_b_protocol_draft3_pending_human_audit"
+                                    if semantic_isolation
+                                    else "deterministic_route_b_protocol_draft2_pending_human_audit"
                                 ),
                                 field_provenance=resolved_action.get("field_provenance", {}),
                                 data_version=data_version,
                                 scenario_family=(
-                                    f"{data_version}:{role}:{archetype_id}:family-{group_index:03d}"
+                                    f"{data_version}:{archetype_id}:family"
+                                    if semantic_isolation
+                                    else f"{data_version}:{role}:{archetype_id}:family-{group_index:03d}"
                                 ),
-                                goal_template=f"{role}:{archetype_id}:goal",
-                                attack_template=f"{role}:{archetype_id}:{attack_template}",
-                                action_template=f"{role}:{action_template}:{alignment}",
+                                goal_template=(
+                                    f"{archetype_id}:goal"
+                                    if semantic_isolation
+                                    else f"{role}:{archetype_id}:goal"
+                                ),
+                                attack_template=(
+                                    f"{archetype_id}:{attack_template}"
+                                    if semantic_isolation
+                                    else f"{role}:{archetype_id}:{attack_template}"
+                                ),
+                                action_template=(
+                                    f"{action_template}:{alignment}"
+                                    if semantic_isolation
+                                    else f"{role}:{action_template}:{alignment}"
+                                ),
                                 action_pair_group=pair_group,
                                 secondary_risks=[],
                             )
@@ -269,6 +395,7 @@ def write_formal_mock_corpus(
                 {
                     "path": str(Path(spec_path).resolve()),
                     "sha256": file_sha256(spec_path),
+                    "resolved_sources": list(spec.get("_resolved_spec_sources", [])),
                 }
                 if spec_path is not None
                 else None
@@ -357,4 +484,10 @@ def validate_formal_mock_manifest(manifest_path: str | Path) -> list[str]:
             errors.append(f"missing corpus specification: {spec_path}")
         elif file_sha256(spec_path) != spec.get("sha256"):
             errors.append("corpus specification hash mismatch")
+        for source in spec.get("resolved_sources", []):
+            source_path = Path(str(source.get("path", "")))
+            if not source_path.is_file():
+                errors.append(f"missing inherited corpus specification: {source_path}")
+            elif file_sha256(source_path) != source.get("sha256"):
+                errors.append(f"inherited corpus specification hash mismatch: {source_path}")
     return errors

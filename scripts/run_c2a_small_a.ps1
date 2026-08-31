@@ -1,20 +1,39 @@
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$TrainPath,
-    [Parameter(Mandatory = $true)]
-    [string]$ValidationPath,
-    [string]$OutputDirectory = "checkpoints/small-action-cpu-smoke-seed42",
+    [string]$TrainPath = "data/interim/route_b_v2_candidate_4/train.jsonl",
+    [string]$ValidationPath = "data/interim/route_b_v2_candidate_4/validation.jsonl",
+    [string]$OutputDirectory = "checkpoints/small-text-seed42",
     [switch]$PreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
-$ConfigPath = Join-Path $RepositoryRoot "configs/deberta_small_cpu_smoke.yaml"
-$ResolvedTrainPath = (Resolve-Path -LiteralPath $TrainPath).Path
-$ResolvedValidationPath = (Resolve-Path -LiteralPath $ValidationPath).Path
+$ConfigPath = Join-Path $RepositoryRoot "configs/deberta_small_text.yaml"
+
+function Resolve-RepositoryPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$RepositoryRoot
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+    return Join-Path $RepositoryRoot $Path
+}
+
+$CandidateTrainPath = Resolve-RepositoryPath -Path $TrainPath -RepositoryRoot $RepositoryRoot
+$CandidateValidationPath = Resolve-RepositoryPath -Path $ValidationPath -RepositoryRoot $RepositoryRoot
+$ResolvedTrainPath = (Resolve-Path -LiteralPath $CandidateTrainPath).Path
+$ResolvedValidationPath = (Resolve-Path -LiteralPath $CandidateValidationPath).Path
+$ResolvedOutputDirectory = Resolve-RepositoryPath `
+    -Path $OutputDirectory `
+    -RepositoryRoot $RepositoryRoot
+
 $CondaEnvironmentOutput = @(& conda run -n intentfence python -c "import sys; print(sys.executable)")
 if ($LASTEXITCODE -ne 0) {
-    throw "Unable to resolve the intentfence Conda Python."
+    throw "Unable to resolve the intentfence Conda Python. Open an Anaconda PowerShell prompt and retry."
 }
 $IntentFencePythonCandidates = @(
     $CondaEnvironmentOutput |
@@ -28,15 +47,13 @@ $IntentFencePython = $IntentFencePythonCandidates[0]
 if (-not (Test-Path -LiteralPath $IntentFencePython -PathType Leaf)) {
     throw "Resolved intentfence Python does not exist: $IntentFencePython"
 }
+
 Write-Host "Using intentfence Python: $IntentFencePython"
+Write-Host "Variant: Small A (text-only)"
+Write-Host "Output: $ResolvedOutputDirectory"
 & $IntentFencePython -c "import google.protobuf, torch; print(f'torch={torch.__version__}; protobuf={google.protobuf.__version__}')"
 if ($LASTEXITCODE -ne 0) {
-    throw "C2a training dependency preflight failed in: $IntentFencePython"
-}
-if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
-    $ResolvedOutputDirectory = $OutputDirectory
-} else {
-    $ResolvedOutputDirectory = Join-Path $RepositoryRoot $OutputDirectory
+    throw "Small A training dependency preflight failed in: $IntentFencePython"
 }
 
 & $IntentFencePython -m intentfence.train `
@@ -45,12 +62,16 @@ if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
     --validation $ResolvedValidationPath `
     --dry-run
 if ($LASTEXITCODE -ne 0) {
-    throw "C2a CPU smoke preflight failed."
+    throw "Small A data preflight failed."
 }
 
 if ($PreflightOnly) {
-    Write-Host "Preflight passed; training was not started."
+    Write-Host "Small A preflight passed; training was not started."
     exit 0
+}
+
+if (Test-Path -LiteralPath $ResolvedOutputDirectory) {
+    throw "Refusing to overwrite existing output directory: $ResolvedOutputDirectory"
 }
 
 $StartedAt = (Get-Date).ToUniversalTime()
@@ -61,13 +82,13 @@ $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     --validation $ResolvedValidationPath `
     --output-dir $ResolvedOutputDirectory
 if ($LASTEXITCODE -ne 0) {
-    throw "C2a CPU smoke training failed."
+    throw "Small A training failed."
 }
 
 & $IntentFencePython (Join-Path $RepositoryRoot "scripts/verify_checkpoint.py") `
     --model-dir (Join-Path $ResolvedOutputDirectory "best")
 if ($LASTEXITCODE -ne 0) {
-    throw "C2a checkpoint reload verification failed."
+    throw "Small A checkpoint reload verification failed."
 }
 
 $Stopwatch.Stop()
@@ -86,5 +107,7 @@ $EndedAtText = $EndedAt.ToString("o")
     --duration-seconds $Stopwatch.Elapsed.TotalSeconds `
     --cost-usd 0
 if ($LASTEXITCODE -ne 0) {
-    throw "C2a run manifest generation failed."
+    throw "Small A run manifest generation failed."
 }
+
+Write-Host "Small A completed. Stop here and provide the output to Codex before running Small B."

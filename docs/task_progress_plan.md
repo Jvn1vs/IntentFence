@@ -30,6 +30,13 @@
 
 用户已于 2026-08-24 更新执行授权：Codex 可以连续执行 C1 真实数据下载、转换、合并、去重、划分、标签审核抽样/预审和训练前报告，并更新文档、完成阶段提交；`human_verified=true` 仍需项目所有者完成独立人类确认。所有学习参数拟合、tiny-overfit、Small/Base 训练及模型/校准参数更新仍只由项目所有者执行。该授权不允许自动开始 C2 模型训练，也不解除最终测试锁。
 
+用户已于 2026-08-28 冻结后续模型训练的执行形式：所有会更新学习参数的工程或正式科研运行，
+必须在启动前具有版本化配置和可审查的 PowerShell/Bash/Slurm 启动脚本；不得把临时手敲、未记录
+参数的命令作为正式实验。启动脚本至少应执行数据/环境预检、拒绝覆盖既有输出、记录起止时间与
+实际依赖/硬件、调用固定训练入口、验证 checkpoint，并生成绑定 Git commit、配置、数据哈希、
+seed、成本和产物哈希的 run manifest。每个变体和 seed 使用独立输出目录；失败不得静默重试。
+脚本仍由项目所有者亲自启动，Codex 只负责准备、静态/只读验证以及结果核验。
+
 ## 2. 状态定义
 
 | 标记 | 含义 |
@@ -244,7 +251,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 3. 用离线 mock runtime 捕获候选动作、参数来源和不可变 observation ID；
 4. 构造 Risk/Alignment 反事实配对，避免 Alignment 再次成为 Risk 的确定函数；
 5. 根据 1% FPR、cluster 结构和主端点冻结精度/功效目标；
-6. 当前 active route 完成两条相互盲的双 AI 审核流；原人工审核流保留为历史；
+6. 当前 active route 完成两条相互盲的双 AI 工程审核流；独立人工双盲审核仍是训练前签核门，不能被 AI 输出替代；
 7. 重新构造互斥 v2 train/validation/calibration/untouched tests、manifest 与聚合报告；
 8. AI-only 路线只生成工程证据，保持 `human_verified=false` 与
    `formal_training_authorized=false`；不移交论文级训练授权。
@@ -253,11 +260,15 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 - ✅ 项目所有者已于 2026-08-24 选择 Route B，并于 2026-08-26 选择双 AI 工程/简历
   演示路线；选择不等于当前 v1 或论文级可训练；
+- ✅ 项目所有者于 2026-08-30 进一步确认持续操作规则：凡由 Codex 执行的 C1B 审核均使用
+  恰好两个相互独立的模型；输出固定标记为 AI 工程证据，不伪记为人工审核，亦不解除训练锁；
 - ✅ 新增 `2.1.0-ai-draft.1` AI-only 协议、双 AI prompt、metadata example 和分析 CLI；
-  原 `2.0.0` 人类审核协议仍保留作历史，不被伪装为 AI 证据；
-- ✅ `docs/route_b_data_protocol.md` 与 machine-readable 人类审核草案保留作历史；当前
-  active machine-readable 协议为 `configs/route_b_ai_review_protocol.yaml`，状态明确为
+  原 `2.0.0` 人类审核协议继续作为独立人类签核依据保留，不被 AI 证据覆盖或伪装；
+- ✅ 当前 active 的 machine-readable 工程审核协议为
+  `configs/route_b_ai_review_protocol.yaml`，状态明确为
   `AI_REVIEW_DIRECTION_APPROVED_CONSTRUCTION_AUTHORIZED_NOT_TRAINING_AUTHORIZED`；
+  `docs/route_b_data_protocol.md` 与人类审核草案不作为 AI 证据重写，但仍保留为独立人类
+  审核/项目所有者签核的协议依据；
 - ✅ 官方来源复核完成：BIPIA 代码为 MIT，但 Email/Table/Code 等数据保留 MIT 或
   CC BY-SA 等各自条款；WebQA/Summarization 仍需另行取得源数据；
 - ✅ InjecAgent、NotInject、AgentDojo 继续锁为 Test B/C/D，验证器会拒绝把它们放入
@@ -291,13 +302,86 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ⛔ `2.1.0-ai-draft.1` 分析已完成，但 Kimi K3 与 DeepSeek V4 Flash 两次 AI B 运行均未
   通过预注册质量门；失败结果已接受并记录为工程负证据，仍保持
   `human_verified=false` 与 `formal_training_authorized=false`；
+- ✅ 项目所有者重新运行 GLM5.2 后，已更新 AI B 的 prompt/CSV 哈希登记；Risk 原始一致率
+  与 κ 均为 1.0，Alignment 原始一致率为 0.98、κ 为 0.9733，`malicious` 逐类 seed
+  agreement 为 0.92，所有数值质量门通过；
+- ⛔ GLM5.2 仍有 8 条 Alignment 分歧，分析器因此保留
+  `ai_quality_gates_failed_engineering_only` 与裁决要求；该运行不能被表述为无争议通过，
+  仍保持 `human_verified=false` 与 `formal_training_authorized=false`；
+- ✅ 项目所有者已完成 8 条 Alignment 分歧裁决，独立裁决 CSV 和 JSON 均已生成并通过字段、
+  标签、时间、ID 覆盖和哈希核验；8 条最终均为 `ambiguous`，原始 AI 审核文件保持不变；
+- ⛔ 该裁决只解决当前 AI 分歧，不等同于两名独立人类审核，也不打开正式训练或最终测试授权；
 - ✅ 已新增第三 AI 补充审核协议、全量 400 条 Alignment 盲审包构造器和独立提示词；第三
   AI 不能覆盖既有双 AI 失败结果，也不能只审核 13 条分歧；
+- ✅ candidate 4 Small A 的三轮 validation 100% 已作为工程负结果保留；复核发现移除随机
+  ID/邮箱后 train/validation 的 50 个文本模板全部重叠，validation Risk 可由训练模板确定映射；
+- ✅ 结构验证器新增易变标识归一化后的文本/动作模板跨角色检查；candidate 5 因一个归一化
+  动作模板跨 train/Test A 被拒绝并保留失败报告；
+- ✅ candidate 6 已生成 27,000 条并通过 manifest、exact、near-duplicate、归一化文本模板和
+  动作模板检查，两个归一化跨角色计数均为 0；新的 400 Risk + 400 Alignment 双盲包已生成；
+- ⛔ 首个 candidate 6 `audit_v1` 包的 reviewer-facing `sample_id` 暴露了种子 Risk/Alignment
+  标签，未产生审核输出即已失效；生成器现强制使用标签中性 audit ID，`audit_v2` 已以相同
+  冻结输入和抽样种子重建并通过四表 400 行的盲化格式检查，必须由未接触 v1 的两个 AI 重审；
+- ✅ 双 AI 协议现绑定专用 `route_b_ai_audit_rubric.md`；旧人类审核 rubric 中“AI 不可担任
+  reviewer B”的历史约束不再误用于 `2.1.0-ai-draft.1`。首次 AI B 派发因该冲突正确停止，
+  未写入任何审核结果；
+- ⛔ candidate 6 `audit_v2` 已由两个不同 Codex 模型完整审核，四表均为 400/400 且 package
+  验证通过；但 Risk 原始一致率为 0.8925（低于 0.90），Risk 与 Alignment 的逐类 construct
+  agreement 门也失败。失败报告已封存为工程负证据，不能改标签、阈值或据此启动训练；
+- ✅ 已生成允许公开的失败诊断报告：两位审核者将全部种子 `ambiguous` Alignment 判为
+  `unrelated`，并将全部种子 `instruction_hijacking` Risk 按 rubric 的主要后果判为更具体的
+  数据外送/越权/工具操控，表明候选语料构造与冻结标签定义发生系统性冲突；
+- ✅ 新训练契约将 Alignment 从旧二分类兼容头升级为 Task Shield 四分类头；A/B/C risk-only
+  与 C multitask 配置已分离，旧 checkpoint 仍可按 metadata v2 重载；
+- ✅ candidate 6 `audit_v2` 独立双 AI 审核已完成并以失败工程证据封存；其系统性标签冲突已在
+  不改标签、不改门槛的前提下被诊断，不能据此启动新的 A/B/C 训练；
+- ✅ candidate 7 已以冻结 candidate 6 输入和同一审核设计重建 27,000 条离线 mock 语料；结构、
+  split 隔离、归一化文本/动作模板检查均通过。其双 AI 盲审的四张表均为 400/400、零弃审，
+  Risk 一致率/κ 为 0.9875/0.9844，Alignment 为 0.985/0.98，所有预注册数值门通过；
+- ⛔ candidate 7 仍有 5 条 Risk 和 6 条 Alignment A/B 分歧。冻结分析器因此保持
+  `ai_quality_gates_failed_engineering_only`，不是数值门失败；第三 AI 的全量 400 条 Alignment
+  补充盲审已完成且格式/哈希核验通过，但将全部 100 个 `ambiguous` seed 判为 `unrelated`，
+  逐类 construct agreement 为 0；另有 12 条 wildcard `ticket.update` 被判为 unrealistically
+  executable。该补充审核失败，不能覆盖原始 A/B 结果或替代人工裁决；
+- ✅ candidate 8 新增按 scenario 覆盖动作模板的隔离配置机制，将 ticket 场景的 wildcard 更新
+  改为具体 ID；代码定向测试、27,000 条构造、manifest 与结构/隔离检查全部通过，candidate 7
+  的冻结输入和审核文件未被修改；
+- ✅ candidate 8 双 AI 盲审的四张表均为 400/400、零弃审。Risk 一致率/κ 为 1.0/1.0，
+  Alignment 为 0.9775/0.97，逐类最低 construct agreement 为 0.95，所有 800 个动作均被判为
+  realistic，预注册数值门全部通过；
+- ⛔ candidate 8 的 Alignment 仍保留 9 条原始分歧，因而状态必须为
+  `ai_quality_gates_failed_engineering_only`，直至项目所有者进行可追溯的独立裁决。AI A 原 metadata
+  的 local-execution 字段不规范已由不改写原文件的独立补充 attestation 记录；这不替代裁决或人工审核；
+- ✅ 已新增非覆盖式 project-owner 裁决包构造器，并为 candidate 8 生成 9 行待裁决表；其 manifest
+  绑定 audit/AI-review manifest 与两份原始 Alignment CSV 的 SHA-256，自哈希验证通过，封存 seed
+  labels 未包含，所有最终标签、裁决人、时间和理由字段均为空；
+- ✅ 项目所有者已完成 candidate 8 的 9 条 Alignment 独立裁决，最终均为 `ambiguous`；填写后的
+  CSV 哈希、source manifest 哈希、9 行覆盖、时区时间、必填理由与固定字段均已核验。该记录只关闭
+  已保存的 AI 分歧，原始 AI 分析不被覆盖，仍不等同于独立人类双盲审核；
+- ✅ 已为 candidate 8 生成与 AI 输出隔离的 v2 人工双盲审核包：两名审核者各有 400 条 Risk 与
+  400 条 Alignment，四表审核字段为空、ID 标签中性且均通过格式复核；每名审核者还必须提交可核验的
+  `independent_human` provenance 声明。未填写的 v1 包保留为不可提交历史包；交接规则见
+  `docs/route_b_candidate_8_human_audit_handoff.md`；
+- ✅ 按项目所有者指示，`gpt-5.5` 与 `gpt-5.4` 已完成新的 candidate 8 补充双 AI 盲审，均为
+  800/800、零弃审；Risk 完全一致，Alignment 一致率/κ 为 0.995/0.9933，预注册数值门均通过；
+- ⛔ 该补充 AI 运行仍有 2 条 Alignment 标签分歧和 1 条现实性判断差异，故保持
+  `ai_quality_gates_failed_engineering_only`。它是补充 AI 证据，不能覆盖原始 AI、项目所有者裁决
+  或独立人类双盲审核门；
+- ✅ 按项目所有者 2026-08-31 指示，使用两个独立 Codex 模型对与 candidate 8 人工 v2 包相同
+  抽样内容的 AI-only 派生包完成新一轮双盲审核：`gpt-5.5` 与 `gpt-5.4` 各完成 400 条 Risk
+  和 400 条 Alignment，四张 CSV 的结构、不可变字段、输出哈希和 reviewer 身份均通过校验；
+- ⛔ 该新运行的 Risk 原始一致率/κ 为 0.80/0.75，最低逐 seed-class construct agreement
+  为 0；Alignment 原始一致率/κ 为 0.8575/0.81，最低逐类为 0.51；action realism 为
+  0.99875。分析状态为 `ai_quality_gates_failed_engineering_only`，负结果已写入
+  `reports/data_quality/route_b_candidate_8_human_v2_ai_pair_failure.md`；它不替代独立人类
+  审核、不修改人工 v2 包，也不解除 `human_verified=false` 或 `formal_training_authorized=false`；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
 
-- `docs/route_b_ai_review_protocol.md` 的双 AI metadata、哈希和质量门全部通过；
+- `docs/route_b_ai_review_protocol.md` 的双 AI metadata、哈希和质量门全部通过，并保留所有
+  原始分歧与补充 AI 运行；
+- 两名独立人类审核者完成 candidate 8 的标签中性审核包，且任何分歧均已按协议裁决；
 - 若质量门未通过，必须保留失败报告并在 `docs/route_b_ai_review_results.md` 如实记录，
   不得修改阈值或手工调整标签；本阶段不得进入训练；
 - 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
@@ -340,15 +424,40 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   无 PyTorch mock 测试覆盖；
 - ✅ CPU 一键脚本会自动记录 Git commit/dirty 状态、配置与数据 SHA-256、环境版本、耗时、
   成本和 checkpoint 逐文件哈希；manifest 生成器已通过 fixture 测试；
-- ✅ 本轮完整框架验证通过：Ruff、137 个 pytest、compileall、wheel 构建、PowerShell 脚本
+- ✅ 已用 candidate 4 的 `train.jsonl`/`validation.jsonl` 完成 C2a CPU smoke 只读 preflight：
+  200/100 条样本、25 个计划优化步、Risk/Alignment 类别和 action 输入均通过；未启动训练、
+  未下载模型权重、未生成 checkpoint；
+- ✅ 本轮完整框架验证通过：Ruff、139 个 pytest、compileall、wheel 构建、PowerShell 脚本
   语法检查和无模型 CLI dry-run；
-- ⬜ `ml` 依赖和 DeBERTa 权重尚未安装/下载；
-- ⬜ 未执行真实 forward/backward、tiny overfit 或 checkpoint reload；
-- ⬜ 未生成 A/B/C 训练结果。
+- ✅ 已在 `intentfence` Conda 环境通过官方 PyPI 安装 `[ml]` 依赖；`torch 2.13.0+cpu`、
+  `transformers 4.57.6`、`accelerate 1.14.0`、`datasets 4.8.5`、`sentencepiece 0.2.2` 和
+  `protobuf 6.33.6` 导入通过，`pip check` 无损坏依赖；固定 revision tokenizer 加载通过，
+  DeBERTa 权重已由项目所有者的 smoke 运行下载；
+- ✅ CPU smoke 脚本已改为先解析并打印唯一的 `intentfence` Python，再用同一解释器执行
+  依赖检查、dry-run、训练、checkpoint 验证和 manifest 生成；更新后的 preflight 通过；
+- ✅ 项目所有者已完成 200/100 条、25 optimizer steps 的 Action CPU smoke；耗时 158.24 秒、
+  成本 0，`checkpoint_reload_passed` 和 `run_manifest_written`，manifest 中全部 checkpoint
+  文件大小与 SHA-256 已复核一致；该运行只属于工程 smoke；
+- ✅ 已修复 float32 softmax 转为 float64 后触发 scikit-learn 概率和警告的问题；softmax 现
+  直接以 float64 计算，回归测试确认最大行和误差约 `2.22e-16` 且不再告警；
+- ✅ 项目所有者已明确选择继续 Small A/B/C 工程训练；`human_verified=false` 与
+  `formal_training_authorized=false` 保持不变，训练仍由项目所有者本人执行，结果只用于工程
+  调试和简历演示；
+- ✅ Small A/B/C 完整数据只读预检均通过：每组 5,000 train、2,000 validation、五类均衡，
+  计划 939 optimizer steps；三个独立输出目录均未被占用；
+- ✅ 历史 candidate 4 Small A 已封装为 `scripts/run_c2a_small_a.ps1`；脚本自动完成环境
+  与数据预检、拒绝覆盖既有输出、训练、checkpoint 双重重载和 run manifest 生成，并提供
+  `-PreflightOnly` 只读模式；
+- ✅ 项目所有者完成 candidate 4 Small A：三轮 validation accuracy/macro-F1 均为 1.0，
+  checkpoint reload 和 run manifest 通过；结果随后因语义模板泄漏被降级为工程负证据；
+- ✅ candidate 6 的 A/B/C risk-only 与 C multitask 四组配置已通过只读 dry-run，每组
+  5,000/2,000 条、939 optimizer steps，四类 Alignment 各自均衡；
+- ⛔ candidate 6 训练脚本和训练运行等待新审核完成，不沿用 candidate 4 审核或 checkpoint。
 
 #### 要测试什么
 
-- 形状：Risk logits `[B,5]`、Alignment logits `[B,2]`；
+- 形状：Risk logits `[B,5]`；旧 metadata v2 Alignment logits `[B,2]`，新 Task Shield
+  metadata v3 Alignment logits `[B,4]`；
 - 梯度：两个头和共享 encoder 均有有效梯度；
 - Tiny overfit：小样本上 loss 可明显下降；
 - Checkpoint：保存后预测可重复加载；
@@ -640,10 +749,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 8. 当前已验证事实
 
-截至 2026-08-25：
+截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 128 个单元/API/协议/数据框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 153 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
@@ -683,4 +792,14 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
-C1 数据执行闭环已完成，`evidence_status=validated` 且 `formal_training_authorized=false`。项目所有者已将 C1B 选择为 AI-only 工程/简历演示路线：原 `2.0.0` 人类审核草案保留为历史，新增 `2.1.0-ai-draft.1` 双 AI 审核协议。candidate 4 已生成 27,000 条并通过 manifest、五类/四类覆盖、动作 provenance、exact/template/action-signature 与 0.92 模板代表 near-duplicate 检查；双 AI 输入包、AI 分析器、readiness 聚合器和协议锁框架均已生成。Kimi K3 与 DeepSeek V4 Flash 两次独立 AI B 运行均完成各自 400 条 Risk 与 400 条 Alignment 审核，但分别在 Alignment `malicious` 和 Risk `instruction_hijacking` 的逐类 seed agreement 质量门失败；负结果已记录并接受为工程证据。AI 证据只能支持工程演示，`human_verified=false`，不开放正式训练或最终测试。v1、Test B/C/D 和最终测试锁保持不变，所有学习参数拟合继续禁止。
+当前活动候选为 candidate 8。其 27,000 条 project-owned mock 语料、manifest、split 隔离与
+归一化模板检查已通过；两轮双 AI 工程审核与一次项目所有者分歧裁决均已如实封存。AI 证据不等同于
+人类审核：两轮 AI 输出仍各有原始分歧，`human_verified=false` 与
+`formal_training_authorized=false` 不变，Test B/C/D 和最终测试锁继续保持。
+
+为满足尚未完成的协议门，已生成独立于 AI 输出的 candidate 8 v2 人工双盲包；两名独立人类审核者各
+须完成 400 条 Risk 和 400 条 Alignment，之后才可运行确定性人工审核聚合与任何后续授权判断。
+双 AI 补充审核已按用户指示完成，但它仍是 `ai_reviewed_engineering_only` 负证据，不能替代
+独立人类签核。当前停止点仍是 candidate 8 v2 人工审核包，详情见
+`docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
+不构成进入训练的授权；不得生成或运行 candidate 8 的训练启动脚本，不得进入 Small B/C。

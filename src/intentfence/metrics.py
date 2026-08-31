@@ -17,6 +17,7 @@ from intentfence.constants import RISK_LABELS
 
 
 def softmax(logits: np.ndarray) -> np.ndarray:
+    logits = np.asarray(logits, dtype=np.float64)
     shifted = logits - np.max(logits, axis=1, keepdims=True)
     exponentials = np.exp(shifted)
     return exponentials / exponentials.sum(axis=1, keepdims=True)

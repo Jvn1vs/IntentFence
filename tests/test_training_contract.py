@@ -14,7 +14,13 @@ from intentfence.training_contract import (
 )
 
 
-def _sample(index: int, risk: str, *, split: str) -> IntentSample:
+def _sample(
+    index: int,
+    risk: str,
+    *,
+    split: str,
+    task_alignment_label: str | None = None,
+) -> IntentSample:
     return IntentSample(
         sample_id=f"sample-{index}",
         source="fixture",
@@ -23,6 +29,7 @@ def _sample(index: int, risk: str, *, split: str) -> IntentSample:
         proposed_action="return_summary()",
         risk_label=risk,
         alignment_label=int(risk != "benign"),
+        task_alignment_label=task_alignment_label,
         template_group=f"group-{index}",
         split=split,
         action_provenance="source_field",
@@ -76,6 +83,44 @@ def test_training_preflight_rejects_role_mismatch() -> None:
     ]
     with pytest.raises(ValueError, match="supplied as train"):
         validate_training_inputs(train, validation, input_mode="context")
+
+
+def test_task_alignment_target_requires_all_four_labels() -> None:
+    labels = ("aligned", "unrelated", "ambiguous", "malicious")
+    train = [
+        _sample(
+            index,
+            "benign" if index == 0 else "instruction_hijacking",
+            split="train",
+            task_alignment_label=label,
+        )
+        for index, label in enumerate(labels)
+    ]
+    validation = [
+        _sample(
+            index + 10,
+            "benign" if index == 0 else "instruction_hijacking",
+            split="validation",
+            task_alignment_label=label,
+        )
+        for index, label in enumerate(labels)
+    ]
+    summary = validate_training_inputs(
+        train,
+        validation,
+        input_mode="action",
+        alignment_target="task_alignment",
+    )
+    assert summary.alignment_target == "task_alignment"
+    assert summary.train_alignment_counts == {label: 1 for label in sorted(labels)}
+
+    with pytest.raises(ValueError, match="lacks labels"):
+        validate_training_inputs(
+            train[:-1],
+            validation,
+            input_mode="action",
+            alignment_target="task_alignment",
+        )
 
 
 def test_stratified_subset_is_reproducible_and_keeps_binary_coverage() -> None:
@@ -146,6 +191,40 @@ def test_small_abc_configs_only_change_run_name_and_input_mode() -> None:
         normalized.append(payload)
     assert normalized[0] == normalized[1] == normalized[2]
     assert [config.input_mode for config in configs] == ["text", "context", "action"]
+
+
+def test_candidate_6_risk_configs_only_change_run_name_and_input_mode() -> None:
+    configs = [
+        TrainingConfig.from_yaml(path)
+        for path in (
+            "configs/deberta_small_c6_text_risk.yaml",
+            "configs/deberta_small_c6_context_risk.yaml",
+            "configs/deberta_small_c6_action_risk.yaml",
+        )
+    ]
+    normalized = []
+    for config in configs:
+        payload = asdict(config)
+        payload.pop("run_name")
+        payload.pop("input_mode")
+        normalized.append(payload)
+    assert normalized[0] == normalized[1] == normalized[2]
+    assert all(config.alignment_target == "task_alignment" for config in configs)
+    assert all(config.alignment_loss_weight == 0.0 for config in configs)
+
+
+def test_candidate_6_multitask_only_enables_alignment_loss() -> None:
+    risk_only = TrainingConfig.from_yaml("configs/deberta_small_c6_action_risk.yaml")
+    multitask = TrainingConfig.from_yaml(
+        "configs/deberta_small_c6_action_multitask.yaml"
+    )
+    risk_payload = asdict(risk_only)
+    multitask_payload = asdict(multitask)
+    for payload in (risk_payload, multitask_payload):
+        payload.pop("run_name")
+        payload.pop("alignment_loss_weight")
+    assert risk_payload == multitask_payload
+    assert multitask.alignment_loss_weight == 0.5
 
 
 def test_training_config_requires_full_model_revision() -> None:

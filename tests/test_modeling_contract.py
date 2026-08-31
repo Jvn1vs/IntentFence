@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 import intentfence.modeling as modeling
+from intentfence.constants import TASK_ALIGNMENT_LABELS
 
 MODEL_REVISION = "a36c739020e01763fe789b4b85e2df55d6180012"
 
@@ -120,6 +121,7 @@ def test_model_shapes_revision_and_checkpoint_reload_are_mock_verified(
         "microsoft/deberta-v3-small",
         revision=MODEL_REVISION,
         num_risk_labels=5,
+        num_alignment_labels=4,
     )
     input_ids = np.zeros((2, 11), dtype=np.int64)
     attention_mask = np.ones((2, 11), dtype=np.int64)
@@ -130,7 +132,7 @@ def test_model_shapes_revision_and_checkpoint_reload_are_mock_verified(
     )
 
     assert output["risk_logits"].shape == (2, 5)
-    assert output["alignment_logits"].shape == (2, 2)
+    assert output["alignment_logits"].shape == (2, 4)
     assert "token_type_ids" not in model.encoder.last_kwargs
     assert FakeAutoModel.calls[0] == (
         "microsoft/deberta-v3-small",
@@ -150,6 +152,9 @@ def test_model_shapes_revision_and_checkpoint_reload_are_mock_verified(
         input_mode="action",
         max_length=256,
         alignment_loss_weight=0.5,
+        alignment_labels=TASK_ALIGNMENT_LABELS,
+        alignment_target="task_alignment",
+        version="3",
     )
     modeling.save_multitask_model(model, FakeTokenizer(), metadata, tmp_path)
     loaded_model, loaded_tokenizer, loaded_metadata = modeling.load_multitask_model(tmp_path)

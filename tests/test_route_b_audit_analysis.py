@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from copy import deepcopy
 from pathlib import Path
 
@@ -50,6 +51,18 @@ def _fill(path: Path, truth: dict, *, reviewer: str, task: str) -> None:
         writer.writerows(rows)
 
 
+def _attest(package: Path, *, reviewer_slot: str, reviewer: str) -> None:
+    path = package / f"{reviewer_slot}_attestation.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.update(
+        reviewer_id=reviewer,
+        reviewer_kind="independent_human",
+        independence_declared=True,
+        attested_at="2026-08-24T21:05:00+08:00",
+    )
+    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+
+
 def test_completed_blind_reviews_pass_preregistered_gates(tmp_path: Path) -> None:
     package = _package(tmp_path)
     import json
@@ -63,6 +76,7 @@ def test_completed_blind_reviews_pass_preregistered_gates(tmp_path: Path) -> Non
             reviewer=reviewer,
             task="alignment",
         )
+        _attest(package, reviewer_slot=slot, reviewer=reviewer)
     report = analyze_blind_audits(
         reviewer_a_risk=package / "reviewer_a_risk.csv",
         reviewer_b_risk=package / "reviewer_b_risk.csv",
@@ -90,6 +104,7 @@ def test_modified_review_scenario_is_rejected(tmp_path: Path) -> None:
             reviewer=reviewer,
             task="alignment",
         )
+        _attest(package, reviewer_slot=slot, reviewer=reviewer)
     path = package / "reviewer_b_risk.csv"
     with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -111,3 +126,27 @@ def test_modified_review_scenario_is_rejected(tmp_path: Path) -> None:
     )
     assert report["status"] == "invalid_review_package"
     assert any("immutable review content was modified" in error for error in report["validation_errors"])
+
+
+def test_missing_human_attestation_is_rejected(tmp_path: Path) -> None:
+    package = _package(tmp_path)
+    truth = json.loads((package / "sealed_seed_labels.json").read_text(encoding="utf-8"))
+    for slot, reviewer in (("reviewer_a", "human_a"), ("reviewer_b", "human_b")):
+        _fill(package / f"{slot}_risk.csv", truth, reviewer=reviewer, task="risk")
+        _fill(
+            package / f"{slot}_alignment.csv",
+            truth,
+            reviewer=reviewer,
+            task="alignment",
+        )
+    report = analyze_blind_audits(
+        reviewer_a_risk=package / "reviewer_a_risk.csv",
+        reviewer_b_risk=package / "reviewer_b_risk.csv",
+        reviewer_a_alignment=package / "reviewer_a_alignment.csv",
+        reviewer_b_alignment=package / "reviewer_b_alignment.csv",
+        sealed_seed_labels=package / "sealed_seed_labels.json",
+        audit_manifest=package / "audit_manifest.json",
+        policy=load_route_b_policy(ROOT / "configs" / "route_b_data_protocol.yaml"),
+    )
+    assert report["status"] == "invalid_review_package"
+    assert any("independence declaration is missing" in item for item in report["validation_errors"])
