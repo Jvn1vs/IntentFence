@@ -295,7 +295,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   Alignment 的工程审核目标，不暴露 seed labels；AI 分析器和预注册质量门已实现；
 - ✅ readiness 聚合与协议锁框架已实现：会重放 candidate manifest、结构/near-duplicate
   报告和双人审核分析；integrity v3 绑定四个 split 与当前 policy 哈希；聚合器同时绑定
-  公开报告，并在任一证据缺失或漂移时保持
+  公开报告与 candidate manifest 的密封 canonical SHA-256，并在任一证据缺失或漂移时保持
   `formal_training_authorized=false`；
 - ✅ DeepSeek V4 Pro、Kimi K3 和 DeepSeek V4 Flash 的结构化审核结果、metadata、Prompt
   与输出哈希均已登记；每套审核均完成 400 条 Risk 和 400 条 Alignment；
@@ -381,6 +381,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   `docs/route_b_ai_disagreement_handoff.md`，当前加固版目录为
   `data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2/`。该包已由项目所有者
   完成逐条裁决，确定性 validator 通过并生成 ignored interim receipt；不改变正式人工 v2 包；
+- ✅ 当前 runbook 的 readiness 主流程已统一改用 candidate 8 路径；历史 candidate 4 仅保留为
+  历史证据，不再作为当前 readiness 命令示例；candidate 8 公开聚合卡必须绑定候选 manifest
+  的密封 canonical SHA-256；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件
@@ -787,7 +790,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 截至 2026-08-31：
 
 - Ruff 静态检查通过；
-- 219 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 220 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；

@@ -144,7 +144,12 @@ def _fixture(tmp_path: Path) -> dict[str, Path]:
     analysis_path = audit_dir / "audit_analysis.json"
     analysis_path.write_text(json.dumps(analysis, sort_keys=True), encoding="utf-8")
     public_report = tmp_path / "route_b_card.md"
-    public_report.write_text("Status: READY_FOR_PROJECT_OWNER_TRAINING\n", encoding="utf-8")
+    public_report.write_text(
+        "Manifest sealed SHA-256: `"
+        + manifest["sha256"]
+        + "`\nStatus: READY_FOR_PROJECT_OWNER_TRAINING\n",
+        encoding="utf-8",
+    )
     return {
         "policy_path": policy_path,
         "protocol_document": protocol_document,
@@ -197,3 +202,18 @@ def test_ai_review_mode_cannot_satisfy_human_audit_gate(tmp_path: Path) -> None:
     report = evaluate_route_b_readiness(**paths)
     assert report["formal_training_authorized"] is False
     assert any("not an independent human blind review" in item for item in report["validation_errors"])
+
+
+def test_public_report_must_bind_candidate_manifest(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    paths["public_report"].write_text(
+        "Manifest sealed SHA-256: `" + "0" * 64 + "`\n",
+        encoding="utf-8",
+    )
+    report = evaluate_route_b_readiness(**paths)
+    assert report["formal_training_authorized"] is False
+    assert report["gates"]["v2_manifest_and_public_aggregate_reports_complete"] is False
+    assert any(
+        "public aggregate report does not bind the candidate manifest sealed SHA-256" in item
+        for item in report["validation_errors"]
+    )

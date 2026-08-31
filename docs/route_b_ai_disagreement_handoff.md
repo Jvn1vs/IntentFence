@@ -41,9 +41,12 @@ conda run -n intentfence python scripts/build_route_b_ai_disagreement_package.py
 
 ## 完成后验证
 
-保存原始副本后，运行以下命令生成不可覆盖的 submission receipt：
+保存原始副本后，首次生成 receipt 前先确认目标不存在，再运行以下命令：
 
 ```powershell
+if (Test-Path -LiteralPath data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2/submission_receipt.json) {
+  throw "submission_receipt.json 已存在；不要覆盖，已有完成记录请按下方复核命令操作"
+}
 conda run -n intentfence python scripts/build_route_b_ai_disagreement_package.py validate `
   --package-dir data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2
 ```
@@ -52,3 +55,16 @@ conda run -n intentfence python scripts/build_route_b_ai_disagreement_package.py
 稳定裁决人 ID 或带时区时间的表格。receipt 始终保留
 `human_verified=false` 与 `formal_training_authorized=false`；正式人类 v2 双盲包
 `data/interim/route_b_v2_candidate_8_human_audit_v2/` 不得被修改。
+`adjudication_manifest.json` 是建包时的不可变输入快照，完成后仍可保留
+`status=awaiting_project_owner_ai_disagreement_adjudication`；是否完成以校验成功生成的
+`submission_receipt.json` 及表格字段为准，不要手动改写 manifest。若目录已经存在 receipt，
+验证器会拒绝覆盖；当前目录已有 receipt 时，不要删除或覆盖它。需要再次复核时，使用新的
+临时输出路径：
+
+```powershell
+$recheckReceipt = Join-Path $env:TEMP ("intentfence_ai_disagreement_validation_{0}.json" -f ([Guid]::NewGuid().ToString("N")))
+conda run -n intentfence python scripts/build_route_b_ai_disagreement_package.py validate `
+  --package-dir data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2 `
+  --receipt $recheckReceipt
+if ($LASTEXITCODE -ne 0) { throw "AI 分歧复核包再次校验失败" }
+```

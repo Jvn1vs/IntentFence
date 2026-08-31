@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -215,6 +216,33 @@ def _integrity_gate(
     return not errors, errors
 
 
+def _public_report_gate(
+    public_report_path: Path,
+    *,
+    candidate_manifest: dict[str, Any],
+) -> tuple[bool, list[str]]:
+    if not public_report_path.is_file():
+        return False, ["public aggregate report is missing"]
+    if public_report_path.stat().st_size <= 0:
+        return False, ["public aggregate report is empty"]
+    try:
+        content = public_report_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        return False, [f"public aggregate report cannot be read: {exc}"]
+    sealed_sha256 = candidate_manifest.get("sha256")
+    if not isinstance(sealed_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", sealed_sha256):
+        return False, ["candidate manifest lacks a valid sealed SHA-256"]
+    marker = re.compile(
+        r"Manifest\s+sealed\s+SHA-256\s*:\s*`?"
+        + re.escape(sealed_sha256)
+        + r"`?",
+        re.IGNORECASE,
+    )
+    if marker.search(content) is None:
+        return False, ["public aggregate report does not bind the candidate manifest sealed SHA-256"]
+    return True, []
+
+
 def _audit_manifest_matches_candidate(
     audit_manifest: dict[str, Any], candidate_manifest: dict[str, Any]
 ) -> list[str]:
@@ -350,16 +378,25 @@ def evaluate_route_b_readiness(
         and policy.get("unapproved_cc_by_sa_and_noncommercial_sources_excluded") is True
         and manifest.get("source") == "IntentFenceProjectMock"
     )
+    public_report_passed, public_report_errors = _public_report_gate(
+        public_source,
+        candidate_manifest=manifest,
+    )
     gates["v2_manifest_and_public_aggregate_reports_complete"] = (
-        public_source.is_file()
-        and public_source.stat().st_size > 0
+        public_report_passed
         and policy.get("readiness", {}).get("public_aggregate_reports_complete") is True
     )
     gates["project_owner_formal_training_authorization_recorded"] = (
         policy.get("readiness", {}).get("formal_training_authorized") is True
     )
     blockers = [name for name, passed in gates.items() if not passed]
-    validation_errors = manifest_errors + integrity_errors + audit_errors + lock_errors
+    validation_errors = (
+        manifest_errors
+        + integrity_errors
+        + audit_errors
+        + lock_errors
+        + public_report_errors
+    )
     evidence: dict[str, Any] = {
         "policy": {"path": str(policy_source.resolve()), "sha256": file_sha256(policy_source)},
         "protocol_document": {
@@ -378,6 +415,8 @@ def evaluate_route_b_readiness(
         "public_report": {
             "path": str(public_source.resolve()),
             "sha256": file_sha256(public_source) if public_source.is_file() else None,
+            "candidate_manifest_sealed_sha256": manifest.get("sha256"),
+            "bound_to_candidate_manifest": public_report_passed,
         },
     }
     if protocol_lock is not None and Path(protocol_lock).is_file():

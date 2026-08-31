@@ -250,16 +250,24 @@ readiness 工具会重放 candidate manifest、核对完整性报告与候选 sp
 分析，并验证协议锁和公开聚合报告。任何输入缺失、哈希漂移、审核门失败或协议未冻结，
 都只会生成 `formal_training_authorized=false` 并以非零状态退出。
 
-在审核尚未完成的当前状态，可运行一次 fail-closed 预检（预期退出码为 1）：
+当前 candidate 8 的 readiness 输入固定为：
 
-```powershell
-& $IntentFencePython scripts/build_route_b_readiness.py `
-  --candidate-manifest data/interim/route_b_v2_candidate_4/manifest.json `
-  --integrity-report data/interim/route_b_v2_candidate_4/route_b_integrity_report_v3.json `
-  --public-report reports/data_quality/route_b_candidate_4_card.md `
-  --output data/interim/route_b_v2_candidate_4/readiness_preflight.json
-if ($LASTEXITCODE -ne 1) { throw "未完成审核时 readiness 必须 fail-closed" }
-```
+- 候选 manifest：`data/interim/route_b_v2_candidate_8/manifest.json`；
+- 完整性报告：`data/interim/route_b_v2_candidate_8/integrity_v2_data_protocol.json`；
+- 正式人类聚合后才会产生的审核分析：
+  `data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json`；
+- 正式人类审核 manifest：`data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json`；
+- 待项目所有者审核后单独生成的 candidate 8 公开聚合卡：
+  `reports/data_quality/route_b_candidate_8_card.md`。
+
+candidate 8 公开聚合卡必须明确写出当前候选 manifest 的密封 canonical SHA-256，例如
+`Manifest sealed SHA-256: <candidate-8-manifest-sha256>`；readiness 会校验该绑定，不能只
+传入一个存在的 Markdown 文件。
+
+其中 candidate 8 的公开聚合卡目前尚未生成；现有的
+`route_b_candidate_8_human_v2_ai_pair_failure.md` 只是双 AI 补充审核的负证据，不能作为
+最终公开聚合卡传给 readiness。当前状态不要创建 candidate 8 readiness 输出；正式人类审核
+完成后，应使用上面列出的 candidate 8 路径，不得沿用历史 candidate 4 的 readiness 命令。
 
 只有四份审核表完成、分析通过且无需分歧裁决后，项目所有者才能：
 
@@ -275,19 +283,22 @@ if ($LASTEXITCODE -ne 1) { throw "未完成审核时 readiness 必须 fail-close
 if ($LASTEXITCODE -ne 0) { throw "Route B 协议封存失败" }
 ```
 
-随后生成最终 readiness 报告：
+随后由项目所有者生成 candidate 8 的最终 readiness 报告：
 
 ```powershell
 & $IntentFencePython scripts/build_route_b_readiness.py `
   --protocol-lock configs/route_b_protocol_lock.json `
-  --candidate-manifest data/interim/route_b_v2_candidate_4/manifest.json `
-  --integrity-report data/interim/route_b_v2_candidate_4/route_b_integrity_report_v3.json `
-  --audit-analysis data/interim/route_b_v2_candidate_4_audit_v2/audit_analysis.json `
-  --audit-manifest data/interim/route_b_v2_candidate_4_audit_v2/audit_manifest.json `
-  --public-report reports/data_quality/route_b_candidate_4_card.md `
-  --output data/interim/route_b_v2_candidate_4/readiness.json
+  --candidate-manifest data/interim/route_b_v2_candidate_8/manifest.json `
+  --integrity-report data/interim/route_b_v2_candidate_8/integrity_v2_data_protocol.json `
+  --audit-analysis data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json `
+  --audit-manifest data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json `
+  --public-report reports/data_quality/route_b_candidate_8_card.md `
+  --output data/interim/route_b_v2_candidate_8/readiness.json
 if ($LASTEXITCODE -ne 0) { throw "Route B readiness 未通过，禁止训练" }
 ```
+
+该命令只能在正式人类审核、确定性聚合、candidate 8 公开聚合卡和协议锁均完成后执行；在
+此之前不要创建或伪造 `audit_analysis.json`、公开聚合卡或 readiness 通过结果。
 
 若审核报告为 `quality_gates_passed_adjudication_required`，当前工具会继续阻塞；必须先
 保留两份原始意见并完成可追溯裁决，不能用命令行开关绕过。即使 readiness 通过，
