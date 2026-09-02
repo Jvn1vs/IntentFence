@@ -28,6 +28,17 @@
 时区的 `attested_at`。这是 provenance 声明与聚合时的 fail-closed 校验；模型输出不能填写
 该声明或作为人类审核提交。
 
+两名审核者交回文件后，项目所有者先运行只读进度检查：
+
+```powershell
+conda activate intentfence
+python scripts/check_route_b_human_audit_progress.py
+```
+
+只有当输出中的 `status` 为 `ready_for_deterministic_aggregation` 时，才运行下面 handoff
+所列的确定性分析命令。该检查不读取 `sealed_seed_labels.json`，不生成输出文件，也不会改变
+`human_verified` 或 `formal_training_authorized`。
+
 ## 当前状态
 
 最新复查（2026-09-02）：四张表均为 400 行，但完整审核为 `0/400`；审核字段和 reviewer-facing

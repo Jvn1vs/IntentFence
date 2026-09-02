@@ -384,6 +384,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ 当前 runbook 的 readiness 主流程已统一改用 candidate 8 路径；历史 candidate 4 仅保留为
   历史证据，不再作为当前 readiness 命令示例；candidate 8 公开聚合卡必须绑定候选 manifest
   的密封 canonical SHA-256；
+- ✅ 新增只读 `scripts/check_route_b_human_audit_progress.py`，在不读取 seed labels、不写回审核表
+  或授权字段的前提下汇总四张表的完成数、缺失字段、身份一致性和 attestation 状态；完成后
+  才进入确定性分析，减少人工返工；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件

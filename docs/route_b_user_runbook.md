@@ -227,7 +227,14 @@ realism。即使全部通过，报告仍保持 `formal_training_authorized=false
 `docs/route_b_candidate_8_human_audit_handoff.md`。
 
 两名审核者完成并保存原始副本后，由项目所有者在未把封存 seed labels 提供给审核者的前提下，
-运行 candidate 8 的确定性分析：
+先运行只读进度检查：
+
+```powershell
+& $IntentFencePython scripts/check_route_b_human_audit_progress.py
+if ($LASTEXITCODE -ne 0) { throw "candidate 8 人工审核尚未达到确定性分析条件" }
+```
+
+只有该命令输出 `status=ready_for_deterministic_aggregation` 后，才运行 candidate 8 的确定性分析：
 
 ```powershell
 & $IntentFencePython scripts/analyze_route_b_blind_audits.py `
