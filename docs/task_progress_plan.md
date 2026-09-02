@@ -685,6 +685,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   自身容器清理，减少后续手工操作；
 - ✅ 2026-09-02 Docker daemon 恢复后已实际完成一次 rules-only 容器 smoke：镜像构建、容器启动、
   `/health`、外部通信阻断和自身容器清理均通过；该证据不代表模型、ONNX/INT8 或 CPU 延迟结果；
+- ✅ 本次启动故障已定位为 Docker Desktop 4.50.0 的临时 AF_UNIX socket 条目无法访问；仅将
+  `Docker\run` 与 `docker-secrets-engine` 两个临时父目录改名为可恢复备份，未触碰镜像、卷或设置，
+  随后 Docker smoke 恢复通过；恢复说明已写入 C3b runbook；
 - ⬜ 没有真实 checkpoint，尚未导出 ONNX 或 INT8；
 - ⬜ 未测量真实模型安全变化、内存和 P50/P95；
 - ⬜ 没有真实模型的 Docker/ONNX 部署结果，真实模型导出、量化安全重跑和 CPU 实测仍待冻结

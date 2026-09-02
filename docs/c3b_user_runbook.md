@@ -133,6 +133,18 @@ Dockerfile 默认使用透明规则后端，不包含模型、真实数据或结
 外部通信阻断和容器清理均通过。该结果只证明容器/API 工程链路，不证明模型、ONNX/INT8 或
 CPU 延迟指标。
 
+### Windows Docker Desktop 陈旧 socket 恢复
+
+若 Docker Desktop 启动时报 `dockerInference` 或 `docker-secrets-engine\engine.sock` 的
+`The file cannot be accessed by the system`，先完全退出 Docker Desktop 并确认没有
+`Docker Desktop`、`com.docker.backend` 或 `com.docker.service` 进程。只在对应目录内容确实
+只有临时 socket 时，将 `%LOCALAPPDATA%\Docker\run` 或
+`%LOCALAPPDATA%\docker-secrets-engine` 重命名为带时间戳的备份目录，再启动 Docker Desktop；
+保留备份，确认引擎正常后再由项目所有者决定是否清理。不要使用“Reset to factory defaults”或
+“Clean up data”来解决这个单独的运行时 socket 问题，也不要处理包含其他内容的目录。可参考
+[Docker Desktop troubleshooting](https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/)
+和 [Docker 官方反馈中的同类问题](https://github.com/docker/desktop-feedback/issues/625)。
+
 ## 7. 本阶段验证边界
 
 ```powershell
@@ -144,5 +156,5 @@ python -m build --wheel
 ```
 
 上述命令验证代码、fixture 和可导入性；Docker smoke 另外需要本机 Docker daemon。项目所有者
-提供冻结 checkpoint 并执行真实导出、
-FP32/INT8 安全重跑、CPU 测量和可选 Docker smoke 之前，C3b 研究证据仍保持未完成。
+提供冻结 checkpoint 并执行真实导出、FP32/INT8 安全重跑、CPU 测量和真实模型 Docker
+部署之前，C3b 研究证据仍保持未完成；上面的 Docker rules-only smoke 不替代这些结果。
