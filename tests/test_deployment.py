@@ -137,3 +137,12 @@ def test_docker_deployment_has_context_and_runtime_safety_contract() -> None:
     assert "if ($daemonReady)" in smoke_script
     assert "Invoke-RestMethod" in smoke_script
     assert "docker rm -f $containerName" in smoke_script
+
+    local_smoke_script = (repository_root / "scripts" / "run_c3b_local_api_smoke.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "Start-Process" in local_smoke_script
+    assert "-WindowStyle Hidden" in local_smoke_script
+    assert "intentfence.api:app" in local_smoke_script
+    assert "Invoke-RestMethod" in local_smoke_script
+    assert "Stop-Process -Id $serverProcess.Id" in local_smoke_script

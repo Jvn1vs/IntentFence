@@ -673,9 +673,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   篡改拒绝已实现，并由合成 fixture 验证；
 - ✅ `/health` 与 `/v1/evaluate` 暴露应用版本、模型版本/revision；检测器异常的 read
   restricted fail-open 与 external fail-closed 已由 TestClient mock 验证；
-- ✅ 2026-09-02 已用实际 Uvicorn 进程完成一次规则后端运行时 smoke：`/health` 返回应用/策略
-  版本，外部通信攻击样例返回 `block`；进程已关闭且端口已释放。该证据仍只属于规则/API
+- ✅ 2026-09-02 已通过 `scripts/run_c3b_local_api_smoke.ps1` 实际启动 Uvicorn 规则后端完成一次
+  运行时 smoke：`/health` 返回应用/策略版本，外部通信攻击样例返回 `block`；脚本已关闭自身
+  进程并释放端口。该证据仍只属于规则/API
   工程验证，不代表神经模型或 Docker/ONNX 结果；
+- ✅ 新增并实际运行 `scripts/run_c3b_local_api_smoke.ps1`，将本机 Uvicorn 启动、健康等待、规则 API 断言和
+  自身进程/临时日志清理收敛为一条命令，降低后续重复手工验证成本；
 - ✅ Dockerfile 继续使用非 root 用户，并新增 `/health` healthcheck；`.dockerignore` 会在
   build context 阶段排除真实数据、checkpoint、模型权重和运行时缓存；
 - ✅ 新增 `scripts/run_c3b_docker_smoke.ps1`，统一执行规则镜像构建、健康等待、API 断言和
