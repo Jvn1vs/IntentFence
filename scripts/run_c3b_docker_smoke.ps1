@@ -11,11 +11,14 @@ $containerId = $null
 $daemonReady = $false
 
 function Invoke-DockerChecked {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
+    param(
+        [Parameter(Mandatory = $true)][string]$DockerVerb,
+        [string[]]$DockerArgs = @()
+    )
 
-    $output = & docker @Arguments
+    $output = & docker $DockerVerb @DockerArgs
     if ($LASTEXITCODE -ne 0) {
-        throw "docker $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
+        throw "docker $DockerVerb $($DockerArgs -join ' ') failed with exit code $LASTEXITCODE"
     }
     return $output
 }
@@ -57,8 +60,12 @@ try {
     }
     Assert-DockerDaemon
     $daemonReady = $true
-    Invoke-DockerChecked build -f deployment/Dockerfile -t $ImageTag . | Out-Host
-    $containerId = (Invoke-DockerChecked run -d --name $containerName -p "${HostPort}:8000" $ImageTag | Select-Object -Last 1).Trim()
+    Invoke-DockerChecked -DockerVerb "build" -DockerArgs @(
+        "-f", "deployment/Dockerfile", "-t", $ImageTag, "."
+    ) | Out-Host
+    $containerId = (Invoke-DockerChecked -DockerVerb "run" -DockerArgs @(
+        "-d", "--name", $containerName, "--publish", "${HostPort}:8000", $ImageTag
+    ) | Select-Object -Last 1).Trim()
     if ([string]::IsNullOrWhiteSpace($containerId)) {
         throw "docker run did not return a container id"
     }
@@ -72,7 +79,7 @@ try {
             break
         } catch {
             if ((Get-Date) -ge $deadline) {
-                Invoke-DockerChecked logs $containerName | Out-Host
+                Invoke-DockerChecked -DockerVerb "logs" -DockerArgs @($containerName) | Out-Host
                 throw "container did not become healthy within $TimeoutSeconds seconds"
             }
             Start-Sleep -Seconds 2

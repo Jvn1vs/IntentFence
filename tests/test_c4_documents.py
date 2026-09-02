@@ -23,7 +23,7 @@ def test_c4_materials_keep_missing_evidence_explicit() -> None:
     assert "DRAFT" in release_notes
     assert "human_verified=false" in release_notes
     assert "No real logits export" in release_notes
-    assert "actual container runtime smoke remains pending" in release_notes
+    assert "actual rules-only container runtime smoke passed" in release_notes
 
 
 def test_public_cards_state_the_deployment_and_label_boundaries() -> None:

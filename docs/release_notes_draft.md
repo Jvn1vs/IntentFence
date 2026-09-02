@@ -20,8 +20,8 @@ Project-owner approval is still required before this document is used as release
   a local Uvicorn rules-only smoke passed, while demonstrations use rules or mocks and do not
   perform real tool actions.
 - PyTorch/ONNX export contracts, dynamic INT8 metadata checks, CPU benchmark tooling, and a
-  scripted Docker rules-backend smoke path. Fixture/static deployment-contract checks pass; the
-  actual container runtime smoke remains pending.
+  scripted Docker rules-backend smoke path. Fixture/static deployment-contract checks pass, and one
+  actual rules-only container runtime smoke passed; no model/ONNX/INT8 result is implied.
 - Reproducibility, threat-model, model-card, data-card, AI-use and claim-evidence documentation
   that keeps missing experiments and negative data-readiness findings explicit.
 

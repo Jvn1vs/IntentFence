@@ -131,7 +131,9 @@ def test_docker_deployment_has_context_and_runtime_safety_contract() -> None:
     smoke_script = (repository_root / "scripts" / "run_c3b_docker_smoke.ps1").read_text(
         encoding="utf-8"
     )
-    assert "build -f deployment/Dockerfile" in smoke_script
+    assert 'DockerVerb "build"' in smoke_script
+    assert "deployment/Dockerfile" in smoke_script
+    assert "DockerVerb \"run\" -DockerArgs" in smoke_script
     assert "WaitForExit(10000)" in smoke_script
     assert "$daemonReady = $true" in smoke_script
     assert "if ($daemonReady)" in smoke_script

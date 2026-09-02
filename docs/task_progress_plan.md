@@ -683,10 +683,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   build context 阶段排除真实数据、checkpoint、模型权重和运行时缓存；
 - ✅ 新增 `scripts/run_c3b_docker_smoke.ps1`，统一执行规则镜像构建、健康等待、API 断言和
   自身容器清理，减少后续手工操作；
+- ✅ 2026-09-02 Docker daemon 恢复后已实际完成一次 rules-only 容器 smoke：镜像构建、容器启动、
+  `/health`、外部通信阻断和自身容器清理均通过；该证据不代表模型、ONNX/INT8 或 CPU 延迟结果；
 - ⬜ 没有真实 checkpoint，尚未导出 ONNX 或 INT8；
 - ⬜ 未测量真实模型安全变化、内存和 P50/P95；
-- ⬜ Docker 镜像尚未实际构建/启动测试；本机 Docker daemon 当前不可用，待可用时执行一次
-  规则后端 smoke。
+- ⬜ 没有真实模型的 Docker/ONNX 部署结果，真实模型导出、量化安全重跑和 CPU 实测仍待冻结
+  checkpoint 与对应授权。
 
 #### 要测试什么
 
@@ -727,7 +729,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 - ✅ README、模型卡、数据卡和可靠性策略已按当前 C1/C3b 证据边界更新；C0 冻结威胁模型保持未改写；
 - ✅ 已新增论文式报告模板、主张—证据矩阵、复现清单、AI 使用披露、简历表述模板和公开发布清单；
-- ✅ 已补充仅工程事实的简历/项目表述，并明确 Docker smoke 尚未进行真实容器运行；
+- ✅ 已补充仅工程事实的简历/项目表述，并明确已完成的是 rules-only Docker smoke，不延伸为模型结果；
 - ✅ 已新增标明未发布的 source-only release notes 草稿，并接入 README；双模型审核后明确
   candidate 8 人审、校准、Docker runtime 和最终公开审批仍未完成；
 - ✅ `scripts/audit_public_release.py` 已加入 CI，可拒绝权重、原始/中间数据、结果缓存、`.env`
@@ -828,7 +830,7 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - 合成 fixture 已覆盖来源/转换 replay、人工审计 key、merge、去重、六角色划分、manifest、完整性报告、规则与 word/char TF-IDF 接口及正式测试锁；
 - 上述结果属于静态、合成和规则后端运行时验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
 - 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型；C3b 当前新增内容仍
-  只属于静态/fixture/规则后端工程验证（含一次本机 Uvicorn rules-only smoke）。
+  只属于静态/fixture/规则后端工程验证（含一次本机 Uvicorn 和一次 Docker rules-only smoke）。
 - C4 的公开发布审计、论文模板和主张证据矩阵已通过 fixture/静态检查，但不等于最终公开
   内容已获项目所有者批准。
 - G1 的 committed release-tree、README 链接和 CI 契约预检已实现并通过；这不等于已合并到
