@@ -91,6 +91,11 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/v1/evaluate `
 
 Route B 的静态框架、Wilson 精度规划、无副作用 mock fixture 和结构验证命令见 [Route B 训练前数据扩充手册](docs/route_b_user_runbook.md)。该手册当前只验证框架，不会把 fixture 误标为训练数据。
 
+candidate 8 人工审核文件提交后，可先运行只读进度检查
+`python scripts/check_route_b_human_audit_progress.py`；只有输出
+`ready_for_deterministic_aggregation` 才进入确定性分析。该命令不读取 seed labels、不写回审核表，
+也不会改变训练授权状态。
+
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 
 合成 `data/examples/smoke.jsonl` 只用于单元测试和接口示例；正式 `build_splits.py` 强制要求 Test B/C 的五个固定输入，不应使用单文件简化命令生成研究数据。
