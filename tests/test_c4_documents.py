@@ -13,12 +13,17 @@ def test_c4_materials_keep_missing_evidence_explicit() -> None:
     report = _read("docs/paper_report_template.md")
     matrix = _read("docs/claim_evidence_matrix.md")
     checklist = _read("docs/reproducibility_checklist.md")
+    release_notes = _read("docs/release_notes_draft.md")
 
     assert "UNVERIFIED" in report
     assert "not-run" in matrix
     assert "claim_id" in matrix
     assert "final-test" in checklist
     assert "Project owner" in checklist
+    assert "DRAFT" in release_notes
+    assert "human_verified=false" in release_notes
+    assert "No real logits export" in release_notes
+    assert "actual container runtime smoke remains pending" in release_notes
 
 
 def test_public_cards_state_the_deployment_and_label_boundaries() -> None:
