@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import subprocess
@@ -93,6 +94,7 @@ SECRET_PATTERNS = (
 )
 SECRET_SCAN_CHUNK_BYTES = 64 * 1024
 SECRET_SCAN_OVERLAP_BYTES = 512
+GIT_ARCHIVE_TIMEOUT_SECONDS = 30
 
 
 @dataclass(frozen=True)
@@ -184,41 +186,37 @@ def _git_tree_paths(root: Path, ref: str) -> list[str]:
 
 
 def _git_archive_secret_issues(root: Path, ref: str) -> list[ReleaseIssue]:
-    process = subprocess.Popen(
-        ["git", "archive", "--format=tar", ref],
-        cwd=root,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    issues: list[ReleaseIssue] = []
-    assert process.stdout is not None
-    assert process.stderr is not None
     try:
-        with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
-            for member in archive:
-                if not member.isfile():
-                    continue
-                handle = archive.extractfile(member)
-                if handle is not None and _stream_contains_secret(handle):
-                    issues.append(
-                        ReleaseIssue(
-                            _normalise(member.name),
-                            "secret",
-                            "high-confidence credential pattern detected",
-                        )
+        result = subprocess.run(
+            ["git", "archive", "--format=tar", ref],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            timeout=GIT_ARCHIVE_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"git archive {ref} exceeded {GIT_ARCHIVE_TIMEOUT_SECONDS} seconds"
+        ) from exc
+
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"cannot archive Git tree {ref}: {detail}")
+
+    issues: list[ReleaseIssue] = []
+    with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+        for member in archive:
+            if not member.isfile():
+                continue
+            handle = archive.extractfile(member)
+            if handle is not None and _stream_contains_secret(handle):
+                issues.append(
+                    ReleaseIssue(
+                        _normalise(member.name),
+                        "secret",
+                        "high-confidence credential pattern detected",
                     )
-        error = process.stderr.read().decode("utf-8", errors="replace").strip()
-        return_code = process.wait()
-    except BaseException:
-        if process.poll() is None:
-            process.kill()
-        process.wait()
-        raise
-    finally:
-        process.stdout.close()
-        process.stderr.close()
-    if return_code != 0:
-        raise RuntimeError(f"cannot archive Git tree {ref}: {error}")
+                )
     return issues
 
 
