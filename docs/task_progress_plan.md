@@ -875,6 +875,8 @@ Alignment/action realism 57）。项目所有者已完成逐条裁决，validato
 
 为满足尚未完成的协议门，已生成独立于 AI 输出的 candidate 8 v2 人工双盲包；两名独立人类审核者各
 须完成 400 条 Risk 和 400 条 Alignment，之后才可运行确定性人工审核聚合与任何后续授权判断。
+最新状态复查（2026-09-02）：四份 reviewer CSV 均为 0/400 条完整审核，两份 attestation 的
+`reviewer_id` 为空且 `independence_declared=false`；本次未运行聚合、应用或训练授权判断。
 双 AI 补充审核已按用户指示完成，但它仍是 `ai_reviewed_engineering_only` 负证据，不能替代
 独立人类签核。最新双 AI 分歧的项目所有者补充复核包详情见
 `docs/route_b_ai_disagreement_handoff.md`；正式两名独立人类 v2 审核包详情见
