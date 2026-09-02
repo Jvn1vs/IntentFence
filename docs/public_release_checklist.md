@@ -36,6 +36,8 @@ does not merge branches, create tags or publish a Release.
 - [ ] Confirm no private data, credentials, raw third-party data, checkpoint or ignored result cache
       is included in the intended release artifact.
 - [ ] Confirm model card, data card, threat model, reliability policy and AI disclosure agree.
+- [ ] Review [the source-only release notes draft](release_notes_draft.md); keep it marked `DRAFT`
+      until the owner approves the exact public wording.
 - [ ] Confirm all quantitative claims map to `docs/claim_evidence_matrix.md`.
 - [ ] Confirm negative findings and missing experiments are visible.
 - [ ] Project owner approves public content and any merge/release separately.
