@@ -115,3 +115,15 @@ def test_model_directory_requires_frozen_revision_and_labels(tmp_path: Path) -> 
     (model_dir / "metadata.json").write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="40-character revision"):
         validate_model_directory(model_dir)
+
+
+def test_docker_deployment_has_context_and_runtime_safety_contract() -> None:
+    repository_root = Path(__file__).resolve().parents[1]
+    dockerignore = (repository_root / ".dockerignore").read_text(encoding="utf-8")
+    dockerfile = (repository_root / "deployment" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert all(entry in dockerignore.splitlines() for entry in ("data", "checkpoints", "artifacts"))
+    assert all(entry in dockerignore.splitlines() for entry in ("runs", "wandb", "mlruns", "reports"))
+    assert "USER 65532:65532" in dockerfile
+    assert "HEALTHCHECK" in dockerfile
+    assert "/health" in dockerfile

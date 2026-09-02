@@ -673,9 +673,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   篡改拒绝已实现，并由合成 fixture 验证；
 - ✅ `/health` 与 `/v1/evaluate` 暴露应用版本、模型版本/revision；检测器异常的 read
   restricted fail-open 与 external fail-closed 已由 TestClient mock 验证；
+- ✅ Dockerfile 继续使用非 root 用户，并新增 `/health` healthcheck；`.dockerignore` 会在
+  build context 阶段排除真实数据、checkpoint、模型权重和运行时缓存；
 - ⬜ 没有真实 checkpoint，尚未导出 ONNX 或 INT8；
 - ⬜ 未测量真实模型安全变化、内存和 P50/P95；
-- ⬜ Docker 镜像尚未实际构建/启动测试。
+- ⬜ Docker 镜像尚未实际构建/启动测试；本机 Docker daemon 当前不可用，待可用时执行一次
+  规则后端 smoke。
 
 #### 要测试什么
 
