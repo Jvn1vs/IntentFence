@@ -21,6 +21,12 @@ def main() -> None:
     parser.add_argument("--model-dir", type=Path, required=True)
     parser.add_argument("--calibration", type=Path, required=True)
     parser.add_argument("--calibration-report", type=Path, required=True)
+    parser.add_argument(
+        "--policy",
+        type=Path,
+        default=Path("configs/policy.yaml"),
+        help="frozen runtime policy bound to the calibration and final-test authorization",
+    )
     parser.add_argument("--test-a", type=Path, required=True)
     parser.add_argument("--test-b", type=Path, required=True)
     parser.add_argument("--test-c", type=Path, required=True)
@@ -53,6 +59,7 @@ def main() -> None:
             model_dir=args.model_dir,
             calibration_path=args.calibration,
             calibration_report_path=args.calibration_report,
+            policy_path=args.policy,
             test_inputs=test_inputs,
             attack_threshold=args.attack_threshold,
         )
@@ -82,6 +89,7 @@ def main() -> None:
         model_dir=args.model_dir,
         calibration_path=args.calibration,
         calibration_report_path=args.calibration_report,
+        policy_path=args.policy,
         test_inputs=test_inputs,
         attack_threshold=args.attack_threshold,
         run_id=args.run_id,
@@ -96,6 +104,7 @@ def main() -> None:
             input_path,
             result_dir,
             attack_threshold=args.attack_threshold,
+            final_test_ledger=args.ledger_file,
         )
         result_paths[split] = result_dir
     completed = complete_final_test_ledger(

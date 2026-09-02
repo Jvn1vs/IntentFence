@@ -568,8 +568,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ Temperature Scaling、ECE/Brier/NLL 和低 FPR 阈值函数有单元测试；
 - ✅ `reliability_diagram`、classwise ECE（含样本不足状态）和双头校准指标报告已实现，
   由合成 fixture 覆盖；
-- ✅ logits 导出和校准 CLI 已增加 calibration split、输入哈希、数组形状、输出拒绝覆盖和
-  只读 preflight；正式校准要求项目所有者授权绑定到精确 logits/input/model metadata；
+- ✅ logits 导出和校准 CLI 已增加 calibration split、输入哈希、数组形状、`.complete` bundle
+  提交标记、输出拒绝覆盖和只读 preflight；正式导出/校准要求项目所有者授权绑定到精确 logits、
+  input、model tree hash、model revision、protocol registry 和 policy snapshot；校准 artifact
+  还必须带 frozen provenance 与通过的质量门；
+- ✅ 推理与最终测试入口会拒绝未封存或与模型、报告、policy、目标 FPR/最低 TPR、校准输入不一致
+  的产物；质量门失败不会发布可用 calibration artifact，最终预测记录保留固定阈值和校准哈希；
 - 🟡 logits 导出和校准 CLI 已实现，但没有真实 checkpoint；
 - ⬜ 真实温度和阈值尚未拟合。
 
@@ -616,7 +620,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ `compare_predictions.py` 已实现同 case/同标签/同 template group 的 paired
   candidate-minus-baseline 区间，并分别接受各变体已冻结的 calibration threshold；
 - ✅ `final_test.py` 与 `run_final_matrix.py` 已实现 project-owner authorization、模型/校准/
-  测试输入/阈值哈希绑定及一次性独占 ledger；合成 fixture 覆盖授权、篡改检测和重复拒绝；
+  报告/policy/protocol/测试输入/阈值哈希及语义绑定、calibration/final split 隔离检查和一次性
+  独占 ledger；formal-test 库入口也要求 ledger 绑定的校准 backend，完成阶段会从 predictions
+  重算并核对 metrics，ledger 状态采用原子写回；合成 fixture 覆盖授权、质量门/策略/产物篡改
+  检测、阈值漂移和重复拒绝；
 - 🟡 统一评测与预测文件代码已实现；
 - ⬜ 真实 Test A/B/C 尚未运行；
 - ⬜ 真实结果上的 Bootstrap/错误分析和论文图表尚未生成。
@@ -797,10 +804,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 8. 当前已验证事实
 
-截至 2026-08-31：
+截至 2026-09-02：
 
 - Ruff 静态检查通过；
-- 231 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 242 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；

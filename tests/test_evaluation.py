@@ -19,6 +19,7 @@ from intentfence.evaluation import (
     wilson_interval,
 )
 from intentfence.inference import RuleBackend
+from intentfence.run_manifest import sha256_file
 
 
 def _row(
@@ -49,6 +50,8 @@ def _row(
         "predicted_risk": predicted_risk,
         "risk_probabilities": probabilities,
         "attack_score": attack_score,
+        "attack_threshold": 0.5,
+        "threshold_source": "calibration_only",
     }
 
 
@@ -160,6 +163,8 @@ def test_paired_comparison_uses_same_cases_and_variant_thresholds():
     candidate[3]["risk_probabilities"]["benign"] = 0.5
     candidate[3]["risk_probabilities"]["instruction_hijacking"] = 0.5
     candidate[3]["predicted_risk"] = "benign"
+    for row in candidate:
+        row["attack_threshold"] = 0.4
     comparison = compare_prediction_rows(
         baseline,
         candidate,
@@ -199,6 +204,15 @@ def test_prediction_validation_rejects_inconsistent_or_mixed_records():
     rows[1]["split"] = "test_b"
     with pytest.raises(ValueError, match="mixes split"):
         validate_prediction_rows(rows)
+
+
+def test_prediction_analysis_rejects_threshold_drift():
+    rows = _rows()
+    for row in rows:
+        row["attack_threshold"] = 0.4
+
+    with pytest.raises(ValueError, match="does not match"):
+        summarize_prediction_rows(rows, attack_threshold=0.5, bootstrap_resamples=10)
 
 
 def test_content_length_buckets_are_fixed_and_boundary_safe():
@@ -297,11 +311,28 @@ def test_evaluate_dataset_requires_frozen_threshold_for_test_split(tmp_path):
     with pytest.raises(ValueError, match="calibration-derived"):
         evaluate_dataset(RuleBackend(), input_path, tmp_path / "blocked")
 
-    output_dir = tmp_path / "evaluated"
-    metrics = evaluate_dataset(
-        RuleBackend(), input_path, output_dir, attack_threshold=0.5
+    matrix_output_dir = tmp_path / "evaluated"
+    output_dir = matrix_output_dir / "test_a"
+    ledger_path = tmp_path / "claimed-ledger.json"
+    ledger_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "status": "claimed",
+                "output_dir": str(matrix_output_dir.resolve()),
+                "test_splits": ["test_a", "test_b", "test_c"],
+                "attack_threshold": 0.5,
+                "test_input_paths": {"test_a": str(input_path.resolve())},
+                "test_input_sha256": {"test_a": sha256_file(input_path)},
+            }
+        ),
+        encoding="utf-8",
     )
-    record = json.loads((output_dir / "predictions.jsonl").read_text(encoding="utf-8").splitlines()[0])
-    assert metrics["threshold_source"] == "calibration_only"
-    assert record["split"] == "test_a"
-    assert "content_length_bucket" in record
+    with pytest.raises(ValueError, match="complete authorization bindings"):
+        evaluate_dataset(
+            RuleBackend(),
+            input_path,
+            output_dir,
+            attack_threshold=0.5,
+            final_test_ledger=ledger_path,
+        )

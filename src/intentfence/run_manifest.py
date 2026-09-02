@@ -21,6 +21,25 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def artifact_tree_sha256(path: str | Path) -> str:
+    """Hash a directory's relative file names and bytes deterministically."""
+
+    root = Path(path)
+    if not root.is_dir():
+        raise FileNotFoundError(f"artifact directory does not exist: {root}")
+    digest = hashlib.sha256()
+    files = [item for item in root.rglob("*") if item.is_file()]
+    for item in sorted(files, key=lambda value: value.relative_to(root).as_posix()):
+        relative = item.relative_to(root).as_posix().encode("utf-8")
+        digest.update(relative)
+        digest.update(b"\0")
+        with item.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def _package_version(name: str) -> str | None:
     try:
         return importlib.metadata.version(name)

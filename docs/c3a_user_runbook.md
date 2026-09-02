@@ -1,7 +1,8 @@
 # C3a 最终 Test A/B/C 与错误分析运行手册
 
 状态：C3a 的固定阈值评测、分组摘要、cluster bootstrap、Wilson 区间、错误分析和一次性
-final-test ledger 框架已完成；没有真实 Test A/B/C 结果。Codex 不读取最终测试数据、不启动
+final-test ledger 框架已完成；没有真实 Test A/B/C 结果。预检还会验证 C2c 报告、校准 artifact、
+模型目录、policy 快照和 calibration/final split 的语义绑定。Codex 不读取最终测试数据、不启动
 正式模型评测，也不替项目所有者填写授权。
 
 ## 1. 一次性矩阵原则
@@ -21,6 +22,7 @@ python scripts/run_final_matrix.py `
   --model-dir checkpoints\base-action-multitask-seed42\best `
   --calibration artifacts\c2c\seed42\calibration.json `
   --calibration-report reports\calibration\seed42.json `
+  --policy configs\policy.yaml `
   --test-a data\interim\route_b_v2_candidate_8\test_a.jsonl `
   --test-b data\interim\route_b_v2_candidate_8\test_b.jsonl `
   --test-c data\interim\route_b_v2_candidate_8\test_c.jsonl `
@@ -52,10 +54,16 @@ python scripts/run_final_matrix.py `
   "approved_at": "<timezone-aware ISO-8601 timestamp>",
   "model_dir": "<exact resolved model directory>",
   "model_artifact_sha256": "<directory tree hash>",
+  "model_revision": "<exact revision recorded by C2c>",
   "calibration_path": "<exact resolved calibration JSON>",
   "calibration_sha256": "<file hash>",
   "calibration_report_path": "<exact resolved calibration report>",
   "calibration_report_sha256": "<file hash>",
+  "policy_path": "<exact resolved policy YAML>",
+  "policy_sha256": "<file hash>",
+  "policy_version": "<policy version>",
+  "protocol_registry_path": "<exact resolved experiment_registry.yaml>",
+  "protocol_registry_sha256": "<sha256 of experiment_registry.yaml>",
   "test_input_paths": {
     "test_a": "<exact resolved path>",
     "test_b": "<exact resolved path>",
@@ -78,8 +86,14 @@ GPU/CPU 已记录的实际 `--device`。失败后 ledger 保持 claimed，不能
 矩阵。
 
 每个 split 产生 `predictions.jsonl` 和 `metrics.json`。预测记录包含 split、template group、
-scenario、attack family、内容长度桶、模型 revision 和固定阈值来源。随后可对已产生的单个
-结果运行分析器：
+scenario、attack family、内容长度桶、模型 revision、固定阈值、阈值来源以及校准版本/哈希。
+对带校准器的模型，评测入口还会拒绝与 calibration artifact 中冻结阈值不一致的参数。预检
+同时检查 calibration 与 final test 没有共享 sample ID 或 template group。随后可对已产生的
+单个结果运行分析器：
+
+直接调用 `intentfence-evaluate` 评估正式 Test A/B/C 会被拒绝；正式测试只能通过带有 claimed
+ledger 的 `scripts/run_final_matrix.py` 入口。矩阵完成时还会重新验证每个 split 的预测覆盖、
+校准版本/哈希、模型 revision、固定阈值和指标文件，空指标文件不能把 ledger 标记为完成。
 
 ```powershell
 python scripts/analyze_predictions.py `

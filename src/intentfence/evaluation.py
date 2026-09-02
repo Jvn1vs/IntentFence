@@ -45,6 +45,7 @@ def validate_prediction_rows(
     seen_ids: set[str] = set()
     identities: set[tuple[str, str]] = set()
     splits: set[str] = set()
+    fixed_thresholds: set[float] = set()
     expected_probability_keys = set(RISK_LABELS)
     for index, source_row in enumerate(rows, start=1):
         row = dict(source_row)
@@ -63,6 +64,22 @@ def validate_prediction_rows(
                 f"row {index}: split={split!r} does not match expected {expected_split!r}"
             )
         splits.add(split)
+        if split in TEST_SPLITS:
+            try:
+                fixed_threshold = float(row.get("attack_threshold"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"row {index}: test predictions require attack_threshold"
+                ) from exc
+            if not np.isfinite(fixed_threshold) or not 0 <= fixed_threshold <= 1:
+                raise ValueError(
+                    f"row {index}: attack_threshold must be finite in [0, 1]"
+                )
+            if row.get("threshold_source") != "calibration_only":
+                raise ValueError(
+                    f"row {index}: test predictions require threshold_source=calibration_only"
+                )
+            fixed_thresholds.add(fixed_threshold)
 
         true_risk = row.get("true_risk")
         predicted_risk = row.get("predicted_risk")
@@ -132,6 +149,8 @@ def validate_prediction_rows(
         validated.append(row)
     if len(splits) != 1:
         raise ValueError(f"prediction file mixes split values: {sorted(splits)}")
+    if len(fixed_thresholds) != (1 if splits & TEST_SPLITS else 0):
+        raise ValueError("test predictions must use one fixed calibration threshold")
     if len(identities) != 1:
         raise ValueError(f"prediction identity is not unique: {sorted(identities)}")
     return validated
@@ -241,6 +260,15 @@ def summarize_prediction_rows(
         raise ValueError("bootstrap_resamples must be positive")
     if not 0 < confidence_level < 1:
         raise ValueError("confidence_level must be in (0, 1)")
+    if validated[0]["split"] in TEST_SPLITS and not np.isclose(
+        float(validated[0]["attack_threshold"]),
+        attack_threshold,
+        atol=1e-15,
+        rtol=0.0,
+    ):
+        raise ValueError(
+            "supplied attack_threshold does not match the prediction file's frozen threshold"
+        )
     labels, probabilities, _ = _arrays(validated)
     metrics = evaluate_risk_predictions(
         labels,
@@ -383,6 +411,23 @@ def compare_prediction_rows(
         raise ValueError("endpoint must be 'fpr' or 'tpr'")
     baseline = validate_prediction_rows(baseline_rows)
     candidate = validate_prediction_rows(candidate_rows)
+    if baseline[0]["split"] != candidate[0]["split"]:
+        raise ValueError("paired prediction files must use the same split")
+    if baseline[0]["split"] in TEST_SPLITS:
+        if not np.isclose(
+            float(baseline[0]["attack_threshold"]),
+            baseline_threshold,
+            atol=1e-15,
+            rtol=0.0,
+        ):
+            raise ValueError("baseline threshold does not match prediction provenance")
+        if not np.isclose(
+            float(candidate[0]["attack_threshold"]),
+            candidate_threshold,
+            atol=1e-15,
+            rtol=0.0,
+        ):
+            raise ValueError("candidate threshold does not match prediction provenance")
     baseline_by_id = {row["sample_id"]: row for row in baseline}
     candidate_by_id = {row["sample_id"]: row for row in candidate}
     if set(baseline_by_id) != set(candidate_by_id):

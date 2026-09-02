@@ -177,6 +177,7 @@ python scripts/export_logits.py `
   --model-dir checkpoints/base-action-seed42/best `
   --input data/processed/v1/calibration.jsonl `
   --output artifacts/calibration_logits.npz `
+  --authorization-file data/interim/AUTHORIZED_VERSION/calibration_export_authorization.json `
   --device cpu
 ```
 
@@ -189,6 +190,9 @@ risk_labels          [N]
 alignment_labels     [N]
 ```
 
+NPZ、同名 JSON sidecar 和 `.complete` 提交标记必须作为一个哈希绑定 bundle 保存；旧式未绑定
+calibration artifact 会被推理端拒绝。
+
 拟合两个独立温度并冻结 1% FPR 运行点：
 
 ```powershell
@@ -197,6 +201,7 @@ python scripts/calibrate.py `
   --output artifacts/calibration.json `
   --report reports/calibration/seed42.json `
   --authorization-file data/interim/AUTHORIZED_VERSION/calibration_authorization.json `
+  --policy configs/policy.yaml `
   --target-fpr 0.01
 ```
 

@@ -12,6 +12,7 @@ from intentfence.deployment import validate_export_artifacts
 from intentfence.metrics import softmax
 from intentfence.modeling import load_multitask_model
 from intentfence.rules import RuleDetector
+from intentfence.run_manifest import artifact_tree_sha256
 from intentfence.text import build_text_from_fields, chunk_untrusted_content
 
 
@@ -93,9 +94,25 @@ class TorchBackend:
         self.device = device
         self.model_revision = self.metadata.model_revision
         self.model_version = self.metadata.model_revision or self.metadata.version
-        self.calibration = (
-            MultiHeadCalibration.load(calibration_path) if calibration_path and Path(calibration_path).exists() else None
+        self.calibration_path = (
+            Path(calibration_path).resolve()
+            if calibration_path and Path(calibration_path).exists()
+            else None
         )
+        self.calibration = (
+            MultiHeadCalibration.load(self.calibration_path)
+            if self.calibration_path is not None
+            else None
+        )
+        if self.calibration is not None:
+            calibration_provenance = self.calibration.metadata["provenance"]
+            resolved_model_dir = str(Path(model_dir).resolve())
+            if calibration_provenance["model_dir"] != resolved_model_dir:
+                raise ValueError("calibration model_dir does not match the loaded model")
+            if calibration_provenance["model_artifact_sha256"] != artifact_tree_sha256(model_dir):
+                raise ValueError("calibration model artifact hash does not match the loaded model")
+            if calibration_provenance["model_revision"] != self.model_revision:
+                raise ValueError("calibration model_revision does not match the loaded model")
 
     def predict(self, user_goal: str, untrusted_content: str, proposed_action: str) -> BackendPrediction:
         separator = self.tokenizer.sep_token or "[SEP]"
@@ -160,9 +177,20 @@ class OnnxBackend:
             raise RuntimeError("Install intentfence[ml,onnx] for ONNX inference") from exc
         self.session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        self.calibration = (
-            MultiHeadCalibration.load(calibration_path) if calibration_path and Path(calibration_path).exists() else None
+        self.calibration_path = (
+            Path(calibration_path).resolve()
+            if calibration_path and Path(calibration_path).exists()
+            else None
         )
+        self.calibration = (
+            MultiHeadCalibration.load(self.calibration_path)
+            if self.calibration_path is not None
+            else None
+        )
+        if self.calibration is not None and export_metadata is None:
+            raise ValueError(
+                "calibrated ONNX inference requires hash-bound export_metadata.json"
+            )
         if export_metadata is not None:
             export = export_metadata["export"]
             self.risk_labels = tuple(export["risk_labels"])
@@ -176,6 +204,23 @@ class OnnxBackend:
             self.max_length = max_length
             self.model_revision = None
             self.model_version = model_path.stem
+        if self.calibration is not None and self.model_revision is not None:
+            calibration_provenance = self.calibration.metadata["provenance"]
+            if calibration_provenance["model_revision"] != self.model_revision:
+                raise ValueError("calibration model_revision does not match the exported model")
+            if export_metadata is not None:
+                source_model = export_metadata["source_model"]
+                source_model_path = source_model.get("path")
+                if not isinstance(source_model_path, str) or not Path(source_model_path).is_absolute():
+                    raise ValueError("export metadata source model path is invalid")
+                if calibration_provenance["model_dir"] != str(Path(source_model_path).resolve()):
+                    raise ValueError(
+                        "calibration model directory does not match the exported model source"
+                    )
+                if calibration_provenance["model_artifact_sha256"] != source_model["artifact_sha256"]:
+                    raise ValueError(
+                        "calibration model artifact hash does not match the exported model source"
+                    )
 
     def predict(self, user_goal: str, untrusted_content: str, proposed_action: str) -> BackendPrediction:
         separator = self.tokenizer.sep_token or "[SEP]"
