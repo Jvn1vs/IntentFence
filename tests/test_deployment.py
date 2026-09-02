@@ -127,3 +127,10 @@ def test_docker_deployment_has_context_and_runtime_safety_contract() -> None:
     assert "USER 65532:65532" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "/health" in dockerfile
+
+    smoke_script = (repository_root / "scripts" / "run_c3b_docker_smoke.ps1").read_text(
+        encoding="utf-8"
+    )
+    assert "build -f deployment/Dockerfile" in smoke_script
+    assert "Invoke-RestMethod" in smoke_script
+    assert "docker rm -f $containerName" in smoke_script
