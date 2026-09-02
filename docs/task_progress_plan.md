@@ -673,6 +673,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   篡改拒绝已实现，并由合成 fixture 验证；
 - ✅ `/health` 与 `/v1/evaluate` 暴露应用版本、模型版本/revision；检测器异常的 read
   restricted fail-open 与 external fail-closed 已由 TestClient mock 验证；
+- ✅ 2026-09-02 已用实际 Uvicorn 进程完成一次规则后端运行时 smoke：`/health` 返回应用/策略
+  版本，外部通信攻击样例返回 `block`；进程已关闭且端口已释放。该证据仍只属于规则/API
+  工程验证，不代表神经模型或 Docker/ONNX 结果；
 - ✅ Dockerfile 继续使用非 root 用户，并新增 `/health` healthcheck；`.dockerignore` 会在
   build context 阶段排除真实数据、checkpoint、模型权重和运行时缓存；
 - ✅ 新增 `scripts/run_c3b_docker_smoke.ps1`，统一执行规则镜像构建、健康等待、API 断言和
@@ -820,9 +823,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
 - 合成 fixture 已覆盖来源/转换 replay、人工审计 key、merge、去重、六角色划分、manifest、完整性报告、规则与 word/char TF-IDF 接口及正式测试锁；
-- 上述结果属于静态与合成验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
+- 上述结果属于静态、合成和规则后端运行时验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
 - 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型；C3b 当前新增内容仍
-  只属于静态/fixture/规则后端工程验证。
+  只属于静态/fixture/规则后端工程验证（含一次本机 Uvicorn rules-only smoke）。
 - C4 的公开发布审计、论文模板和主张证据矩阵已通过 fixture/静态检查，但不等于最终公开
   内容已获项目所有者批准。
 - G1 的 committed release-tree、README 链接和 CI 契约预检已实现并通过；这不等于已合并到

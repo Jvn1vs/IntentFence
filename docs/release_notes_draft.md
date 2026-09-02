@@ -17,7 +17,8 @@ Project-owner approval is still required before this document is used as release
   and fail-closed provenance checks for calibration and formal Test A/B/C access. The current
   public snapshot does not validate an independently audited Alignment target.
 - FastAPI `/health`, `/v1/evaluate` and `/demo` endpoints with tool-specific failure handling;
-  demonstrations use rules or mocks and do not perform real tool actions.
+  a local Uvicorn rules-only smoke passed, while demonstrations use rules or mocks and do not
+  perform real tool actions.
 - PyTorch/ONNX export contracts, dynamic INT8 metadata checks, CPU benchmark tooling, and a
   scripted Docker rules-backend smoke path. Fixture/static deployment-contract checks pass; the
   actual container runtime smoke remains pending.
