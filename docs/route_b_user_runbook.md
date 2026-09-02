@@ -227,14 +227,15 @@ realism。即使全部通过，报告仍保持 `formal_training_authorized=false
 `docs/route_b_candidate_8_human_audit_handoff.md`。
 
 两名审核者完成并保存原始副本后，由项目所有者在未把封存 seed labels 提供给审核者的前提下，
-先运行只读进度检查：
+可单独运行只读进度检查：
 
 ```powershell
 & $IntentFencePython scripts/check_route_b_human_audit_progress.py
 if ($LASTEXITCODE -ne 0) { throw "candidate 8 人工审核尚未达到确定性分析条件" }
 ```
 
-只有该命令输出 `status=ready_for_deterministic_aggregation` 后，才运行 candidate 8 的一键确定性分析：
+准备直接分析时无需先重复运行上面的检查，直接使用下面的一键确定性分析入口；入口内部会执行
+同一进度门：
 
 ```powershell
 & $IntentFencePython scripts/run_route_b_candidate_8_audit_analysis.ps1 `
@@ -242,7 +243,7 @@ if ($LASTEXITCODE -ne 0) { throw "candidate 8 人工审核尚未达到确定性�
 if ($LASTEXITCODE -ne 0) { throw "Route B candidate 8 双人盲审分析失败或审核门未完成" }
 ```
 
-该入口内部固定 candidate 8 的四张表、manifest、配置和输出路径，只能在四张表和两份 attestation
+该入口固定 candidate 8 的四张表、manifest、配置和输出路径，只能在四张表和两份 attestation
 均完成后继续；补充 AI 分歧 receipt 不能替代这一步。
 即使分析通过，`formal_training_authorized=false` 仍保持到协议冻结和项目所有者明确授权。
 

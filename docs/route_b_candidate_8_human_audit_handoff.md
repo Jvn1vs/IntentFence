@@ -28,22 +28,22 @@
 时区的 `attested_at`。这是 provenance 声明与聚合时的 fail-closed 校验；模型输出不能填写
 该声明或作为人类审核提交。
 
-两名审核者交回文件后，项目所有者先运行只读进度检查：
+两名审核者交回文件后，如需单独查看进度，可运行只读检查：
 
 ```powershell
 conda activate intentfence
 python scripts/check_route_b_human_audit_progress.py
 ```
 
-只有当输出中的 `status` 为 `ready_for_deterministic_aggregation` 时，才运行下面 handoff
-所列的一键确定性分析命令。推荐使用：
+如果准备直接进入确定性分析，推荐只运行下面的一键命令；它会内部调用同一进度门，审核不完整
+时自动停止：
 
 ```powershell
 .\scripts\run_route_b_candidate_8_audit_analysis.ps1
 ```
 
-该入口会再次执行进度门，并固定 candidate 8 的四张表、manifest、配置和输出路径；它在进度
-不完整时不读取 `sealed_seed_labels.json`，不生成分析文件，也不会改变 `human_verified` 或
+该入口固定 candidate 8 的四张表、manifest、配置和输出路径；它在进度不完整时不读取
+`sealed_seed_labels.json`，不生成分析文件，也不会改变 `human_verified` 或
 `formal_training_authorized`。
 
 ## 当前状态
