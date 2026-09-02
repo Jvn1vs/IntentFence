@@ -19,8 +19,36 @@ function Invoke-DockerChecked {
     return $output
 }
 
+function Assert-DockerDaemon {
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = "docker"
+    $startInfo.Arguments = "info"
+    $startInfo.RedirectStandardError = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        if (-not $process.Start()) {
+            throw "could not start docker for daemon preflight"
+        }
+        if (-not $process.WaitForExit(10000)) {
+            $process.Kill()
+            throw "Docker daemon did not respond within 10 seconds"
+        }
+        $stderr = $process.StandardError.ReadToEnd().Trim()
+        if ($process.ExitCode -ne 0) {
+            $detail = if ($stderr) { ": $stderr" } else { "" }
+            throw "Docker daemon preflight failed with exit code $($process.ExitCode)$detail"
+        }
+    } finally {
+        $process.Dispose()
+    }
+}
+
 try {
-    Invoke-DockerChecked info --format '{{.ServerVersion}}' | Out-Null
+    Assert-DockerDaemon
     Invoke-DockerChecked build -f deployment/Dockerfile -t $ImageTag . | Out-Host
     $containerId = (Invoke-DockerChecked run -d --name $containerName -p "${HostPort}:8000" $ImageTag | Select-Object -Last 1).Trim()
     if ([string]::IsNullOrWhiteSpace($containerId)) {

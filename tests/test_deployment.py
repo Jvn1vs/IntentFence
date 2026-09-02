@@ -132,5 +132,6 @@ def test_docker_deployment_has_context_and_runtime_safety_contract() -> None:
         encoding="utf-8"
     )
     assert "build -f deployment/Dockerfile" in smoke_script
+    assert "WaitForExit(10000)" in smoke_script
     assert "Invoke-RestMethod" in smoke_script
     assert "docker rm -f $containerName" in smoke_script

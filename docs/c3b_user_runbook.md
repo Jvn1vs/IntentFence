@@ -108,8 +108,9 @@ Dockerfile 默认使用透明规则后端，不包含模型、真实数据或结
 .\scripts\run_c3b_docker_smoke.ps1
 ```
 
-脚本会构建镜像、等待 `/health` 可用、断言规则后端和外部通信阻断策略，并只清理自己创建
-的容器；可用 `-HostPort` 和 `-TimeoutSeconds` 调整端口与等待时间。该 smoke 只验证容器、
+脚本会先以 10 秒上限检查 Docker daemon，再构建镜像、等待 `/health` 可用、断言规则后端和
+外部通信阻断策略，并只清理自己创建的容器；可用 `-HostPort` 和 `-TimeoutSeconds` 调整端口
+与健康等待时间。该 smoke 只验证容器、
 健康检查、API 响应和规则策略，不产生模型安全或延迟结论；容器不会执行任何真实发送、
 上传、删除、支付或权限变更动作。
 
