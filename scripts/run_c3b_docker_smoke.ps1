@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 $containerName = "intentfence-c3b-smoke-$([guid]::NewGuid().ToString('N'))"
 $containerId = $null
+$daemonReady = $false
 
 function Invoke-DockerChecked {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
@@ -48,7 +49,14 @@ function Assert-DockerDaemon {
 }
 
 try {
+    if ($HostPort -lt 1 -or $HostPort -gt 65535) {
+        throw "HostPort must be in the range 1..65535"
+    }
+    if ($TimeoutSeconds -le 0) {
+        throw "TimeoutSeconds must be positive"
+    }
     Assert-DockerDaemon
+    $daemonReady = $true
     Invoke-DockerChecked build -f deployment/Dockerfile -t $ImageTag . | Out-Host
     $containerId = (Invoke-DockerChecked run -d --name $containerName -p "${HostPort}:8000" $ImageTag | Select-Object -Last 1).Trim()
     if ([string]::IsNullOrWhiteSpace($containerId)) {
@@ -95,7 +103,7 @@ try {
         host_port = $HostPort
     } | ConvertTo-Json -Compress
 } finally {
-    if ($containerId) {
+    if ($daemonReady) {
         & docker rm -f $containerName *> $null
     }
 }
