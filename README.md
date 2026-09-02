@@ -295,8 +295,12 @@ IntentFence 是纵深防御的一层，可能被自适应攻击绕过。实际�
 漏洞报告方式见 [SECURITY.md](SECURITY.md)。完整威胁模型见 [docs/threat_model.md](docs/threat_model.md)，公平比较规则见 [docs/baseline_protocol.md](docs/baseline_protocol.md)。
 
 分阶段任务、当前实现状态和每阶段测试要求见 [docs/task_progress_plan.md](docs/task_progress_plan.md)。
-论文式报告模板、主张证据矩阵、AI 使用披露和公开发布审计见
-[C4 材料索引](docs/paper_report_template.md)。项目每通过一个阶段即暂停，等待用户确认后再继续。
+论文式报告模板、主张证据矩阵、复现清单、AI 使用披露、简历工程表述和公开发布审计见
+[C4 论文模板](docs/paper_report_template.md)、[主张—证据矩阵](docs/claim_evidence_matrix.md)、
+[复现清单](docs/reproducibility_checklist.md)、[AI 使用披露](docs/ai_usage_disclosure.md)、
+[简历表述模板](docs/cv_claims_template.md) 与 [公开发布清单](docs/public_release_checklist.md)。
+Docker 规则后端 smoke 见 [C3b 运行手册](docs/c3b_user_runbook.md)。项目每通过一个阶段即暂停，
+等待用户确认后再继续。
 
 ## 参考
 
