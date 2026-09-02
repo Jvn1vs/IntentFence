@@ -30,8 +30,9 @@
 
 ## 当前状态
 
-四张表均为 400 行、审核字段为空、reviewer-facing ID 全部为标签中性格式；两份 attestation
-模板均为空且要求独立人类声明。v2 包 manifest 的封存 SHA-256 为
+最新复查（2026-09-02）：四张表均为 400 行，但完整审核为 `0/400`；审核字段和 reviewer-facing
+字段仍为空。两份 attestation 的 `reviewer_id` 为空、`independence_declared=false`，仍要求
+独立人类声明。v2 包 manifest 的封存 SHA-256 为
 `a19eb4430eb3b747073fa980ae0f7bf6afb76da3818f72134df270a5b19fc600`。此前的 v1 包未填写，
 仅因缺少此 provenance 证据而保留为不可提交的历史包，不会被覆盖。完成这项审核仍不自动授权
 训练；项目所有者须先确认独立人类审核与任何分歧裁决均已完成。
