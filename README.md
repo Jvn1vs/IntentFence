@@ -96,6 +96,9 @@ candidate 8 人工审核文件提交后，可先运行只读进度检查
 `ready_for_deterministic_aggregation` 才进入确定性分析。该命令不读取 seed labels、不写回审核表，
 也不会改变训练授权状态。
 
+进度门通过后，使用 `scripts/run_route_b_candidate_8_audit_analysis.ps1` 一键生成确定性分析，
+避免手工传递审核文件参数。
+
 `split_manifest.json` 记录 seed、模板组归属、各类数量、去重结果和 manifest 哈希。`train`、`validation`、`calibration` 与最终测试集必须互斥；验证集选模型，校准集只在权重冻结后拟合温度与阈值，测试集不调参。
 
 合成 `data/examples/smoke.jsonl` 只用于单元测试和接口示例；正式 `build_splits.py` 强制要求 Test B/C 的五个固定输入，不应使用单文件简化命令生成研究数据。

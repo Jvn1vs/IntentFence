@@ -234,21 +234,16 @@ realism。即使全部通过，报告仍保持 `formal_training_authorized=false
 if ($LASTEXITCODE -ne 0) { throw "candidate 8 人工审核尚未达到确定性分析条件" }
 ```
 
-只有该命令输出 `status=ready_for_deterministic_aggregation` 后，才运行 candidate 8 的确定性分析：
+只有该命令输出 `status=ready_for_deterministic_aggregation` 后，才运行 candidate 8 的一键确定性分析：
 
 ```powershell
-& $IntentFencePython scripts/analyze_route_b_blind_audits.py `
-  --reviewer-a-risk data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_a_risk.csv `
-  --reviewer-b-risk data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_b_risk.csv `
-  --reviewer-a-alignment data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_a_alignment.csv `
-  --reviewer-b-alignment data/interim/route_b_v2_candidate_8_human_audit_v2/reviewer_b_alignment.csv `
-  --sealed-seed-labels data/interim/route_b_v2_candidate_8_human_audit_v2/sealed_seed_labels.json `
-  --audit-manifest data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json `
-  --output data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json
-if ($LASTEXITCODE -ne 0) { throw "Route B candidate 8 双人盲审分析失败" }
+& $IntentFencePython scripts/run_route_b_candidate_8_audit_analysis.ps1 `
+  -PythonCommand $IntentFencePython
+if ($LASTEXITCODE -ne 0) { throw "Route B candidate 8 双人盲审分析失败或审核门未完成" }
 ```
 
-该命令只能在四张表和两份 attestation 均完成后执行；补充 AI 分歧 receipt 不能替代这一步。
+该入口内部固定 candidate 8 的四张表、manifest、配置和输出路径，只能在四张表和两份 attestation
+均完成后继续；补充 AI 分歧 receipt 不能替代这一步。
 即使分析通过，`formal_training_authorized=false` 仍保持到协议冻结和项目所有者明确授权。
 
 ## 7. Readiness 聚合与协议封存

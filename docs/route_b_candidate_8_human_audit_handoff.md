@@ -36,8 +36,15 @@ python scripts/check_route_b_human_audit_progress.py
 ```
 
 只有当输出中的 `status` 为 `ready_for_deterministic_aggregation` 时，才运行下面 handoff
-所列的确定性分析命令。该检查不读取 `sealed_seed_labels.json`，不生成输出文件，也不会改变
-`human_verified` 或 `formal_training_authorized`。
+所列的一键确定性分析命令。推荐使用：
+
+```powershell
+.\scripts\run_route_b_candidate_8_audit_analysis.ps1
+```
+
+该入口会再次执行进度门，并固定 candidate 8 的四张表、manifest、配置和输出路径；它在进度
+不完整时不读取 `sealed_seed_labels.json`，不生成分析文件，也不会改变 `human_verified` 或
+`formal_training_authorized`。
 
 ## 当前状态
 

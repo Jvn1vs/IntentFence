@@ -387,6 +387,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ 新增只读 `scripts/check_route_b_human_audit_progress.py`，在不读取 seed labels、不写回审核表
   或授权字段的前提下汇总四张表的完成数、缺失字段、身份一致性和 attestation 状态；完成后
   才进入确定性分析，减少人工返工；
+- ✅ 新增 `scripts/run_route_b_candidate_8_audit_analysis.ps1`，将进度门与 candidate 8 确定性分析
+  固定路径收敛为一条命令；审核不完整时 fail-closed，不生成分析文件；
 - ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
 
 #### 出口条件

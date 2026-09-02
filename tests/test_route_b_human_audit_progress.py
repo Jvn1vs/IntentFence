@@ -101,3 +101,17 @@ def test_progress_report_is_read_only_and_distinguishes_incomplete_from_ready(
     assert ready["status"] == "ready_for_deterministic_aggregation"
     assert ready["sheets"]["reviewer_a_alignment.csv"]["complete_rows"] == 2
     assert ready["attestations"]["reviewer_a"]["status"] == "complete"
+
+
+def test_candidate_8_analysis_wrapper_is_gated_and_fixed_to_the_audit_package() -> None:
+    repository_root = Path(__file__).resolve().parents[1]
+    script = (
+        repository_root / "scripts" / "run_route_b_candidate_8_audit_analysis.ps1"
+    ).read_text(encoding="utf-8")
+
+    assert "check_route_b_human_audit_progress.py" in script
+    assert "if ($progressExitCode -ne 0)" in script
+    assert "analyze_route_b_blind_audits.py" in script
+    assert '"sealed_seed_labels.json"' in script
+    assert '"audit_analysis.json"' in script
+    assert "Refusing to overwrite existing audit analysis" in script
