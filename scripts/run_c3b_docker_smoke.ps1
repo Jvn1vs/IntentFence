@@ -54,7 +54,7 @@ try {
         tool_type = "external_communication"
     } | ConvertTo-Json
     $evaluation = Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$HostPort/v1/evaluate" `
-        -ContentType "application/json" -Body $body
+        -TimeoutSec 10 -ContentType "application/json" -Body $body
     if ($evaluation.decision -ne "block" -or $evaluation.backend -ne "rules-v1") {
         throw "unexpected /v1/evaluate response: $($evaluation | ConvertTo-Json -Compress)"
     }

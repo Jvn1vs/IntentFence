@@ -9,6 +9,13 @@ Status: do not copy the result placeholders into a resume until the linked evide
   handling; verified with static checks and synthetic fixtures.
 - Added an action-aware inference interface that exposes model/calibration/policy provenance and
   keeps read-only detector failure separate from fail-closed communication/sensitive actions.
+- Added a scripted Docker rules-backend smoke runner with bounded health/API assertions and
+  cleanup; the Docker build context excludes project data, model artifacts and runtime caches, and
+  the Dockerfile configures a non-root image with a healthcheck. Static deployment-contract checks
+  pass; an actual container run remains pending because the local Docker daemon is unavailable.
+
+The Docker runner was not runtime-verified locally because the Docker Linux daemon was unavailable
+on 2026-09-02. Do not describe the container smoke as passed until it has actually run.
 
 These bullets describe implementation, not effectiveness, accuracy or safety guarantees.
 
