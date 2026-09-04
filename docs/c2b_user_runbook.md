@@ -47,6 +47,23 @@ Set-Location E:\IntentFence
 
 在当前 CPU 主机上只允许运行上述预检；不要为了验证脚本而传入 `-RequireCuda` 或启动训练。
 
+如果租用的是 Linux 云 GPU，可使用仓库内等价的 Bash 入口。它与 PowerShell 入口执行相同的
+候选 manifest、配置、Conda、CUDA、授权、输出目录、checkpoint 和 run manifest 检查：
+
+```bash
+chmod +x scripts/run_c2b_base.sh
+bash scripts/run_c2b_base.sh \
+  --config-path configs/deberta_base_action_multitask.yaml \
+  --train-path data/interim/route_b_v2_candidate_8/train.jsonl \
+  --validation-path data/interim/route_b_v2_candidate_8/validation.jsonl \
+  --output-directory checkpoints/base-action-multitask-seed42 \
+  --conda-executable /opt/conda/bin/conda \
+  --preflight-only
+```
+
+Linux 主机的首次操作只执行 `--preflight-only`。CUDA 预检和授权均通过后，项目所有者再决定
+是否亲自启动真实工程训练；不要把 Bash 入口和 PowerShell 入口同时用于同一个输出目录。
+
 ## 3. 正式训练授权文件
 
 正式研究训练仍必须由项目所有者在独立人类审核与裁决完成后自行创建授权文件。Codex 不填写该

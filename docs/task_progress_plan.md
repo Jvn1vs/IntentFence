@@ -544,6 +544,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   seed 42、5,000/2,000 train/validation、四类 Alignment 与五类 Risk 计数、939 个计划
   optimizer steps、Conda/PyTorch/Transformers 解析均通过；未加载 tokenizer/模型、未创建
   checkpoint、未启动训练；启动脚本已支持显式 `-CondaExecutable`，兼容 Conda 不在 PATH 的主机；
+- ✅ 已补充 Linux 云 GPU 的 `scripts/run_c2b_base.sh`，与 PowerShell 入口保持相同的候选
+  manifest、配置、Conda、CUDA、授权、独立输出目录、checkpoint 和 run manifest 约束；仅做
+  Bash 语法与帮助入口检查，未在本机启动训练；
 - ✅ C2b 配置校验器只接受已登记的四个 Base 变体、固定 DeBERTa revision、完整冻结超参数、
   `task_alignment` 目标和预注册 seeds；当前入口固定服务 candidate 8，避免任意配置或候选
   manifest 被误带入主实验；protocol lock 同时严格校验 schema 1 与 SHA-256 算法；
