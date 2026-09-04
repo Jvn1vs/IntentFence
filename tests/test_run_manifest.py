@@ -31,7 +31,8 @@ def test_run_manifest_records_inputs_environment_and_checkpoint_hashes(
     )
     train_path.write_text('{"fixture": "train"}\n', encoding="utf-8")
     validation_path.write_text('{"fixture": "validation"}\n', encoding="utf-8")
-    (checkpoint_dir / "metadata.json").write_text("{}\n", encoding="utf-8")
+    metadata_path = checkpoint_dir / "metadata.json"
+    metadata_path.write_text("{}\n", encoding="utf-8")
 
     payload = build_run_manifest(
         repository_root=Path.cwd(),
@@ -50,7 +51,7 @@ def test_run_manifest_records_inputs_environment_and_checkpoint_hashes(
 
     assert loaded["configuration"]["model_revision"].startswith("a36c739")
     assert loaded["data"]["train"]["sha256"] == sha256_file(train_path)
-    assert loaded["checkpoint_files"]["metadata.json"]["bytes"] == 4
+    assert loaded["checkpoint_files"]["metadata.json"]["bytes"] == metadata_path.stat().st_size
     assert loaded["environment"]["python"]
     assert loaded["environment"]["system_memory_bytes"]
     assert "cuda_available" in loaded["environment"]["accelerator"]
