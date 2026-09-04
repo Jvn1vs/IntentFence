@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import random
 from collections import Counter, defaultdict
 from collections.abc import Iterable
@@ -158,7 +159,8 @@ def group_aware_split(
     ratios = ratios or DEFAULT_SPLIT_RATIOS
     if not ratios or any(value <= 0 for value in ratios.values()):
         raise ValueError("All split ratios must be positive")
-    total_ratio = sum(ratios.values())
+    # Use compensated summation so the sealed manifest is stable across Python versions.
+    total_ratio = math.fsum(ratios.values())
     normalized_ratios = {key: value / total_ratio for key, value in ratios.items()}
 
     groups: dict[str, list[IntentSample]] = defaultdict(list)

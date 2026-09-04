@@ -789,6 +789,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - ✅ C4 分支已推送，远端 SHA 与本地提交一致；
 - ✅ `scripts/check_release_readiness.py` 已加入，对 committed Git tree、README 本地链接和 CI
   质量门做不发布预检；
+- ✅ CI 已补齐 C1 数据报告测试所需的 `.[data,dev]` 依赖；split ratio 归一化改用跨 Python
+  版本稳定的补偿求和，避免同一冻结 manifest 在 3.10/3.12 间产生浮点漂移；
 - ⬜ G1 的最终材料复核、合并、Release 和简历包装尚未开始，仍需项目所有者批准。
 
 #### 要测试什么

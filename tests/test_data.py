@@ -208,6 +208,17 @@ def test_group_split_has_no_leakage():
     assert all(value["total"] > 0 for value in manifest["counts"].values())
 
 
+def test_group_split_manifest_ratios_are_stable_across_float_summation() -> None:
+    _, manifest = group_aware_split([sample(index, f"g{index}") for index in range(8)])
+
+    assert manifest["ratios"] == {
+        "train": 0.70,
+        "validation": 0.10,
+        "calibration": 0.10,
+        "test_a": 0.10,
+    }
+
+
 def test_manifest_hash_covers_late_metadata():
     manifest = seal_manifest({"schema_version": 1, "counts": {"train": 3}})
     assert verify_manifest(manifest)
