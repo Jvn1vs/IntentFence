@@ -400,8 +400,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   才进入确定性分析，减少人工返工；
 - ✅ 新增 `scripts/run_route_b_candidate_8_audit_analysis.ps1`，将进度门与 candidate 8 确定性分析
   固定路径收敛为一条命令；审核不完整时 fail-closed，不生成分析文件；
-- ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合；AI 工程训练授权文件
-  也尚未生成，因此没有启动训练。
+- ✅ 项目所有者已创建 AI 工程训练授权文件，并通过 C2b 授权校验；当前授权保持
+  `engineering_training_authorized=true`、`formal_training_authorized=false`、
+  `human_verified=false`，且明确接受当前 AI 质量门失败仅用于工程训练；
+- ⛔ 没有运行任何学习参数拟合，未启动 Small/Base 训练；当前只可继续进行训练前的
+  不加载模型的 preflight，实际训练仍须项目所有者亲自执行。
 
 #### 出口条件
 
@@ -415,8 +418,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   formal/human/final-test 语义；
 - 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
 - 只提交框架、配置、文档和允许公开的聚合 Markdown 证据；
-- 阶段退出后仍停在正式模型训练授权之前；如需工程训练，须另行形成项目所有者明确
-  的非论文级实验决定。
+- 阶段退出后仍停在正式研究训练授权之前；AI 工程路线的项目所有者授权已单独形成并通过
+  校验，但实际运行仍须项目所有者亲自执行，并且只能作为非论文级工程实验。
 
 ---
 
@@ -530,11 +533,17 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   和 multitask loss weight 按协议变化；
 - ✅ `scripts/run_c2b_base.ps1` 已实现 Base revision/seed/dependency/CUDA/data preflight、
   独立输出目录、显式项目所有者授权文件、checkpoint reload、实际人民币成本和 run manifest
-  绑定；非预检训练还必须通过独立校验器，将项目所有者授权绑定到冻结 Route B 2.0.0 的
-  protocol lock、candidate manifest、readiness 报告、完整性报告和正式人类审核证据，并将实际
+  绑定；非预检训练还必须通过独立校验器。正式研究路线绑定 Route B 2.0.0 的 protocol
+  lock、candidate manifest、readiness 报告、完整性报告和正式人类审核证据；AI 工程路线绑定
+  2.2 AI training protocol lock、双 AI manifest/analysis 及其 readiness，并继续保持
+  `human_verified=false` 与 `formal_training_authorized=false`；两条路线都将实际
   train/validation 路径与字节哈希绑定到 candidate manifest；
   `-PreflightOnly` 同样绑定 candidate manifest 的 train/validation 路径与字节哈希，不加载
   tokenizer、模型或 checkpoint，失败不自动重试；Base 训练 CLI 还会再次要求并重验同一组授权；
+- ✅ 2026-09-04 已用当前 AI 工程路线在 CPU 上完成一次 C2b `-PreflightOnly`：action multitask
+  seed 42、5,000/2,000 train/validation、四类 Alignment 与五类 Risk 计数、939 个计划
+  optimizer steps、Conda/PyTorch/Transformers 解析均通过；未加载 tokenizer/模型、未创建
+  checkpoint、未启动训练；启动脚本已支持显式 `-CondaExecutable`，兼容 Conda 不在 PATH 的主机；
 - ✅ C2b 配置校验器只接受已登记的四个 Base 变体、固定 DeBERTa revision、完整冻结超参数、
   `task_alignment` 目标和预注册 seeds；当前入口固定服务 candidate 8，避免任意配置或候选
   manifest 被误带入主实验；protocol lock 同时严格校验 schema 1 与 SHA-256 算法；
@@ -919,9 +928,10 @@ Alignment/action realism 57）。项目所有者已完成逐条裁决，validato
 `docs/route_b_ai_disagreement_handoff.md`；正式两名独立人类 v2 审核包详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
 不构成进入正式研究训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
-任何模型运行。C2c 的 reliability diagram/classwise ECE、calibration split 哈希校验、只读
-preflight 和 owner authorization gate 已准备，但没有真实 logits、温度或阈值。不得在授权文件
-和项目所有者亲自执行之前产生 checkpoint 或拟合校准参数，不得进入最终测试或 Small/Base 训练
+任何模型运行。AI 工程训练授权已通过校验，但还没有启动实际模型运行。C2c 的 reliability
+diagram/classwise ECE、calibration split 哈希校验、只读 preflight 和 owner authorization gate
+已准备，但没有真实 logits、温度或阈值。不得在项目所有者亲自执行之前产生 checkpoint 或拟合
+校准参数，不得进入最终测试或 Small/Base 训练
 结果汇总。C3a 的固定阈值评测、分组/错误分析、cluster bootstrap、Wilson 区间和一次性
 final-test ledger 也已准备，但没有读取或生成真实 Test A/B/C 预测。按用户指示，已先继续
 推进不依赖 checkpoint 的 C3b 工程框架；C3b 的真实导出、INT8 安全重跑和 CPU 实测仍等待

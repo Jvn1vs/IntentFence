@@ -38,15 +38,19 @@ Set-Location E:\IntentFence
   -TrainPath data\interim\route_b_v2_candidate_8\train.jsonl `
   -ValidationPath data\interim\route_b_v2_candidate_8\validation.jsonl `
   -OutputDirectory checkpoints\base-action-multitask-seed42 `
+  -CondaExecutable D:\miniconda3\Scripts\conda.exe `
   -PreflightOnly
 ```
+
+如果 `conda` 已在 PATH 中，可以省略 `-CondaExecutable`；否则传入本机实际的完整
+`conda.exe` 路径。
 
 在当前 CPU 主机上只允许运行上述预检；不要为了验证脚本而传入 `-RequireCuda` 或启动训练。
 
 ## 3. 正式训练授权文件
 
-非预检运行必须由项目所有者在独立人类审核与裁决完成后自行创建授权文件。Codex 不填写该
-文件，也不把 AI 审核结果转换为授权。文件至少需要以下字段：
+正式研究训练仍必须由项目所有者在独立人类审核与裁决完成后自行创建授权文件。Codex 不填写该
+文件，也不把 AI 审核结果转换为正式人类授权。AI 工程训练使用第 6 节的独立授权文件和字段。
 
 ```json
 {
@@ -109,8 +113,9 @@ NotInject 仍报告精确误报数与 Wilson 区间，不把 339 条压力样本
 
 ## 5. 当前边界
 
-candidate 8 的人工 v2 审核仍未完成，当前授权文件不存在，因此本手册只证明 C2b 工程入口
-可检查、可审计、可拒绝越权运行；不证明模型有效，也不授权训练、校准或最终测试。
+candidate 8 的人工 v2 审核仍未完成，正式研究训练授权文件不存在；但 AI 工程训练授权文件
+已经由项目所有者创建并通过校验。因此当前只开放工程训练入口，不证明模型有效，也不授权
+正式训练、校准或最终测试。
 
 ## 6. AI-reviewed engineering training route
 

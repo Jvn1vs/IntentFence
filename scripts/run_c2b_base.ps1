@@ -23,7 +23,8 @@ param(
     [string]$AiReviewPolicyPath = "",
     [double]$CostCny = -1,
     [switch]$RequireCuda,
-    [switch]$PreflightOnly
+    [switch]$PreflightOnly,
+    [string]$CondaExecutable = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -55,11 +56,33 @@ if ($CostCny -lt -1) {
 if ($ExpectedCandidate -ne $SupportedCandidate) {
     throw "This C2b entrypoint only supports $SupportedCandidate."
 }
-if (-not (Get-Command conda -ErrorAction SilentlyContinue)) {
-    throw "Unable to resolve conda. Open an Anaconda PowerShell prompt and retry."
+$ResolvedCondaExecutable = $null
+if ($CondaExecutable) {
+    if (Test-Path -LiteralPath $CondaExecutable -PathType Leaf) {
+        $ResolvedCondaExecutable = (Resolve-Path -LiteralPath $CondaExecutable).Path
+    } else {
+        $CondaCommand = Get-Command $CondaExecutable -ErrorAction SilentlyContinue
+        if ($CondaCommand) {
+            $ResolvedCondaExecutable = $CondaCommand.Source
+        }
+    }
+} elseif ($env:CONDA_EXE -and (Test-Path -LiteralPath $env:CONDA_EXE -PathType Leaf)) {
+    $ResolvedCondaExecutable = (Resolve-Path -LiteralPath $env:CONDA_EXE).Path
+} else {
+    $CondaCommand = Get-Command conda.exe -ErrorAction SilentlyContinue
+    if (-not $CondaCommand) {
+        $CondaCommand = Get-Command conda -ErrorAction SilentlyContinue
+    }
+    if ($CondaCommand) {
+        $ResolvedCondaExecutable = $CondaCommand.Source
+    }
+}
+if (-not $ResolvedCondaExecutable) {
+    throw "Unable to resolve conda. Pass -CondaExecutable with the full conda.exe path."
 }
 
-$CondaEnvironmentOutput = @(& conda run -n intentfence python -c "import sys; print(sys.executable)")
+Write-Host "Using Conda: $ResolvedCondaExecutable"
+$CondaEnvironmentOutput = @(& $ResolvedCondaExecutable run -n intentfence python -c "import sys; print(sys.executable)")
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to resolve the intentfence Conda Python."
 }
