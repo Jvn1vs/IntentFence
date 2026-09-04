@@ -18,6 +18,9 @@ param(
     [string]$AuditAnalysisPath = "data/interim/route_b_v2_candidate_8_human_audit_v2/audit_analysis.json",
     [string]$AuditManifestPath = "data/interim/route_b_v2_candidate_8_human_audit_v2/audit_manifest.json",
     [string]$PublicReportPath = "reports/data_quality/route_b_candidate_8_card.md",
+    [string]$AiReviewManifestPath = "",
+    [string]$IntegrityPolicyPath = "",
+    [string]$AiReviewPolicyPath = "",
     [double]$CostCny = -1,
     [switch]$RequireCuda,
     [switch]$PreflightOnly
@@ -111,20 +114,40 @@ if ($RequireCuda -and ($CudaOutput -notmatch "cuda_available=True")) {
 
 if (-not $PreflightOnly) {
     $AuthorizationValidationScript = Join-Path $RepositoryRoot "scripts/validate_c2b_training_authorization.py"
-    & $IntentFencePython $AuthorizationValidationScript `
-        --authorization-file (Resolve-RepositoryPath $AuthorizationFile $RepositoryRoot) `
-        --expected-candidate $ExpectedCandidate `
-        --candidate-manifest (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot) `
-        --train-path $CandidateTrainPath `
-        --validation-path $CandidateValidationPath `
-        --readiness-report (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot) `
-        --protocol-lock (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot) `
-        --policy (Resolve-RepositoryPath $PolicyPath $RepositoryRoot) `
-        --protocol-document (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot) `
-        --integrity-report (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot) `
-        --audit-analysis (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot) `
-        --audit-manifest (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot) `
-        --public-report (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
+    $AuthorizationArguments = @(
+        "--authorization-file", (Resolve-RepositoryPath $AuthorizationFile $RepositoryRoot),
+        "--expected-candidate", $ExpectedCandidate,
+        "--candidate-manifest", (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot),
+        "--train-path", $CandidateTrainPath,
+        "--validation-path", $CandidateValidationPath,
+        "--readiness-report", (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot),
+        "--protocol-lock", (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot),
+        "--policy", (Resolve-RepositoryPath $PolicyPath $RepositoryRoot),
+        "--protocol-document", (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot),
+        "--integrity-report", (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot),
+        "--audit-analysis", (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot),
+        "--audit-manifest", (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot),
+        "--public-report", (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
+    )
+    if ($AiReviewManifestPath) {
+        $AuthorizationArguments += @(
+            "--ai-review-manifest",
+            (Resolve-RepositoryPath $AiReviewManifestPath $RepositoryRoot)
+        )
+    }
+    if ($IntegrityPolicyPath) {
+        $AuthorizationArguments += @(
+            "--integrity-policy",
+            (Resolve-RepositoryPath $IntegrityPolicyPath $RepositoryRoot)
+        )
+    }
+    if ($AiReviewPolicyPath) {
+        $AuthorizationArguments += @(
+            "--ai-review-policy",
+            (Resolve-RepositoryPath $AiReviewPolicyPath $RepositoryRoot)
+        )
+    }
+    & $IntentFencePython $AuthorizationValidationScript @AuthorizationArguments
     if ($LASTEXITCODE -ne 0) {
         throw "C2b training authorization is not bound to frozen Route B evidence."
     }
@@ -160,22 +183,43 @@ if (Test-Path -LiteralPath $ResolvedOutputDirectory) {
 
 $StartedAt = (Get-Date).ToUniversalTime()
 $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-& $IntentFencePython -m intentfence.train `
-    --config $ResolvedConfigPath `
-    --train $ResolvedTrainPath `
-    --validation $ResolvedValidationPath `
-    --output-dir $ResolvedOutputDirectory `
-    --c2b-authorization-file $ResolvedAuthorizationFile `
-    --c2b-expected-candidate $ExpectedCandidate `
-    --c2b-candidate-manifest (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot) `
-    --c2b-readiness-report (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot) `
-    --c2b-protocol-lock (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot) `
-    --c2b-policy (Resolve-RepositoryPath $PolicyPath $RepositoryRoot) `
-    --c2b-protocol-document (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot) `
-    --c2b-integrity-report (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot) `
-    --c2b-audit-analysis (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot) `
-    --c2b-audit-manifest (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot) `
-    --c2b-public-report (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
+$TrainingArguments = @(
+    "-m", "intentfence.train",
+    "--config", $ResolvedConfigPath,
+    "--train", $ResolvedTrainPath,
+    "--validation", $ResolvedValidationPath,
+    "--output-dir", $ResolvedOutputDirectory,
+    "--c2b-authorization-file", $ResolvedAuthorizationFile,
+    "--c2b-expected-candidate", $ExpectedCandidate,
+    "--c2b-candidate-manifest", (Resolve-RepositoryPath $CandidateManifestPath $RepositoryRoot),
+    "--c2b-readiness-report", (Resolve-RepositoryPath $ReadinessReportPath $RepositoryRoot),
+    "--c2b-protocol-lock", (Resolve-RepositoryPath $ProtocolLockPath $RepositoryRoot),
+    "--c2b-policy", (Resolve-RepositoryPath $PolicyPath $RepositoryRoot),
+    "--c2b-protocol-document", (Resolve-RepositoryPath $ProtocolDocumentPath $RepositoryRoot),
+    "--c2b-integrity-report", (Resolve-RepositoryPath $IntegrityReportPath $RepositoryRoot),
+    "--c2b-audit-analysis", (Resolve-RepositoryPath $AuditAnalysisPath $RepositoryRoot),
+    "--c2b-audit-manifest", (Resolve-RepositoryPath $AuditManifestPath $RepositoryRoot),
+    "--c2b-public-report", (Resolve-RepositoryPath $PublicReportPath $RepositoryRoot)
+)
+if ($AiReviewManifestPath) {
+    $TrainingArguments += @(
+        "--c2b-ai-review-manifest",
+        (Resolve-RepositoryPath $AiReviewManifestPath $RepositoryRoot)
+    )
+}
+if ($IntegrityPolicyPath) {
+    $TrainingArguments += @(
+        "--c2b-integrity-policy",
+        (Resolve-RepositoryPath $IntegrityPolicyPath $RepositoryRoot)
+    )
+}
+if ($AiReviewPolicyPath) {
+    $TrainingArguments += @(
+        "--c2b-ai-review-policy",
+        (Resolve-RepositoryPath $AiReviewPolicyPath $RepositoryRoot)
+    )
+}
+& $IntentFencePython @TrainingArguments
 if ($LASTEXITCODE -ne 0) {
     throw "C2b Base training failed; no automatic retry is performed."
 }

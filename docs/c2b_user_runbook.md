@@ -1,7 +1,9 @@
 # C2b Base 主实验运行准备手册
 
 状态：工程准备已完成；Codex 不租用 GPU、不启动 Base 训练，也不拟合任何学习参数。
-正式训练只有在项目所有者完成独立人类审核、明确授权并亲自执行后才能发生。
+正式训练仍必须由项目所有者明确授权并亲自执行。默认人类审核路线保持不变；新增的
+`2.2.0-ai-assisted-engineering.1` 只允许 AI-reviewed engineering training，不产生
+`human_verified` 或 formal/paper-grade 证据。
 
 ## 1. 已冻结的运行边界
 
@@ -109,3 +111,80 @@ NotInject 仍报告精确误报数与 Wilson 区间，不把 339 条压力样本
 
 candidate 8 的人工 v2 审核仍未完成，当前授权文件不存在，因此本手册只证明 C2b 工程入口
 可检查、可审计、可拒绝越权运行；不证明模型有效，也不授权训练、校准或最终测试。
+
+## 6. AI-reviewed engineering training route
+
+项目所有者已明确选择新增路线 `B-ai-assisted-engineering`。这条路线使用两个不同的
+provider/model/revision，以温度 `0` 独立完成同一标签中性包的 400 条 Risk 与 400 条
+Alignment/action 审核；AI 输出必须保留原始文件和哈希，且始终标记为
+`ai_reviewed_engineering_only`。它可以替代本手册中“工程训练前必须完成两名人类审核”的
+前置条件，但不能替代人类审核证据、正式研究训练、校准或最终测试。
+
+协议、锁和就绪报告路径：
+
+```powershell
+$Candidate = "data/interim/route_b_v2_candidate_8"
+$AiPair = "data/interim/route_b_v2_candidate_8_human_audit_v2_ai_pair"
+$AiAudit = "data/interim/route_b_v2_candidate_8_ai_pair_audit"
+
+python scripts/freeze_route_b_ai_training_protocol.py `
+  --confirm-project-owner-approval
+
+上面的 freeze 命令只用于首次生成锁；本工作树已有
+configs/route_b_ai_training_protocol_lock.json 时不要重复执行（脚本会拒绝覆盖），只需
+运行 scripts/validate_route_b_ai_training_framework.py 验证现有锁，然后继续生成 readiness。
+
+python scripts/build_route_b_ai_training_readiness.py `
+  --candidate-manifest "$Candidate/manifest.json" `
+  --integrity-report "$Candidate/integrity_v2_data_protocol.json" `
+  --ai-review-analysis "$AiPair/ai_review_analysis.json" `
+  --ai-review-manifest "$AiPair/ai_review_manifest.json" `
+  --audit-manifest "$AiAudit/audit_manifest.json" `
+  --public-report reports/data_quality/route_b_candidate_8_ai_engineering_card.md `
+  --output "$Candidate/ai_engineering_readiness.json"
+```
+
+当质量门失败时，readiness 仍会如实保留失败结果；只有在结构证据通过后，项目所有者才可
+在独立授权文件中填写风险接受理由。授权文件至少包含：
+
+```json
+{
+  "schema_version": 1,
+  "candidate_id": "route_b_v2_candidate_8",
+  "protocol_version": "2.2.0-ai-assisted-engineering.1",
+  "training_authorization_mode": "ai_reviewed_engineering",
+  "human_verified": false,
+  "formal_training_authorized": false,
+  "engineering_training_authorized": true,
+  "training_executor": "project_owner_only",
+  "ai_evidence_class": "ai_reviewed_engineering_only",
+  "ai_quality_gate_failure_accepted": true,
+  "ai_quality_gate_failure_reason": "<owner's reasoned engineering-only risk acceptance>",
+  "approved_by_project_owner": "<owner id>",
+  "approved_at": "<timezone-aware ISO-8601 timestamp>",
+  "candidate_manifest_sha256": "<file SHA-256>",
+  "readiness_report_sha256": "<file SHA-256>",
+  "protocol_lock_sha256": "<file SHA-256>",
+  "integrity_policy_sha256": "<file SHA-256>",
+  "ai_review_policy_sha256": "<file SHA-256>",
+  "ai_review_analysis_sha256": "<file SHA-256>",
+  "ai_review_manifest_sha256": "<file SHA-256>"
+}
+```
+
+将 `-AuthorizationFile $Candidate\ai_training_authorization.json`、
+`-PolicyPath configs\route_b_ai_training_protocol.yaml`、
+`-ProtocolLockPath configs\route_b_ai_training_protocol_lock.json`、
+`-ReadinessReportPath $Candidate\ai_engineering_readiness.json`、
+`-AuditAnalysisPath $AiPair\ai_review_analysis.json`、
+`-AuditManifestPath $AiAudit\audit_manifest.json`、
+`-PublicReportPath reports\data_quality\route_b_candidate_8_ai_engineering_card.md`、
+`-AiReviewManifestPath $AiPair\ai_review_manifest.json`、
+`-IntegrityPolicyPath configs\route_b_data_protocol.yaml`、
+`-AiReviewPolicyPath configs\route_b_ai_review_protocol.yaml` 传给 `run_c2b_base.ps1`，即可让
+入口校验 2.2 AI 授权。若使用当前 candidate 8 包，还必须将当前失败的 Risk/Alignment
+质量门写入上述接受理由；不能删改原始 CSV 或降低阈值。训练仍须显式 `-RequireCuda`、
+记录实际成本，并在完成一个变体后停止。
+
+这条路线不会打开 calibration、Test A/B/C/D、最终测试或发表结论；这些阶段仍需单独的
+项目所有者授权和冻结证据。

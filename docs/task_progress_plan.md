@@ -375,6 +375,17 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   0.99875。分析状态为 `ai_quality_gates_failed_engineering_only`，负结果已写入
   `reports/data_quality/route_b_candidate_8_human_v2_ai_pair_failure.md`；它不替代独立人类
   审核、不修改人工 v2 包，也不解除 `human_verified=false` 或 `formal_training_authorized=false`；
+- ✅ 按项目所有者 2026-09-04 指示，已将训练路线修订为
+  `B-ai-assisted-engineering`，新增冻结协议 `2.2.0-ai-assisted-engineering.1`。两个不同
+  AI 模型可以作为工程训练前的结构化审核证据，审核证据等级固定为
+  `ai_reviewed_engineering_only`；AI 不计为人工审核，`human_verified=false` 和
+  `formal_training_authorized=false` 继续保持；
+- ✅ 已实现 AI 工程训练路线的 protocol lock、readiness 重放和 C2b 授权校验。它复用已生成
+  的 candidate 8 manifest/完整性报告和双 AI 原始包，不修改历史数据或人工 v2 包；质量门
+  失败不会被改写，若结构证据通过，只能由项目所有者在授权文件中填写风险接受理由后进行
+  工程训练；
+- ✅ 已新增绑定 candidate 8 sealed manifest 的 AI 工程聚合卡、运行手册和 AI 使用披露；
+  该路线不解锁 calibration、Test A/B/C/D、最终测试、付费 API、GPU 租用或论文级结论；
 - ✅ 已生成与正式人工 v2 包隔离的项目所有者 AI 分歧复核包：风险分歧 80 条、对齐/动作现实性
   分歧 57 条，共 137 条；输出 manifest 绑定两份 AI 原始 CSV、AI manifest、AI 分析和 audit
   manifest 的 SHA-256，封存 seed labels 未复制，且明确不满足独立人工双盲门；交接与填写规则见
@@ -389,7 +400,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   才进入确定性分析，减少人工返工；
 - ✅ 新增 `scripts/run_route_b_candidate_8_audit_analysis.ps1`，将进度门与 candidate 8 确定性分析
   固定路径收敛为一条命令；审核不完整时 fail-closed，不生成分析文件；
-- ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合。
+- ⛔ `formal_training_authorized=false`，没有运行任何学习参数拟合；AI 工程训练授权文件
+  也尚未生成，因此没有启动训练。
 
 #### 出口条件
 
@@ -398,6 +410,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - 两名独立人类审核者完成 candidate 8 的标签中性审核包，且任何分歧均已按协议裁决；
 - 若质量门未通过，必须保留失败报告并在 `docs/route_b_ai_review_results.md` 如实记录，
   不得修改阈值或手工调整标签；本阶段不得进入训练；
+- AI 路线允许在结构证据通过后进入“项目所有者风险接受”步骤，但当前 candidate 8 的
+  失败质量门必须由项目所有者在独立授权文件中明确接受；该授权只打开工程训练，不改变
+  formal/human/final-test 语义；
 - 真实数据、审核明细、JSON/CSV 报告继续被忽略，不提交仓库；
 - 只提交框架、配置、文档和允许公开的聚合 Markdown 证据；
 - 阶段退出后仍停在正式模型训练授权之前；如需工程训练，须另行形成项目所有者明确
@@ -882,9 +897,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 ## 10. 当前停止点与 Route B 新阶段
 
 当前活动候选为 candidate 8。其 27,000 条 project-owned mock 语料、manifest、split 隔离与
-归一化模板检查已通过；两轮双 AI 工程审核与一次项目所有者分歧裁决均已如实封存。AI 证据不等同于
-人类审核：两轮 AI 输出仍各有原始分歧，`human_verified=false` 与
-`formal_training_authorized=false` 不变，Test B/C/D 和最终测试锁继续保持。
+归一化模板检查已通过；两轮双 AI 工程审核与一次项目所有者分歧裁决均已如实封存。2026-09-04
+已新增冻结的 `B-ai-assisted-engineering` 路线：AI 证据仍不等同于人类审核，但可在结构证据
+通过且项目所有者明确接受当前失败质量门后支持工程训练。`human_verified=false` 与
+`formal_training_authorized=false` 不变，Test B/C/D、calibration 和最终测试锁继续保持。
 
 为便于项目所有者复核最新双 AI 结果，已另外生成只包含 137 条分歧的项目所有者复核包（当前加固版
 目录为 `data/interim/route_b_v2_candidate_8_ai_disagreement_adjudication_v2/`；Risk 80、
@@ -902,7 +918,7 @@ Alignment/action realism 57）。项目所有者已完成逐条裁决，validato
 独立人类签核。最新双 AI 分歧的项目所有者补充复核包详情见
 `docs/route_b_ai_disagreement_handoff.md`；正式两名独立人类 v2 审核包详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
-不构成进入训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
+不构成进入正式研究训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
 任何模型运行。C2c 的 reliability diagram/classwise ECE、calibration split 哈希校验、只读
 preflight 和 owner authorization gate 已准备，但没有真实 logits、温度或阈值。不得在授权文件
 和项目所有者亲自执行之前产生 checkpoint 或拟合校准参数，不得进入最终测试或 Small/Base 训练

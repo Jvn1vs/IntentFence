@@ -394,6 +394,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--c2b-audit-analysis", type=Path)
     parser.add_argument("--c2b-audit-manifest", type=Path)
     parser.add_argument("--c2b-public-report", type=Path)
+    parser.add_argument("--c2b-ai-review-manifest", type=Path)
+    parser.add_argument("--c2b-integrity-policy", type=Path)
+    parser.add_argument("--c2b-ai-review-policy", type=Path)
     return parser
 
 
@@ -440,8 +443,21 @@ def main() -> None:
             "audit_analysis_path": args.c2b_audit_analysis,
             "audit_manifest_path": args.c2b_audit_manifest,
             "public_report_path": args.c2b_public_report,
+            "ai_review_manifest_path": args.c2b_ai_review_manifest,
+            "integrity_policy_path": args.c2b_integrity_policy,
+            "ai_review_policy_path": args.c2b_ai_review_policy,
         }
-        missing = [name for name, value in c2b_fields.items() if value is None]
+        required_c2b_fields = {
+            name: value
+            for name, value in c2b_fields.items()
+            if name
+            not in {
+                "ai_review_manifest_path",
+                "integrity_policy_path",
+                "ai_review_policy_path",
+            }
+        }
+        missing = [name for name, value in required_c2b_fields.items() if value is None]
         if missing:
             parser.error(
                 "Base training requires C2b authorization arguments: "

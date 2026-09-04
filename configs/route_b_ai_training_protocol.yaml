@@ -1,0 +1,115 @@
+schema_version: 1
+protocol_version: "2.2.0-ai-assisted-engineering.1"
+status: "frozen"
+amendment_type: "owner_approved_training_route_change"
+parent_protocols:
+  - "2.0.0-draft.2"
+  - "2.1.0-ai-draft.1"
+selected_route: "B-ai-assisted-engineering"
+selected_by: "project_owner"
+selected_at: "2026-09-04"
+approved_by: "project_owner"
+approved_at: "2026-09-04T15:37:49+08:00"
+evidence_status: "ai_reviewed_engineering_only"
+project_owned_mock_corpus_authorized: true
+unapproved_cc_by_sa_and_noncommercial_sources_excluded: true
+external_upload_requires_owner_approval: true
+
+# The integrity report remains bound to the data-construction policy that created it.
+# This avoids rewriting historical candidate evidence merely because the training route
+# was amended.
+integrity_source_policy_path: "configs/route_b_data_protocol.yaml"
+ai_review_policy_path: "configs/route_b_ai_review_protocol.yaml"
+accepted_ai_review_protocol_versions:
+  - "2.1.0-ai-draft.1"
+
+risk_labels:
+  - "benign"
+  - "instruction_hijacking"
+  - "data_exfiltration"
+  - "privilege_escalation"
+  - "tool_manipulation"
+
+task_alignment_labels:
+  - "aligned"
+  - "unrelated"
+  - "ambiguous"
+  - "malicious"
+
+source_routing:
+  project_mock_scenarios:
+    roles: ["train", "validation", "calibration", "test_a"]
+    status: "accepted_for_owner_run_engineering_training_only"
+  injecagent:
+    roles: ["test_b"]
+    status: "locked_evaluation_only"
+  notinject:
+    roles: ["test_c"]
+    status: "locked_evaluation_only"
+  agentdojo_v0_1_35:
+    roles: ["test_d"]
+    status: "optional_locked_evaluation_only"
+
+split_isolation:
+  near_duplicate_threshold: 0.92
+  frozen_tests_used_for_design: false
+
+audit:
+  review_mode: "dual_ai_engineering"
+  codex_executed_audit_default: "exactly_two_independent_ai_reviewers"
+  independent_human_reviewers_required: 0
+  independent_ai_reviewers_required: 2
+  ai_review_counts_as_independent_human_review: false
+  distinct_provider_model_revision_required: true
+  seed_labels_hidden: true
+  reviewer_outputs_hidden_from_each_other: true
+  temperature_must_equal: 0
+  raw_outputs_preserved: true
+  report_seed_agreement_as_construct_agreement_only: true
+  sample_rows:
+    risk: 400
+    alignment: 400
+  preregistered_quality_gates:
+    completed_fraction_minimum: 0.95
+    raw_interreviewer_agreement_minimum: 0.90
+    cohen_kappa_minimum: 0.80
+    per_seed_class_agreement_minimum: 0.90
+    action_realism_realistic_fraction_minimum: 0.95
+    failed_gate_action: "preserve_failure_require_owner_risk_acceptance_for_engineering_only"
+
+ai_training:
+  enabled: true
+  scope: "engineering_only"
+  owner_must_execute: true
+  owner_risk_acceptance_required: true
+  accepted_when_quality_gates_fail: "only_after_owner_records_reasoned_risk_acceptance"
+  allowed_claims:
+    - "engineering_training"
+    - "debugging"
+    - "pipeline_reproducibility"
+  forbidden_claims:
+    - "independent_human_validation"
+    - "paper_grade_label_quality"
+    - "formal_final_test_result"
+
+calibration:
+  locked: true
+  ai_route_does_not_unlock: true
+
+final_test:
+  locked: true
+  ai_route_does_not_unlock: true
+
+readiness:
+  public_aggregate_reports_complete: true
+  human_verified: false
+  formal_training_authorized: false
+  engineering_training_authorized: false
+  requires:
+    - "candidate_manifest_and_split_integrity_bound"
+    - "dual_ai_metadata_and_raw_outputs_bound"
+    - "ai_quality_gate_failure_preserved"
+    - "project_owner_ai_risk_acceptance_before_run"
+    - "human_verified_remains_false"
+    - "formal_training_remains_false"
+    - "calibration_and_final_test_remain_locked"

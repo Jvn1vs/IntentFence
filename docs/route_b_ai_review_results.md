@@ -1,6 +1,21 @@
 # Route B 双 AI 工程审核结果
 
 状态：`ai_reviewed_engineering_only`；本记录保留历史失败运行，并新增 GLM5.2 替代运行结果。
+2026-09-04 起，冻结的 `2.2.0-ai-assisted-engineering.1` 允许将结构上有效的双 AI 结果
+用于项目所有者风险接受后的工程训练；本记录中的失败质量门仍不可改写，且不产生人类审核、
+formal training 或最终测试证据。
+
+当前 2.2.0-ai-assisted-engineering.1 readiness 绑定的具体包只有：
+
+- AI manifest/四张提交表：
+  data/interim/route_b_v2_candidate_8_human_audit_v2_ai_pair/；
+- 对应的 audit manifest/封存 seed labels：
+  data/interim/route_b_v2_candidate_8_ai_pair_audit/；
+- 分析文件：
+  data/interim/route_b_v2_candidate_8_human_audit_v2_ai_pair/ai_review_analysis.json。
+
+文档后续列出的 candidate 8 其他双 AI 运行仍是历史补充证据，不会被新路线的 readiness
+隐式混用；每个运行都必须以自己的 manifest、audit manifest 和分析文件绑定。
 
 ## 证据边界
 

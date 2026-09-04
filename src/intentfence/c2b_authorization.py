@@ -8,6 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from intentfence.data import file_sha256
+from intentfence.route_b import load_route_b_policy
+from intentfence.route_b_ai_training import (
+    AI_TRAINING_AUTHORIZATION_MODE,
+    AI_TRAINING_PROTOCOL_VERSION,
+    validate_ai_training_authorization,
+)
 from intentfence.route_b_readiness import evaluate_route_b_readiness
 
 C2B_PROTOCOL_VERSION = "2.0.0"
@@ -298,6 +304,9 @@ def validate_c2b_training_authorization(
     audit_analysis_path: str | Path,
     audit_manifest_path: str | Path,
     public_report_path: str | Path,
+    ai_review_manifest_path: str | Path | None = None,
+    integrity_policy_path: str | Path | None = None,
+    ai_review_policy_path: str | Path | None = None,
 ) -> dict[str, Any]:
     paths = {
         "authorization": Path(authorization_path),
@@ -327,6 +336,30 @@ def validate_c2b_training_authorization(
         errors.append("training authorization must be a separate file from bound evidence")
 
     authorization = _read_object(paths["authorization"], description="training authorization")
+    policy = load_route_b_policy(paths["policy"])
+    if (
+        policy.get("protocol_version") == AI_TRAINING_PROTOCOL_VERSION
+        or authorization.get("training_authorization_mode")
+        == AI_TRAINING_AUTHORIZATION_MODE
+    ):
+        return validate_ai_training_authorization(
+            authorization_path=paths["authorization"],
+            expected_candidate=expected_candidate,
+            candidate_manifest_path=paths["candidate_manifest"],
+            train_path=paths["train"],
+            validation_path=paths["validation"],
+            readiness_report_path=paths["readiness_report"],
+            protocol_lock_path=paths["protocol_lock"],
+            policy_path=paths["policy"],
+            protocol_document_path=paths["protocol_document"],
+            integrity_report_path=paths["integrity_report"],
+            audit_analysis_path=paths["audit_analysis"],
+            audit_manifest_path=paths["audit_manifest"],
+            public_report_path=paths["public_report"],
+            ai_review_manifest_path=ai_review_manifest_path,
+            integrity_policy_path=integrity_policy_path,
+            ai_review_policy_path=ai_review_policy_path,
+        )
     candidate_manifest = _read_object(
         paths["candidate_manifest"], description="candidate manifest"
     )

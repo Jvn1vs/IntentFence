@@ -8,6 +8,13 @@
 - Status: `ROUTE_B_SELECTED_PREREQUISITES_OPEN`
 - Authority: 本文件不是协议修订；`docs/research_protocol.md` 与 `configs/experiment_registry.yaml` 仍保持冻结状态
 
+当前活动修订（2026-09-04）：项目所有者明确选择
+`B-ai-assisted-engineering`，对应冻结协议
+`configs/route_b_ai_training_protocol.yaml`（`2.2.0-ai-assisted-engineering.1`）。
+这项修订只开放由两个不同 AI 模型提供的
+`ai_reviewed_engineering_only` 证据支持的、项目所有者亲自执行的工程训练；不把 AI
+当作人工、不设置 `human_verified=true`，不开放 formal training、校准或最终测试。
+
 ## 为什么训练入口尚未开放
 
 `reports/data_quality/dataset_statistics.json` 已生成并通过整条来源、转换、审核、去重、划分和完整性证据重放。当前数据构造和 schema 已经验证四项独立阻塞：
@@ -74,3 +81,23 @@ CC BY-SA/非商业外部数据，并批准项目自有离线 mock-tool 正式候
 - 若涉及外部模型或新增数据，许可、下载范围与预算边界。
 
 在来源、许可、五分类覆盖、独立 Alignment、action provenance、独立审核和新版本 split 全部通过前，状态保持 `ROUTE_B_SELECTED_PREREQUISITES_OPEN`，正式模型训练入口关闭。
+
+## AI 工程训练路线修订
+
+2026-09-04 的用户指令批准了训练路线的边界性变更：双 AI 结构化审核可以替代“工程训练
+前必须完成两名独立人类审核”这一前置条件，但只针对工程/调试训练，不改变论文级路线。
+旧的人工审核证据和 candidate 8 人工 v2 包继续原样保留，不能互相覆盖。
+
+- 新协议：`2.2.0-ai-assisted-engineering.1`；
+- 审核：恰好两个不同的 provider/model/revision，温度为 0，原始 CSV 和哈希保留；
+- 当前 candidate 8 的双 AI 质量门失败结果必须原样保留，训练前由项目所有者在授权文件中
+  记录对该失败的风险接受理由；
+- readiness 只可进入 `eligible_for_owner_ai_engineering_authorization`，授权文件另行
+  设置 `engineering_training_authorized=true`；
+- `human_verified=false`、`formal_training_authorized=false`、训练执行者
+  `project_owner_only`、calibration lock 和 final-test lock 均不变；
+- AI 工程训练不得产生正式性能结论、最终测试结果、校准参数或论文级标签质量声明。
+
+因此当前项目从“等待人工审核才能进行任何训练”细分为两条并行出口：人工路线仍是正式研究
+证据出口；AI 路线是需要项目所有者风险接受的工程训练出口。当前没有生成工程授权文件，
+也没有启动训练。

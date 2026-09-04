@@ -8,6 +8,7 @@ codex_allowed_operations:
   - "convert_merge_deduplicate_and_split_real_project_data"
   - "inspect_and_pre_review_labels_with_truthful_reviewer_provenance"
   - "generate_data_quality_and_reproducibility_reports"
+  - "record_ai_reviewed_engineering_evidence_under_versioned_protocol"
 codex_prohibited_operations:
   - "fit_any_model_on_real_project_data"
   - "update_model_or_calibration_parameters"

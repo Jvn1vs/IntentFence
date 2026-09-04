@@ -75,6 +75,7 @@ FORBIDDEN_ARTIFACT_COMPONENTS = {
 PUBLIC_JSON_FILES = {
     "configs/protocol_lock.json",
     "configs/route_b_ai_review_manifest.example.json",
+    "configs/route_b_ai_training_protocol_lock.json",
 }
 PUBLIC_SYNTHETIC_DATA_FILES = {"data/examples/smoke.jsonl"}
 GENERATED_REPORT_DIRECTORIES = (

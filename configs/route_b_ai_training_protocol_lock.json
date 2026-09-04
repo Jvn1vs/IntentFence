@@ -1,0 +1,36 @@
+{
+  "algorithm": "SHA-256",
+  "approved_at": "2026-09-04T15:37:49+08:00",
+  "approved_by": "project_owner",
+  "calibration_lock_remains_active": true,
+  "engineering_training_authorized": false,
+  "evidence_status": "ai_reviewed_engineering_only",
+  "files": {
+    "ai_review_policy": {
+      "path": "configs/route_b_ai_review_protocol.yaml",
+      "sha256": "35d2f99d45dbf044e08ed8ef4d1912bc80575e5274679fadba0ab5a9f2ae15be"
+    },
+    "integrity_source_policy": {
+      "path": "configs/route_b_data_protocol.yaml",
+      "sha256": "d6909494323cc7cacca5319d4c20940b1ac87451c31f4422d8232496e3fd934d"
+    },
+    "policy": {
+      "path": "configs/route_b_ai_training_protocol.yaml",
+      "sha256": "ecaf83b8fa0c5b4c7617a2a28fd3e35231dfb67d4b36b4e50a70fcfe662cf9b6"
+    },
+    "protocol_document": {
+      "path": "docs/route_b_ai_training_protocol.md",
+      "sha256": "5e67f1a6bcfd8beea629179ddb7e01709f51999e320bbd05c6bf189904bcd067"
+    }
+  },
+  "final_test_lock_remains_active": true,
+  "formal_training_authorized": false,
+  "human_verified": false,
+  "note": "Frozen owner-approved amendment: two distinct AI reviewers may provide explicitly labeled engineering evidence. This does not claim human verification, does not authorize formal training, and does not unlock calibration or final tests.",
+  "protocol_version": "2.2.0-ai-assisted-engineering.1",
+  "schema_version": 1,
+  "sha256": "81764817f707db769639c3f9e3d3d34a715418cf735095bd0c9a307b4a30cbfb",
+  "status": "frozen",
+  "training_route": "B-ai-assisted-engineering",
+  "training_scope": "engineering_only"
+}

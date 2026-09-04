@@ -24,6 +24,21 @@ def main() -> int:
     parser.add_argument("--audit-analysis", type=Path, required=True)
     parser.add_argument("--audit-manifest", type=Path, required=True)
     parser.add_argument("--public-report", type=Path, required=True)
+    parser.add_argument(
+        "--ai-review-manifest",
+        type=Path,
+        help="AI review manifest for the 2.2 engineering-only route",
+    )
+    parser.add_argument(
+        "--integrity-policy",
+        type=Path,
+        help="Data-construction policy bound to the integrity report",
+    )
+    parser.add_argument(
+        "--ai-review-policy",
+        type=Path,
+        help="AI review policy used to replay the AI package",
+    )
     args = parser.parse_args()
     try:
         result = validate_c2b_training_authorization(
@@ -40,6 +55,9 @@ def main() -> int:
             audit_analysis_path=args.audit_analysis,
             audit_manifest_path=args.audit_manifest,
             public_report_path=args.public_report,
+            ai_review_manifest_path=args.ai_review_manifest,
+            integrity_policy_path=args.integrity_policy,
+            ai_review_policy_path=args.ai_review_policy,
         )
     except (OSError, TypeError, ValueError, KeyError) as exc:
         print(f"ERROR: {exc}")
