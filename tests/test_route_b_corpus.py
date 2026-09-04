@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -164,3 +165,22 @@ def test_formal_mock_manifest_detects_changed_split(tmp_path: Path) -> None:
     assert "split hash mismatch: train" in validate_formal_mock_manifest(
         result["manifest_path"]
     )
+
+
+def test_formal_mock_manifest_accepts_relocated_spec_paths(tmp_path: Path) -> None:
+    output = tmp_path / "candidate"
+    result = write_formal_mock_corpus(
+        _small_spec(), output, spec_path=ROOT / "configs" / "route_b_mock_corpus_candidate_6.yaml"
+    )
+    manifest_path = Path(result["manifest_path"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["spec"]["path"] = "C:\\legacy\\IntentFence\\configs\\route_b_mock_corpus_candidate_6.yaml"
+    for source in manifest["spec"]["resolved_sources"]:
+        source["path"] = f"C:\\legacy\\IntentFence\\configs\\{Path(source['path']).name}"
+    unsigned = deepcopy(manifest)
+    unsigned.pop("sha256", None)
+    serialized = json.dumps(unsigned, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    manifest["sha256"] = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+
+    assert validate_formal_mock_manifest(manifest_path) == []

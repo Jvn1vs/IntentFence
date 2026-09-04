@@ -15,6 +15,7 @@ from intentfence.route_b import load_route_b_policy
 from intentfence.route_b_ai_review import analyze_dual_ai_reviews
 from intentfence.route_b_ai_training import (
     AI_TRAINING_PROTOCOL_VERSION,
+    _same_path,
     build_ai_training_protocol_lock,
     build_ai_training_readiness,
 )
@@ -312,6 +313,13 @@ def test_ai_route_accepts_readiness_relocated_to_another_host(tmp_path: Path) ->
     result = validate_c2b_training_authorization(**_authorization_args(paths))
 
     assert result["status"] == "c2b_ai_engineering_training_authorization_validated"
+
+
+def test_same_path_accepts_relocated_windows_project_path() -> None:
+    assert _same_path(
+        r"C:\\legacy\\IntentFence\\ai_audit\\ai_review_manifest.json",
+        ROOT / "ai_audit" / "ai_review_manifest.json",
+    )
 
 
 def test_ai_route_requires_owner_acceptance_reason_after_failed_quality_gates(

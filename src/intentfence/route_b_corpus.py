@@ -419,6 +419,30 @@ def write_formal_mock_corpus(
     return {"manifest": manifest, "manifest_path": str(manifest_path)}
 
 
+def _repository_root_for_manifest(manifest_path: Path) -> Path:
+    resolved = manifest_path.resolve()
+    for candidate in (resolved.parent, *resolved.parents):
+        if (candidate / "src").is_dir() and (candidate / "configs").is_dir():
+            return candidate
+    return Path.cwd().resolve()
+
+
+def _resolve_recorded_path(recorded_path: str | Path, *, repository_root: Path) -> Path:
+    direct = Path(recorded_path)
+    if direct.is_file():
+        return direct
+    parts = tuple(
+        part for part in str(recorded_path).replace("\\", "/").split("/") if part not in {"", "."}
+    )
+    project_name = repository_root.name.casefold()
+    for index, part in enumerate(parts):
+        if part.casefold() == project_name:
+            relocated = repository_root.joinpath(*parts[index + 1 :])
+            if relocated.is_file():
+                return relocated
+    return direct
+
+
 def validate_formal_mock_manifest(manifest_path: str | Path) -> list[str]:
     path = Path(manifest_path)
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -477,15 +501,18 @@ def validate_formal_mock_manifest(manifest_path: str | Path) -> list[str]:
                     )
         if trace_count != trace_evidence.get("rows"):
             errors.append("action trace row count mismatch")
+    repository_root = _repository_root_for_manifest(path)
     spec = payload.get("spec")
     if isinstance(spec, dict) and spec.get("path"):
-        spec_path = Path(spec["path"])
+        spec_path = _resolve_recorded_path(spec["path"], repository_root=repository_root)
         if not spec_path.is_file():
             errors.append(f"missing corpus specification: {spec_path}")
         elif file_sha256(spec_path) != spec.get("sha256"):
             errors.append("corpus specification hash mismatch")
         for source in spec.get("resolved_sources", []):
-            source_path = Path(str(source.get("path", "")))
+            source_path = _resolve_recorded_path(
+                str(source.get("path", "")), repository_root=repository_root
+            )
             if not source_path.is_file():
                 errors.append(f"missing inherited corpus specification: {source_path}")
             elif file_sha256(source_path) != source.get("sha256"):

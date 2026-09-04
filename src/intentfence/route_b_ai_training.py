@@ -66,9 +66,28 @@ def _has_timezone(value: Any) -> bool:
 
 
 def _same_path(left: str | Path, right: str | Path) -> bool:
-    return os.path.normcase(str(Path(left).resolve())) == os.path.normcase(
-        str(Path(right).resolve())
-    )
+    left_resolved = os.path.normcase(str(Path(left).resolve()))
+    right_resolved = os.path.normcase(str(Path(right).resolve()))
+    if left_resolved == right_resolved:
+        return True
+
+    # Evidence packages may be generated on Windows and replayed from a
+    # relocated checkout on Linux. Compare the path suffix below the project
+    # directory after the explicit file hash check has bound the real file.
+    project_name = Path.cwd().resolve().name.casefold()
+
+    def relative_tail(value: str | Path) -> tuple[str, ...]:
+        parts = tuple(
+            part.casefold()
+            for part in str(value).replace("\\", "/").split("/")
+            if part not in {"", "."}
+        )
+        for index, part in enumerate(parts):
+            if part == project_name:
+                return parts[index + 1 :]
+        return parts
+
+    return relative_tail(left) == relative_tail(right)
 
 
 def _file_binding(path: Path) -> dict[str, str]:
