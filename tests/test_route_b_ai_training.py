@@ -296,6 +296,24 @@ def test_ai_route_accepts_owner_authorized_engineering_training(tmp_path: Path) 
     assert result["engineering_training_authorized"] is True
 
 
+def test_ai_route_accepts_readiness_relocated_to_another_host(tmp_path: Path) -> None:
+    paths = _fixture(tmp_path)
+    readiness_path = paths["readiness_report_path"]
+    readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+    for index, binding in enumerate(readiness["evidence"].values()):
+        binding["path"] = f"C:\\legacy\\IntentFence\\evidence-{index}.json"
+    readiness_path.write_text(json.dumps(readiness, sort_keys=True), encoding="utf-8")
+
+    authorization_path = paths["authorization_path"]
+    authorization = json.loads(authorization_path.read_text(encoding="utf-8"))
+    authorization["readiness_report_sha256"] = file_sha256(readiness_path)
+    authorization_path.write_text(json.dumps(authorization, sort_keys=True), encoding="utf-8")
+
+    result = validate_c2b_training_authorization(**_authorization_args(paths))
+
+    assert result["status"] == "c2b_ai_engineering_training_authorization_validated"
+
+
 def test_ai_route_requires_owner_acceptance_reason_after_failed_quality_gates(
     tmp_path: Path,
 ) -> None:

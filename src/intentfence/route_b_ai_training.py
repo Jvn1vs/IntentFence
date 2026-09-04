@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -71,7 +72,28 @@ def _same_path(left: str | Path, right: str | Path) -> bool:
 
 
 def _file_binding(path: Path) -> dict[str, str]:
-    return {"path": str(path.resolve()), "sha256": file_sha256(path)}
+    resolved = path.resolve()
+    try:
+        portable_path = resolved.relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        portable_path = str(resolved)
+    return {"path": portable_path, "sha256": file_sha256(path)}
+
+
+def _readiness_comparison_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Make readiness replay comparable after moving a project to another host.
+
+    Evidence paths are descriptive and may contain host-specific absolute prefixes.
+    The validator binds the actual files through its explicit path arguments and
+    compares their SHA-256 values, so only the display path is normalized here.
+    """
+    comparable = deepcopy(payload)
+    evidence = comparable.get("evidence")
+    if isinstance(evidence, dict):
+        for binding in evidence.values():
+            if isinstance(binding, dict) and isinstance(binding.get("path"), str):
+                binding["path"] = "<relocated-evidence-path>"
+    return comparable
 
 
 def _lock_file_binding(path: Path) -> dict[str, str]:
@@ -908,7 +930,9 @@ def validate_ai_training_authorization(
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         errors.append(f"AI readiness deterministic replay failed: {exc}")
     else:
-        if replayed != readiness:
+        if _readiness_comparison_payload(replayed) != _readiness_comparison_payload(
+            readiness
+        ):
             errors.append("AI readiness report does not match deterministic replay")
     if errors:
         raise ValueError("; ".join(errors))
