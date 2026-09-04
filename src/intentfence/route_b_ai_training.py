@@ -115,6 +115,16 @@ def _readiness_comparison_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return comparable
 
 
+def _ai_review_comparison_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Make AI-review replay comparable after moving a project to another host."""
+    comparable = deepcopy(payload)
+    for name in ("ai_review_manifest", "audit_manifest"):
+        binding = comparable.get(name)
+        if isinstance(binding, dict) and isinstance(binding.get("path"), str):
+            binding["path"] = "<relocated-ai-review-evidence-path>"
+    return comparable
+
+
 def _lock_file_binding(path: Path) -> dict[str, str]:
     resolved = path.resolve()
     try:
@@ -541,7 +551,9 @@ def _ai_review_evidence_gate(
         except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
             errors.append(f"AI review analysis replay failed: {exc}")
         else:
-            if replayed != analysis:
+            if _ai_review_comparison_payload(replayed) != _ai_review_comparison_payload(
+                analysis
+            ):
                 errors.append("AI review analysis does not match deterministic replay")
 
     return not errors, errors, analysis, ai_manifest

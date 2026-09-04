@@ -15,6 +15,7 @@ from intentfence.route_b import load_route_b_policy
 from intentfence.route_b_ai_review import analyze_dual_ai_reviews
 from intentfence.route_b_ai_training import (
     AI_TRAINING_PROTOCOL_VERSION,
+    _ai_review_evidence_gate,
     _same_path,
     build_ai_training_protocol_lock,
     build_ai_training_readiness,
@@ -313,6 +314,38 @@ def test_ai_route_accepts_readiness_relocated_to_another_host(tmp_path: Path) ->
     result = validate_c2b_training_authorization(**_authorization_args(paths))
 
     assert result["status"] == "c2b_ai_engineering_training_authorization_validated"
+
+
+def test_ai_review_replay_accepts_relocated_bound_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _fixture(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    analysis_path = paths["audit_analysis_path"]
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    analysis["ai_review_manifest"]["path"] = (
+        rf"C:\legacy\{tmp_path.name}\ai_audit\ai_review_manifest.json"
+    )
+    analysis["audit_manifest"]["path"] = (
+        rf"C:\legacy\{tmp_path.name}\ai_audit\audit_manifest.json"
+    )
+    analysis_path.write_text(json.dumps(analysis, sort_keys=True), encoding="utf-8")
+
+    policy = load_route_b_policy(paths["policy_path"])
+    ai_policy = paths["ai_review_policy_path"]
+    candidate_manifest = json.loads(
+        paths["candidate_manifest_path"].read_text(encoding="utf-8")
+    )
+    passed, errors, _, _ = _ai_review_evidence_gate(
+        analysis_path=analysis_path,
+        ai_review_manifest_path=paths["ai_review_manifest_path"],
+        audit_manifest_path=paths["audit_manifest_path"],
+        candidate_manifest=candidate_manifest,
+        policy=policy,
+        ai_review_policy_path=ai_policy,
+    )
+
+    assert passed, errors
 
 
 def test_same_path_accepts_relocated_windows_project_path() -> None:
