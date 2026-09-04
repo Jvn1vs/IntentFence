@@ -158,6 +158,8 @@ python scripts/build_route_b_ai_training_readiness.py `
   "engineering_training_authorized": true,
   "training_executor": "project_owner_only",
   "ai_evidence_class": "ai_reviewed_engineering_only",
+  "final_test_lock_remains_active": true,
+  "calibration_lock_remains_active": true,
   "ai_quality_gate_failure_accepted": true,
   "ai_quality_gate_failure_reason": "<owner's reasoned engineering-only risk acceptance>",
   "approved_by_project_owner": "<owner id>",
