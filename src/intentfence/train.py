@@ -57,12 +57,13 @@ class TrainingConfig:
     gradient_accumulation_steps: int = 1
     learning_rate: float = 2e-5
     weight_decay: float = 0.01
-    epochs: int = 3
+    epochs: int = 5
     warmup_ratio: float = 0.1
     max_grad_norm: float = 1.0
     mixed_precision: str = "fp16"
     gradient_checkpointing: bool = False
     early_stopping_patience: int = 2
+    early_stopping: bool = True
     alignment_loss_weight: float = 0.5
     alignment_target: str = "legacy_binary"
     seed: int = 42
@@ -285,6 +286,21 @@ def train(
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
     best_macro_f1, stale_epochs = -1.0, 0
+    metadata = ModelMetadata(
+        model_name=config.model_name,
+        risk_labels=RISK_LABELS,
+        input_mode=config.input_mode,
+        max_length=config.max_length,
+        alignment_loss_weight=config.alignment_loss_weight,
+        model_revision=config.model_revision,
+        version="3" if config.alignment_target == "task_alignment" else "2",
+        alignment_labels=(
+            TASK_ALIGNMENT_LABELS
+            if config.alignment_target == "task_alignment"
+            else LEGACY_ALIGNMENT_LABELS
+        ),
+        alignment_target=config.alignment_target,
+    )
     log_records: list[dict[str, Any]] = []
     optimizer.zero_grad(set_to_none=True)
     for epoch in range(1, config.epochs + 1):
@@ -310,29 +326,23 @@ def train(
                 optimizer.zero_grad(set_to_none=True)
 
         metrics = _validate(model, validation_loader, device, torch)
-        record = {"epoch": epoch, "train_loss": running_loss / max(len(train_loader), 1), **metrics}
-        log_records.append(record)
-        print(json.dumps(record, sort_keys=True))
-        if metrics["macro_f1"] > best_macro_f1:
+        is_best = metrics["macro_f1"] > best_macro_f1
+        if is_best:
             best_macro_f1 = metrics["macro_f1"]
             stale_epochs = 0
-            metadata = ModelMetadata(
-                model_name=config.model_name,
-                risk_labels=RISK_LABELS,
-                input_mode=config.input_mode,
-                max_length=config.max_length,
-                alignment_loss_weight=config.alignment_loss_weight,
-                model_revision=config.model_revision,
-                version="3" if config.alignment_target == "task_alignment" else "2",
-                alignment_labels=(
-                    TASK_ALIGNMENT_LABELS
-                    if config.alignment_target == "task_alignment"
-                    else LEGACY_ALIGNMENT_LABELS
-                ),
-                alignment_target=config.alignment_target,
-            )
+        record = {
+            "epoch": epoch,
+            "train_loss": running_loss / max(len(train_loader), 1),
+            "checkpoint": f"epoch-{epoch:03d}",
+            "is_best": is_best,
+            **metrics,
+        }
+        log_records.append(record)
+        print(json.dumps(record, sort_keys=True))
+        save_multitask_model(model, tokenizer, metadata, output_dir / f"epoch-{epoch:03d}")
+        if is_best:
             save_multitask_model(model, tokenizer, metadata, output_dir / "best")
-        else:
+        elif config.early_stopping:
             stale_epochs += 1
             if stale_epochs >= config.early_stopping_patience:
                 break

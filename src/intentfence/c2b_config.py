@@ -25,12 +25,13 @@ C2B_COMMON_VALUES: dict[str, Any] = {
     "gradient_accumulation_steps": 2,
     "learning_rate": 2.0e-5,
     "weight_decay": 0.01,
-    "epochs": 3,
+    "epochs": 5,
     "warmup_ratio": 0.10,
     "max_grad_norm": 1.0,
     "mixed_precision": "fp16",
     "gradient_checkpointing": False,
     "early_stopping_patience": 2,
+    "early_stopping": False,
     "alignment_target": "task_alignment",
 }
 

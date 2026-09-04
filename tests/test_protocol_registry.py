@@ -90,6 +90,13 @@ def test_c2b_registered_configs_are_frozen() -> None:
         assert payload["model_revision"] == "8ccc9b6f36199bec6961081d44eb72fb3f7353f3"
 
 
+def test_c2b_base_schedule_runs_five_epochs_without_early_stopping() -> None:
+    for path in sorted((ROOT / "configs").glob("deberta_base_*.yaml")):
+        payload = validate_c2b_config(path)
+        assert payload["epochs"] == 5
+        assert payload["early_stopping"] is False
+
+
 def test_c2b_config_rejects_hyperparameter_drift(tmp_path: Path) -> None:
     source = ROOT / "configs" / "deberta_base_action_risk.yaml"
     payload = yaml.safe_load(source.read_text(encoding="utf-8"))
