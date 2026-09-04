@@ -99,7 +99,8 @@ train/validation 文件路径与字节哈希确实对应 candidate manifest；�
 不会只依赖外层 PowerShell 包装器。上面三个哈希是文件字节 SHA-256，不是 manifest 内嵌的
 sealed canonical 哈希。
 
-完整运行命令由项目所有者亲自执行，并且必须显式提供 CUDA、实际人民币成本和独立输出目录：
+完整运行命令由项目所有者亲自执行，并且必须显式提供 CUDA 和独立输出目录；人民币成本可以在
+训练完成并拿到账单后补录：
 
 ```powershell
 .\scripts\run_c2b_base.ps1 `
@@ -108,13 +109,21 @@ sealed canonical 哈希。
   -ValidationPath data\interim\route_b_v2_candidate_8\validation.jsonl `
   -OutputDirectory checkpoints\base-action-multitask-seed42 `
   -AuthorizationFile data\interim\route_b_v2_candidate_8\training_authorization.json `
-  -CostCny 0 `
   -RequireCuda
 ```
 
 脚本拒绝覆盖已有输出，失败时不自动重试；训练后必须通过 checkpoint reload，并生成绑定
-commit、配置/数据哈希、seed、硬件、时长、实际成本和 checkpoint 文件哈希的
-`run_manifest.json`。完成一个变体后先停下，不能直接运行下一个变体。
+commit、配置/数据哈希、seed、硬件、时长和 checkpoint 文件哈希的 `run_manifest.json`。
+若启动时没有提供 `-CostCny`，训练完成后从平台账单取得实际金额，再执行：
+
+```powershell
+python scripts/record_run_cost.py `
+  --run-manifest checkpoints\base-action-multitask-seed42\run_manifest.json `
+  --cost-cny <actual-cny>
+```
+
+该命令只补写 `actual_cost_cny` 和记录时间，不改变训练、配置、数据或 checkpoint 哈希。
+完成一个变体后先停下，不能直接运行下一个变体。
 
 ## 4. 多 seed 汇总与统计
 
@@ -214,8 +223,8 @@ python scripts/build_route_b_ai_training_readiness.py `
 `-IntegrityPolicyPath configs\route_b_data_protocol.yaml`、
 `-AiReviewPolicyPath configs\route_b_ai_review_protocol.yaml` 传给 `run_c2b_base.ps1`，即可让
 入口校验 2.2 AI 授权。若使用当前 candidate 8 包，还必须将当前失败的 Risk/Alignment
-质量门写入上述接受理由；不能删改原始 CSV 或降低阈值。训练仍须显式 `-RequireCuda`、
-记录实际成本，并在完成一个变体后停止。
+质量门写入上述接受理由；不能删改原始 CSV 或降低阈值。训练仍须显式 `-RequireCuda`，
+训练完成后再记录实际成本，并在完成一个变体后停止。
 
 这条路线不会打开 calibration、Test A/B/C/D、最终测试或发表结论；这些阶段仍需单独的
 项目所有者授权和冻结证据。

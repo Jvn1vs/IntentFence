@@ -5,7 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from intentfence.run_manifest import build_run_manifest, sha256_file, write_run_manifest
+from intentfence.run_manifest import (
+    build_run_manifest,
+    record_actual_cost,
+    sha256_file,
+    write_run_manifest,
+)
 
 
 def test_run_manifest_records_inputs_environment_and_checkpoint_hashes(
@@ -109,3 +114,22 @@ def test_run_manifest_binds_cost_stage_and_authorization(tmp_path: Path) -> None
             cost_usd=0.0,
             cost_cny=-1.0,
         )
+
+
+def test_run_cost_can_be_recorded_after_completed_manifest(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "run_manifest.json"
+    manifest_path.write_text(
+        json.dumps({"schema_version": 1, "status": "completed"}) + "\n",
+        encoding="utf-8",
+    )
+
+    payload = record_actual_cost(manifest_path, 4.36)
+    loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert payload["actual_cost_cny"] == 4.36
+    assert loaded["actual_cost_cny"] == 4.36
+    assert loaded["cost_recorded_at"]
+    assert not (tmp_path / ".run_manifest.json.tmp").exists()
+
+    with pytest.raises(ValueError, match="already recorded"):
+        record_actual_cost(manifest_path, 5.00)

@@ -73,7 +73,7 @@ trap {
 }
 
 if ($CostCny -lt -1) {
-    throw "CostCny must be -1 for preflight or a non-negative actual cost for a training run."
+    throw "CostCny must be omitted or a non-negative actual cost for a training run."
 }
 if ($ExpectedCandidate -ne $SupportedCandidate) {
     throw "This C2b entrypoint only supports $SupportedCandidate."
@@ -220,9 +220,6 @@ if ($PreflightOnly) {
 if (-not $RequireCuda) {
     throw "A non-preflight C2b Base run must pass -RequireCuda."
 }
-if ($CostCny -lt 0) {
-    throw "A non-preflight run must provide the actual cost with -CostCny, using 0 for free execution."
-}
 $ResolvedAuthorizationFile = Resolve-RepositoryPath $AuthorizationFile $RepositoryRoot
 if (Test-Path -LiteralPath $ResolvedOutputDirectory) {
     throw "Refusing to overwrite existing output directory: $ResolvedOutputDirectory"
@@ -279,23 +276,31 @@ if ($LASTEXITCODE -ne 0) {
 
 $Stopwatch.Stop()
 $EndedAt = (Get-Date).ToUniversalTime()
-& $IntentFencePython (Join-Path $RepositoryRoot "scripts/write_run_manifest.py") `
-    --repository-root $RepositoryRoot `
-    --config $ResolvedConfigPath `
-    --train $ResolvedTrainPath `
-    --validation $ResolvedValidationPath `
-    --checkpoint-dir (Join-Path $ResolvedOutputDirectory "best") `
-    --output (Join-Path $ResolvedOutputDirectory "run_manifest.json") `
-    --started-at $StartedAt.ToString("o") `
-    --ended-at $EndedAt.ToString("o") `
-    --duration-seconds $Stopwatch.Elapsed.TotalSeconds `
-    --cost-usd 0 `
-    --cost-cny $CostCny `
-    --stage "c2b_base" `
-    --authorization-file $ResolvedAuthorizationFile
+$RunManifestArguments = @(
+    "--repository-root", $RepositoryRoot,
+    "--config", $ResolvedConfigPath,
+    "--train", $ResolvedTrainPath,
+    "--validation", $ResolvedValidationPath,
+    "--checkpoint-dir", (Join-Path $ResolvedOutputDirectory "best"),
+    "--output", (Join-Path $ResolvedOutputDirectory "run_manifest.json"),
+    "--started-at", $StartedAt.ToString("o"),
+    "--ended-at", $EndedAt.ToString("o"),
+    "--duration-seconds", $Stopwatch.Elapsed.TotalSeconds,
+    "--cost-usd", 0,
+    "--stage", "c2b_base",
+    "--authorization-file", $ResolvedAuthorizationFile
+)
+if ($CostCny -ge 0) {
+    $RunManifestArguments += @("--cost-cny", $CostCny)
+}
+& $IntentFencePython (Join-Path $RepositoryRoot "scripts/write_run_manifest.py") @RunManifestArguments
 if ($LASTEXITCODE -ne 0) {
     throw "C2b run manifest generation failed."
 }
 
 Write-Host "C2b Base completed. Stop and provide the complete run manifest and logs before another variant or seed."
+if ($CostCny -lt 0) {
+    Write-Host "Actual cost was not supplied. Record it after billing with:"
+    Write-Host "$IntentFencePython $(Join-Path $RepositoryRoot 'scripts/record_run_cost.py') --run-manifest $(Join-Path $ResolvedOutputDirectory 'run_manifest.json') --cost-cny <actual-cny>"
+}
 Stop-Transcript | Out-Null

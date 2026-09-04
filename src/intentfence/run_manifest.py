@@ -7,6 +7,7 @@ import json
 import os
 import platform
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -194,8 +195,42 @@ def build_run_manifest(
     return payload
 
 
+def _write_json_atomically(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    with temporary_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary_path, path)
+
+
+def record_actual_cost(
+    manifest_path: str | Path,
+    cost_cny: float,
+    *,
+    replace: bool = False,
+) -> dict[str, Any]:
+    """Add the billed CNY cost after a completed run without rewriting its evidence."""
+
+    if cost_cny < 0:
+        raise ValueError("cost_cny cannot be negative")
+    path = Path(manifest_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"run manifest does not exist: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("run manifest must contain a JSON object")
+    if payload.get("status") != "completed":
+        raise ValueError("actual cost can only be recorded on a completed run manifest")
+    if "actual_cost_cny" in payload and not replace:
+        raise ValueError("actual cost is already recorded; pass replace=True to replace it")
+    payload["actual_cost_cny"] = cost_cny
+    payload["cost_recorded_at"] = datetime.now(timezone.utc).isoformat()
+    _write_json_atomically(path, payload)
+    return payload
+
+
 def write_run_manifest(payload: dict[str, Any], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    _write_json_atomically(output_path, payload)

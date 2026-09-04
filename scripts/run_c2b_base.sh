@@ -29,7 +29,7 @@ Options:
   --ai-review-manifest-path <path>
   --integrity-policy-path <path>
   --ai-review-policy-path <path>
-  --cost-cny <number>       Actual non-negative CNY cost for a training run.
+  --cost-cny <number>       Optional billed CNY cost; can be recorded after the run.
   --log-file <path>         Console log path; defaults to <output-directory>.log.
   --require-cuda            Required for a non-preflight run.
   --preflight-only          Do not load a model or start training.
@@ -78,7 +78,7 @@ PUBLIC_REPORT_PATH="reports/data_quality/route_b_candidate_8_card.md"
 AI_REVIEW_MANIFEST_PATH=""
 INTEGRITY_POLICY_PATH=""
 AI_REVIEW_POLICY_PATH=""
-COST_CNY="-1"
+COST_CNY=""
 LOG_FILE=""
 REQUIRE_CUDA=0
 PREFLIGHT_ONLY=0
@@ -217,8 +217,9 @@ done
 [[ -n "$VALIDATION_PATH" ]] || die "--validation-path is required"
 [[ -n "$OUTPUT_DIRECTORY" ]] || die "--output-directory is required"
 [[ "$EXPECTED_CANDIDATE" == "route_b_v2_candidate_8" ]] || die "This C2b entrypoint only supports route_b_v2_candidate_8."
-[[ "$COST_CNY" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || die "Cost CNY must be a number."
-(( $(awk -v value="$COST_CNY" 'BEGIN { print (value >= -1) ? 1 : 0 }') == 1 )) || die "Cost CNY must be -1 for preflight or non-negative for a training run."
+if [[ -n "$COST_CNY" ]]; then
+    [[ "$COST_CNY" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "Cost CNY must be a non-negative number."
+fi
 
 RESOLVED_CONFIG_PATH="$(resolve_path "$CONFIG_PATH")"
 CANDIDATE_TRAIN_PATH="$(resolve_path "$TRAIN_PATH")"
@@ -288,7 +289,6 @@ if (( PREFLIGHT_ONLY == 1 )); then
 fi
 
 (( REQUIRE_CUDA == 1 )) || die "A non-preflight C2b Base run must pass --require-cuda."
-(( $(awk -v value="$COST_CNY" 'BEGIN { print (value >= 0) ? 1 : 0 }') == 1 )) || die "A non-preflight run must provide the actual cost with --cost-cny."
 RESOLVED_AUTHORIZATION_FILE="$(resolve_path "$AUTHORIZATION_FILE")"
 [[ ! -e "$RESOLVED_OUTPUT_DIRECTORY" ]] || die "Refusing to overwrite existing output directory: $RESOLVED_OUTPUT_DIRECTORY"
 
@@ -329,19 +329,28 @@ fi
 END_EPOCH="$(date +%s.%N)"
 ENDED_AT="$(date -u +%Y-%m-%dT%H:%M:%S.%NZ)"
 DURATION_SECONDS="$(awk -v start="$START_EPOCH" -v end="$END_EPOCH" 'BEGIN { printf "%.6f", end - start }')"
+RUN_MANIFEST_ARGUMENTS=(
+    --repository-root "$REPOSITORY_ROOT"
+    --config "$RESOLVED_CONFIG_PATH"
+    --train "$CANDIDATE_TRAIN_PATH"
+    --validation "$CANDIDATE_VALIDATION_PATH"
+    --checkpoint-dir "$RESOLVED_OUTPUT_DIRECTORY/best"
+    --output "$RESOLVED_OUTPUT_DIRECTORY/run_manifest.json"
+    --started-at "$STARTED_AT"
+    --ended-at "$ENDED_AT"
+    --duration-seconds "$DURATION_SECONDS"
+    --cost-usd 0
+    --stage c2b_base
+    --authorization-file "$RESOLVED_AUTHORIZATION_FILE"
+)
+if [[ -n "$COST_CNY" ]]; then
+    RUN_MANIFEST_ARGUMENTS+=(--cost-cny "$COST_CNY")
+fi
 "$INTENTFENCE_PYTHON" "$REPOSITORY_ROOT/scripts/write_run_manifest.py" \
-    --repository-root "$REPOSITORY_ROOT" \
-    --config "$RESOLVED_CONFIG_PATH" \
-    --train "$CANDIDATE_TRAIN_PATH" \
-    --validation "$CANDIDATE_VALIDATION_PATH" \
-    --checkpoint-dir "$RESOLVED_OUTPUT_DIRECTORY/best" \
-    --output "$RESOLVED_OUTPUT_DIRECTORY/run_manifest.json" \
-    --started-at "$STARTED_AT" \
-    --ended-at "$ENDED_AT" \
-    --duration-seconds "$DURATION_SECONDS" \
-    --cost-usd 0 \
-    --cost-cny "$COST_CNY" \
-    --stage c2b_base \
-    --authorization-file "$RESOLVED_AUTHORIZATION_FILE" || die "C2b run manifest generation failed."
+    "${RUN_MANIFEST_ARGUMENTS[@]}" || die "C2b run manifest generation failed."
 
 echo "C2b Base completed. Stop and provide the complete run manifest and logs before another variant or seed."
+if [[ -z "$COST_CNY" ]]; then
+    echo "Actual cost was not supplied. Record it after billing with:"
+    echo "$INTENTFENCE_PYTHON $REPOSITORY_ROOT/scripts/record_run_cost.py --run-manifest $RESOLVED_OUTPUT_DIRECTORY/run_manifest.json --cost-cny <actual-cny>"
+fi

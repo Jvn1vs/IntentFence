@@ -89,6 +89,9 @@ def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
     assert "tee" in bash_script
     assert "--log-file" in bash_script
     assert "PYTHONUNBUFFERED" in bash_script
+    assert "record_run_cost.py" in bash_script
+    assert "A non-preflight run must provide the actual cost" not in bash_script
+    assert "A non-preflight run must provide the actual cost" not in script
 
 
 def test_c2b_registered_configs_are_frozen() -> None:

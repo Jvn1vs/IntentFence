@@ -544,6 +544,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   seed 42、5,000/2,000 train/validation、四类 Alignment 与五类 Risk 计数、939 个计划
   optimizer steps、Conda/PyTorch/Transformers 解析均通过；未加载 tokenizer/模型、未创建
   checkpoint、未启动训练；启动脚本已支持显式 `-CondaExecutable`，兼容 Conda 不在 PATH 的主机；
+- ✅ C2b 启动时的人民币成本参数已改为可选；训练完成后先生成不含费用的 run manifest，项目所有者
+  可在取得平台账单后用 `scripts/record_run_cost.py` 原子补录实际成本，不把预计费用当作实验事实；
 - ✅ 已补充 Linux 云 GPU 的 `scripts/run_c2b_base.sh`，与 PowerShell 入口保持相同的候选
   manifest、配置、Conda、CUDA、授权、独立输出目录、checkpoint 和 run manifest 约束；仅做
   Bash 语法与帮助入口检查，未在本机启动训练；
