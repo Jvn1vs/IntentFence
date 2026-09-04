@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -147,6 +148,19 @@ def test_optimizer_step_calculation_matches_training_loop() -> None:
         calculate_optimizer_steps(
             0, batch_size=8, gradient_accumulation_steps=1, epochs=1
         )
+
+
+def test_training_log_writer_replaces_valid_json_atomically(tmp_path: Path) -> None:
+    path = tmp_path / "training_log.json"
+    first_epoch = [{"epoch": 1, "macro_f1": 0.5}]
+    second_epoch = first_epoch + [{"epoch": 2, "macro_f1": 0.6}]
+
+    train_module._write_json_atomically(path, first_epoch)
+    assert json.loads(path.read_text(encoding="utf-8")) == first_epoch
+
+    train_module._write_json_atomically(path, second_epoch)
+    assert json.loads(path.read_text(encoding="utf-8")) == second_epoch
+    assert not (tmp_path / ".training_log.json.tmp").exists()
 
 
 def test_cpu_smoke_config_enforces_sample_and_step_contract(tmp_path: Path) -> None:

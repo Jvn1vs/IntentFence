@@ -30,6 +30,7 @@ Options:
   --integrity-policy-path <path>
   --ai-review-policy-path <path>
   --cost-cny <number>       Actual non-negative CNY cost for a training run.
+  --log-file <path>         Console log path; defaults to <output-directory>.log.
   --require-cuda            Required for a non-preflight run.
   --preflight-only          Do not load a model or start training.
   --conda-executable <path> Full conda executable path or command name.
@@ -78,6 +79,7 @@ AI_REVIEW_MANIFEST_PATH=""
 INTEGRITY_POLICY_PATH=""
 AI_REVIEW_POLICY_PATH=""
 COST_CNY="-1"
+LOG_FILE=""
 REQUIRE_CUDA=0
 PREFLIGHT_ONLY=0
 CONDA_EXECUTABLE="${CONDA_EXE:-}"
@@ -182,6 +184,11 @@ while [[ $# -gt 0 ]]; do
             COST_CNY="$2"
             shift 2
             ;;
+        --log-file)
+            require_value "$@"
+            LOG_FILE="$2"
+            shift 2
+            ;;
         --require-cuda)
             REQUIRE_CUDA=1
             shift
@@ -217,6 +224,18 @@ RESOLVED_CONFIG_PATH="$(resolve_path "$CONFIG_PATH")"
 CANDIDATE_TRAIN_PATH="$(resolve_path "$TRAIN_PATH")"
 CANDIDATE_VALIDATION_PATH="$(resolve_path "$VALIDATION_PATH")"
 RESOLVED_OUTPUT_DIRECTORY="$(resolve_path "$OUTPUT_DIRECTORY")"
+
+if [[ -n "$LOG_FILE" ]]; then
+    RESOLVED_LOG_FILE="$(resolve_path "$LOG_FILE")"
+else
+    RESOLVED_LOG_FILE="${RESOLVED_OUTPUT_DIRECTORY}.log"
+fi
+LOG_PARENT_DIRECTORY="$(dirname -- "$RESOLVED_LOG_FILE")"
+mkdir -p "$LOG_PARENT_DIRECTORY"
+[[ ! -e "$RESOLVED_LOG_FILE" ]] || die "Refusing to overwrite existing log file: $RESOLVED_LOG_FILE"
+exec > >(tee "$RESOLVED_LOG_FILE") 2>&1
+export PYTHONUNBUFFERED=1
+
 require_file "$RESOLVED_CONFIG_PATH"
 require_file "$CANDIDATE_TRAIN_PATH"
 require_file "$CANDIDATE_VALIDATION_PATH"
@@ -240,6 +259,7 @@ echo "Config: $RESOLVED_CONFIG_PATH"
 echo "Train: $CANDIDATE_TRAIN_PATH"
 echo "Validation: $CANDIDATE_VALIDATION_PATH"
 echo "Output: $RESOLVED_OUTPUT_DIRECTORY"
+echo "Log: $RESOLVED_LOG_FILE"
 
 "$INTENTFENCE_PYTHON" "$REPOSITORY_ROOT/scripts/validate_c2b_config.py" \
     --config "$RESOLVED_CONFIG_PATH" || die "C2b config preflight failed."

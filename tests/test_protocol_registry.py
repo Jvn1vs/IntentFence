@@ -69,6 +69,7 @@ def test_validator_rejects_codex_as_training_executor() -> None:
 
 def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
     script = (ROOT / "scripts" / "run_c2b_base.ps1").read_text(encoding="utf-8")
+    bash_script = (ROOT / "scripts" / "run_c2b_base.sh").read_text(encoding="utf-8")
 
     assert "validate_c2b_config.py" in script
     assert "validate_c2b_preflight.py" in script
@@ -82,6 +83,12 @@ def test_c2b_entrypoint_requires_frozen_route_b_protocol() -> None:
     assert "--c2b-authorization-file" in script
     assert '"This C2b entrypoint only supports $SupportedCandidate."' in script
     assert "-PreflightOnly" in script
+    assert "Start-Transcript" in script
+    assert "trap" in script
+    assert "LogFile" in script
+    assert "tee" in bash_script
+    assert "--log-file" in bash_script
+    assert "PYTHONUNBUFFERED" in bash_script
 
 
 def test_c2b_registered_configs_are_frozen() -> None:

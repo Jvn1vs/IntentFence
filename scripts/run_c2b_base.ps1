@@ -22,6 +22,7 @@ param(
     [string]$IntegrityPolicyPath = "",
     [string]$AiReviewPolicyPath = "",
     [double]$CostCny = -1,
+    [string]$LogFile = "",
     [switch]$RequireCuda,
     [switch]$PreflightOnly,
     [string]$CondaExecutable = ""
@@ -49,6 +50,27 @@ $ResolvedConfigPath = (Resolve-Path -LiteralPath (Resolve-RepositoryPath $Config
 $CandidateTrainPath = Resolve-RepositoryPath $TrainPath $RepositoryRoot
 $CandidateValidationPath = Resolve-RepositoryPath $ValidationPath $RepositoryRoot
 $ResolvedOutputDirectory = Resolve-RepositoryPath $OutputDirectory $RepositoryRoot
+$ResolvedLogFile = if ($LogFile) {
+    Resolve-RepositoryPath $LogFile $RepositoryRoot
+} else {
+    "$ResolvedOutputDirectory.log"
+}
+$LogParentDirectory = Split-Path -Parent $ResolvedLogFile
+if ($LogParentDirectory) {
+    New-Item -ItemType Directory -Path $LogParentDirectory -Force | Out-Null
+}
+if (Test-Path -LiteralPath $ResolvedLogFile) {
+    throw "Refusing to overwrite existing log file: $ResolvedLogFile"
+}
+Start-Transcript -LiteralPath $ResolvedLogFile -NoClobber | Out-Null
+$env:PYTHONUNBUFFERED = "1"
+trap {
+    try {
+        Stop-Transcript | Out-Null
+    } catch {
+    }
+    throw $_
+}
 
 if ($CostCny -lt -1) {
     throw "CostCny must be -1 for preflight or a non-negative actual cost for a training run."
@@ -104,6 +126,7 @@ Write-Host "Config: $ResolvedConfigPath"
 Write-Host "Train: $CandidateTrainPath"
 Write-Host "Validation: $CandidateValidationPath"
 Write-Host "Output: $ResolvedOutputDirectory"
+Write-Host "Log: $ResolvedLogFile"
 
 $ConfigValidationScript = Join-Path $RepositoryRoot "scripts/validate_c2b_config.py"
 & $IntentFencePython $ConfigValidationScript --config $ResolvedConfigPath
@@ -190,6 +213,7 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($PreflightOnly) {
     Write-Host "C2b Base preflight passed; training was not started."
+    Stop-Transcript | Out-Null
     exit 0
 }
 
@@ -274,3 +298,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "C2b Base completed. Stop and provide the complete run manifest and logs before another variant or seed."
+Stop-Transcript | Out-Null

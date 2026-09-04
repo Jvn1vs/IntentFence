@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import re
 from dataclasses import dataclass
@@ -43,6 +44,18 @@ def _require_training() -> tuple[Any, Any, Any, Any]:
     except ImportError as exc:
         raise RuntimeError("Install training dependencies with: python -m pip install -e '.[ml]'") from exc
     return torch, nn, (DataLoader, Dataset), (AutoTokenizer, get_linear_schedule_with_warmup)
+
+
+def _write_json_atomically(path: Path, payload: Any) -> None:
+    """Persist a small JSON artifact without exposing a partial document."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_name(f".{path.name}.tmp")
+    with temporary_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary_path, path)
 
 
 @dataclass
@@ -214,6 +227,10 @@ def train(
     )
     if authorization_inputs is not None:
         validate_c2b_training_authorization(**authorization_inputs)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    log_records: list[dict[str, Any]] = []
+    _write_json_atomically(output_dir / "training_log.json", log_records)
+    _write_json_atomically(output_dir / "resolved_config.json", config.__dict__)
     torch, nn, loader_types, transformer_types = _require_training()
     DataLoader, Dataset = loader_types
     AutoTokenizer, get_linear_schedule_with_warmup = transformer_types
@@ -301,7 +318,6 @@ def train(
         ),
         alignment_target=config.alignment_target,
     )
-    log_records: list[dict[str, Any]] = []
     optimizer.zero_grad(set_to_none=True)
     for epoch in range(1, config.epochs + 1):
         model.train()
@@ -338,7 +354,8 @@ def train(
             **metrics,
         }
         log_records.append(record)
-        print(json.dumps(record, sort_keys=True))
+        _write_json_atomically(output_dir / "training_log.json", log_records)
+        print(json.dumps(record, sort_keys=True), flush=True)
         save_multitask_model(model, tokenizer, metadata, output_dir / f"epoch-{epoch:03d}")
         if is_best:
             save_multitask_model(model, tokenizer, metadata, output_dir / "best")
@@ -347,13 +364,8 @@ def train(
             if stale_epochs >= config.early_stopping_patience:
                 break
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "training_log.json").write_text(
-        json.dumps(log_records, indent=2) + "\n", encoding="utf-8"
-    )
-    (output_dir / "resolved_config.json").write_text(
-        json.dumps(config.__dict__, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    _write_json_atomically(output_dir / "training_log.json", log_records)
+    _write_json_atomically(output_dir / "resolved_config.json", config.__dict__)
 
 
 def _validate(model: Any, loader: Any, device: Any, torch: Any) -> dict[str, float]:

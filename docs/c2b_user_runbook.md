@@ -64,6 +64,13 @@ bash scripts/run_c2b_base.sh \
 Linux 主机的首次操作只执行 `--preflight-only`。CUDA 预检和授权均通过后，项目所有者再决定
 是否亲自启动真实工程训练；不要把 Bash 入口和 PowerShell 入口同时用于同一个输出目录。
 
+两个启动入口都会自动保存完整终端日志：默认位置是输出目录旁边的同名 `.log` 文件，例如
+`checkpoints/base-action-multitask-seed42.log`；也可以用 PowerShell 的 `-LogFile` 或 Bash 的
+`--log-file` 指定路径。入口拒绝覆盖已有日志。训练代码会在启动时创建合法的空
+`training_log.json`，并在每个 epoch 结束后原子更新；因此即使训练异常中断，也能保留已经完成的
+epoch 记录。每轮模型另存为 `epoch-001`、`epoch-002` 等，`best` 仍表示 validation Risk Macro-F1
+最高的 checkpoint。
+
 ## 3. 正式训练授权文件
 
 正式研究训练仍必须由项目所有者在独立人类审核与裁决完成后自行创建授权文件。Codex 不填写该
