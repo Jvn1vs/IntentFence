@@ -60,7 +60,23 @@ API 的 ONNX 后端默认优先选择 `model.int8.onnx`，没有该文件时回�
 
 基准脚本记录冷启动初始化时间、第一次请求、预热后的请求 P50/P95/均值/标准差、顺序或
 并发吞吐、模型 artifact 大小/哈希、进程峰值 RSS 和 Python 分配峰值。支持 `short`、
-`medium`、`long` 输入以及进程内共享后端的并发请求；报告路径已存在时拒绝覆盖：
+`medium`、`long` 输入以及进程内共享后端的并发请求；报告路径已存在时拒绝覆盖。
+
+首次对一个冻结导出目录测量时，可先运行一次只读预检；它复用正式测量的参数解析，检查
+模型目录、ONNX 变体、tokenizer、校准文件和已有导出元数据，不加载模型、不初始化 ONNX
+Runtime、不创建报告目录：
+
+```powershell
+python benchmarks/latency.py `
+  --backend onnx `
+  --model-dir artifacts\c3b\onnx-seed42 `
+  --calibration artifacts\c2c\seed42\calibration.json `
+  --onnx-variant int8 `
+  --output reports\c3b\onnx-int8-short.json `
+  --preflight-only
+```
+
+预检通过后直接执行正式测量；同一导出目录不需要为每个输入 case 重复预检：
 
 ```powershell
 python benchmarks/latency.py `

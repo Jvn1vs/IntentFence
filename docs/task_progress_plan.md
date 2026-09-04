@@ -676,6 +676,9 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   哈希/大小和进程峰值内存；该 smoke 只证明工具可用；
 - ✅ PyTorch/ONNX 导出前置校验、不可覆盖目录、ONNX/INT8/tokenizer 哈希绑定元数据和运行时
   篡改拒绝已实现，并由合成 fixture 验证；
+- ✅ 延迟基准已增加与正式测量共用解析逻辑的只读 `--preflight-only`，会在不加载模型或创建
+  报告的情况下检查输出位置、模型/ONNX 变体、tokenizer、校准文件和已有导出元数据，减少
+  真实 C3b 测量时的手工返工；
 - ✅ `/health` 与 `/v1/evaluate` 暴露应用版本、模型版本/revision；检测器异常的 read
   restricted fail-open 与 external fail-closed 已由 TestClient mock 验证；
 - ✅ 2026-09-02 已通过 `scripts/run_c3b_local_api_smoke.ps1` 实际启动 Uvicorn 规则后端完成一次

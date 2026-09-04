@@ -7,9 +7,15 @@ import platform
 import time
 import tracemalloc
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
-from intentfence.deployment import artifact_tree_sha256, sha256_file
+from intentfence.deployment import (
+    artifact_tree_sha256,
+    sha256_file,
+    validate_export_artifacts,
+    validate_model_directory,
+)
 from intentfence.inference import OnnxBackend, RuleBackend, TorchBackend
 from intentfence.latency import peak_process_rss_bytes, summarize_timings
 
@@ -39,6 +45,17 @@ CASES = {
 }
 
 
+@dataclass(frozen=True)
+class LatencyPreflight:
+    """Resolved inputs shared by read-only preflight and the real benchmark."""
+
+    output_path: Path
+    model_dir: Path | None
+    model_path: Path | None
+    onnx_variant: str
+    calibration_path: Path | None
+
+
 def _timed_prediction(backend: object, case: tuple[str, str, str]) -> float:
     started = time.perf_counter_ns()
     backend.predict(*case)  # type: ignore[attr-defined]
@@ -52,6 +69,60 @@ def _model_path_for_onnx(model_dir: Path, variant: str) -> tuple[Path, str]:
     if not path.is_file():
         raise FileNotFoundError(f"requested ONNX {variant} artifact does not exist: {path}")
     return path, variant
+
+
+def _preflight(args: argparse.Namespace) -> LatencyPreflight:
+    """Validate benchmark inputs without loading a model or creating outputs."""
+
+    output_path = args.output.resolve()
+    if args.output.exists():
+        raise FileExistsError(f"refusing to overwrite latency report: {args.output}")
+
+    model_dir: Path | None = None
+    if args.model_dir is not None:
+        model_dir = args.model_dir.resolve()
+        if not model_dir.is_dir():
+            raise FileNotFoundError(f"model directory does not exist: {model_dir}")
+        if output_path == model_dir or model_dir in output_path.parents:
+            raise ValueError("latency report must be outside the model artifact directory")
+
+    model_path: Path | None = None
+    onnx_variant = "native"
+    export_metadata: Path | None = None
+    if args.backend == "torch":
+        if model_dir is None:  # pragma: no cover - argparse validation guards this
+            raise ValueError("model directory is required for the torch backend")
+        validate_model_directory(model_dir)
+    elif args.backend == "onnx":
+        if model_dir is None:  # pragma: no cover - argparse validation guards this
+            raise ValueError("model directory is required for the onnx backend")
+        model_path, onnx_variant = _model_path_for_onnx(model_dir, args.onnx_variant)
+        tokenizer_path = model_dir / "tokenizer"
+        if not tokenizer_path.is_dir():
+            raise FileNotFoundError(f"ONNX tokenizer directory does not exist: {tokenizer_path}")
+        export_metadata = model_dir / "export_metadata.json"
+        if export_metadata.exists():
+            validate_export_artifacts(model_dir, model_path=model_path)
+
+    calibration_path = args.calibration.resolve() if args.calibration is not None else None
+    if calibration_path is not None and not calibration_path.is_file():
+        raise FileNotFoundError(f"calibration file does not exist: {calibration_path}")
+    if (
+        args.backend == "onnx"
+        and calibration_path is not None
+        and (export_metadata is None or not export_metadata.exists())
+    ):
+        raise ValueError(
+            "calibrated ONNX latency requires hash-bound export_metadata.json"
+        )
+
+    return LatencyPreflight(
+        output_path=output_path,
+        model_dir=model_dir,
+        model_path=model_path,
+        onnx_variant=onnx_variant,
+        calibration_path=calibration_path,
+    )
 
 
 def _artifact_size_bytes(path: Path) -> int:
@@ -111,6 +182,11 @@ def main() -> None:
         help="ONNX artifact to measure; auto selects INT8 when available",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--preflight-only",
+        action="store_true",
+        help="validate paths and artifacts without loading a model or writing a report",
+    )
     args = parser.parse_args()
     if args.iterations <= 0:
         parser.error("--iterations must be positive")
@@ -120,15 +196,30 @@ def main() -> None:
         parser.error("--concurrency must be positive")
     if args.backend in {"torch", "onnx"} and args.model_dir is None:
         parser.error(f"--model-dir is required for the {args.backend} backend")
-    if args.output.exists():
-        raise FileExistsError(f"refusing to overwrite latency report: {args.output}")
-    if args.model_dir is not None:
-        model_dir = args.model_dir.resolve()
-        if not model_dir.is_dir():
-            raise FileNotFoundError(f"model directory does not exist: {model_dir}")
-        output_path = args.output.resolve()
-        if output_path == model_dir or model_dir in output_path.parents:
-            raise ValueError("latency report must be outside the model artifact directory")
+    preflight = _preflight(args)
+    if args.preflight_only:
+        print(
+            json.dumps(
+                {
+                    "status": "preflight_passed",
+                    "backend": args.backend,
+                    "model_dir": str(preflight.model_dir) if preflight.model_dir else None,
+                    "model_path": str(preflight.model_path) if preflight.model_path else None,
+                    "onnx_variant": (
+                        preflight.onnx_variant if args.backend == "onnx" else None
+                    ),
+                    "calibration": (
+                        str(preflight.calibration_path)
+                        if preflight.calibration_path is not None
+                        else None
+                    ),
+                    "output": str(preflight.output_path),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return
 
     case = CASES[args.case]
     tracemalloc.start()
@@ -136,10 +227,11 @@ def main() -> None:
     variant = "native"
     model_path: Path | None = None
     if args.backend == "torch":
-        backend = TorchBackend(args.model_dir, args.calibration)
+        backend = TorchBackend(preflight.model_dir, preflight.calibration_path)
     elif args.backend == "onnx":
-        model_path, variant = _model_path_for_onnx(args.model_dir, args.onnx_variant)
-        backend = OnnxBackend(model_path, args.model_dir / "tokenizer", args.calibration)
+        model_path = preflight.model_path
+        variant = preflight.onnx_variant
+        backend = OnnxBackend(model_path, preflight.model_dir / "tokenizer", preflight.calibration_path)
     else:
         backend = RuleBackend()
     initialization_ms = (time.perf_counter_ns() - initialization_started) / 1_000_000
@@ -159,12 +251,12 @@ def main() -> None:
 
     model_artifact_sha256 = None
     model_artifact_size_bytes = None
-    if args.model_dir is not None:
-        model_artifact_sha256 = artifact_tree_sha256(args.model_dir)
-        model_artifact_size_bytes = _artifact_size_bytes(args.model_dir)
+    if preflight.model_dir is not None:
+        model_artifact_sha256 = artifact_tree_sha256(preflight.model_dir)
+        model_artifact_size_bytes = _artifact_size_bytes(preflight.model_dir)
     calibration_sha256 = None
-    if args.calibration is not None and args.calibration.is_file():
-        calibration_sha256 = sha256_file(args.calibration)
+    if preflight.calibration_path is not None:
+        calibration_sha256 = sha256_file(preflight.calibration_path)
     result = {
         "backend": backend.name,
         "model_version": getattr(backend, "model_version", backend.name),
@@ -173,7 +265,9 @@ def main() -> None:
         "model_path": str(model_path.resolve()) if model_path is not None else None,
         "model_artifact_sha256": model_artifact_sha256,
         "model_artifact_size_bytes": model_artifact_size_bytes,
-        "calibration_path": str(args.calibration.resolve()) if args.calibration else None,
+        "calibration_path": (
+            str(preflight.calibration_path) if preflight.calibration_path is not None else None
+        ),
         "calibration_sha256": calibration_sha256,
         "input_case": args.case,
         "concurrency": args.concurrency,
@@ -188,8 +282,10 @@ def main() -> None:
         "processor": platform.processor() or os.environ.get("PROCESSOR_IDENTIFIER"),
         "cpu_count": os.cpu_count(),
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    preflight.output_path.parent.mkdir(parents=True, exist_ok=True)
+    preflight.output_path.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps(result, indent=2))
 
 
