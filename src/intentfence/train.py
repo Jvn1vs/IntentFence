@@ -58,6 +58,20 @@ def _write_json_atomically(path: Path, payload: Any) -> None:
     os.replace(temporary_path, path)
 
 
+def _progress_report_steps(total_steps: int, reports_per_epoch: int = 4) -> tuple[int, ...]:
+    """Return a small set of evenly spaced batch steps for console progress."""
+    if total_steps <= 0 or reports_per_epoch <= 0:
+        raise ValueError("progress reporting requires positive step counts")
+    return tuple(
+        sorted(
+            {
+                min(total_steps, math.ceil(total_steps * index / reports_per_epoch))
+                for index in range(1, reports_per_epoch + 1)
+            }
+        )
+    )
+
+
 @dataclass
 class TrainingConfig:
     run_name: str
@@ -231,6 +245,17 @@ def train(
     log_records: list[dict[str, Any]] = []
     _write_json_atomically(output_dir / "training_log.json", log_records)
     _write_json_atomically(output_dir / "resolved_config.json", config.__dict__)
+    print(
+        json.dumps(
+            {
+                "status": "model_loading",
+                "model_name": config.model_name,
+                "model_revision": config.model_revision,
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
     torch, nn, loader_types, transformer_types = _require_training()
     DataLoader, Dataset = loader_types
     AutoTokenizer, get_linear_schedule_with_warmup = transformer_types
@@ -301,6 +326,24 @@ def train(
     )
     use_amp = device.type == "cuda" and config.mixed_precision == "fp16"
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+    train_batches_per_epoch = len(train_loader)
+    progress_steps = set(_progress_report_steps(train_batches_per_epoch))
+    total_train_batches = train_batches_per_epoch * config.epochs
+    print(
+        json.dumps(
+            {
+                "device": str(device),
+                "epochs": config.epochs,
+                "optimizer_updates_total": total_updates,
+                "status": "training_started",
+                "train_batches_per_epoch": train_batches_per_epoch,
+                "train_samples": len(train_samples),
+                "validation_samples": len(validation_samples),
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
 
     best_macro_f1, stale_epochs = -1.0, 0
     metadata = ModelMetadata(
@@ -320,6 +363,17 @@ def train(
     )
     optimizer.zero_grad(set_to_none=True)
     for epoch in range(1, config.epochs + 1):
+        print(
+            json.dumps(
+                {
+                    "epoch": epoch,
+                    "epochs": config.epochs,
+                    "status": "epoch_started",
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
         model.train()
         running_loss = 0.0
         for step, batch in enumerate(train_loader, start=1):
@@ -340,7 +394,43 @@ def train(
                 scaler.update()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
+            if step in progress_steps:
+                completed_train_batches = (
+                    (epoch - 1) * train_batches_per_epoch + step
+                )
+                print(
+                    json.dumps(
+                        {
+                            "batch": step,
+                            "batches_in_epoch": train_batches_per_epoch,
+                            "epoch": epoch,
+                            "epoch_progress_percent": round(
+                                step / train_batches_per_epoch * 100, 1
+                            ),
+                            "epochs": config.epochs,
+                            "overall_progress_percent": round(
+                                completed_train_batches / total_train_batches * 100,
+                                1,
+                            ),
+                            "status": "training_progress",
+                            "train_loss_running": round(running_loss / step, 6),
+                        },
+                        sort_keys=True,
+                    ),
+                    flush=True,
+                )
 
+        print(
+            json.dumps(
+                {
+                    "epoch": epoch,
+                    "epochs": config.epochs,
+                    "status": "validation_started",
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
         metrics = _validate(model, validation_loader, device, torch)
         is_best = metrics["macro_f1"] > best_macro_f1
         if is_best:
@@ -348,9 +438,14 @@ def train(
             stale_epochs = 0
         record = {
             "epoch": epoch,
+            "epochs": config.epochs,
             "train_loss": running_loss / max(len(train_loader), 1),
             "checkpoint": f"epoch-{epoch:03d}",
             "is_best": is_best,
+            "best_macro_f1": best_macro_f1,
+            "metric_split": "validation",
+            "overall_progress_percent": round(epoch / config.epochs * 100, 1),
+            "status": "epoch_completed",
             **metrics,
         }
         log_records.append(record)
@@ -366,6 +461,17 @@ def train(
 
     _write_json_atomically(output_dir / "training_log.json", log_records)
     _write_json_atomically(output_dir / "resolved_config.json", config.__dict__)
+    print(
+        json.dumps(
+            {
+                "best_macro_f1": best_macro_f1,
+                "epochs_completed": len(log_records),
+                "status": "training_completed",
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
 
 
 def _validate(model: Any, loader: Any, device: Any, torch: Any) -> dict[str, float]:

@@ -163,6 +163,13 @@ def test_training_log_writer_replaces_valid_json_atomically(tmp_path: Path) -> N
     assert not (tmp_path / ".training_log.json.tmp").exists()
 
 
+def test_training_progress_steps_are_sparse_and_include_completion() -> None:
+    assert train_module._progress_report_steps(625) == (157, 313, 469, 625)
+    assert train_module._progress_report_steps(2) == (1, 2)
+    with pytest.raises(ValueError, match="positive step counts"):
+        train_module._progress_report_steps(0)
+
+
 def test_cpu_smoke_config_enforces_sample_and_step_contract(tmp_path: Path) -> None:
     config = TrainingConfig.from_yaml("configs/deberta_small_cpu_smoke.yaml")
     train_rows = [
