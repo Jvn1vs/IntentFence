@@ -571,6 +571,11 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   Risk accuracy 0.9105、Macro-F1 0.905618926130284，checkpoint reload 通过，输入哈希前后
   一致。与 C multitask seed 42 的对照报告见
   `reports/training/c2b_base_action_risk_seed42_20260905.md`；实际费用待补录。
+- ✅ 随后完成同一 candidate 8 的 B context Risk-only（Macro-F1 1.0）和 A text Risk-only
+  （Macro-F1 0.9939986496961817），均为 seed 42、5 epochs、checkpoint reload 通过；对应
+  报告见 `reports/training/c2b_base_context_risk_seed42_20260905.md` 和
+  `reports/training/c2b_base_text_risk_seed42_20260905.md`。四个预设 Base 变体的 seed 42
+  单次工程运行已完成；未自动启动 seed 52/62。
 - ⬜ 尚无跨 seed、A/B/C 对比、Alignment 独立评估或正式显著性/效应量报告；C2b 正式研究出口未通过。
 
 #### 要测试什么
