@@ -1,7 +1,7 @@
 .PHONY: install test lint smoke api baseline public-audit release-readiness
 
 install:
-	python -m pip install -e ".[dev]"
+	python -m pip install -e ".[dev]" --index-url https://pypi.org/simple
 
 test:
 	python -m pytest

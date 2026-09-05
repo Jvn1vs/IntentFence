@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ValidationPath,
     [string]$OutputDirectory = "checkpoints/small-action-cpu-smoke-seed42",
+    [string]$CondaExecutable = "conda",
     [switch]$PreflightOnly
 )
 
@@ -12,7 +13,7 @@ $RepositoryRoot = Split-Path -Parent $PSScriptRoot
 $ConfigPath = Join-Path $RepositoryRoot "configs/deberta_small_cpu_smoke.yaml"
 $ResolvedTrainPath = (Resolve-Path -LiteralPath $TrainPath).Path
 $ResolvedValidationPath = (Resolve-Path -LiteralPath $ValidationPath).Path
-$CondaEnvironmentOutput = @(& conda run -n intentfence python -c "import sys; print(sys.executable)")
+$CondaEnvironmentOutput = @(& $CondaExecutable run -n intentfence python -c "import sys; print(sys.executable)")
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to resolve the intentfence Conda Python."
 }

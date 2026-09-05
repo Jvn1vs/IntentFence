@@ -9,6 +9,7 @@ __pycache__/
 htmlcov/
 dist/
 .env
+.workbuddy/
 
 # Data and model artifacts (keep cards/manifests only)
 data/raw/*

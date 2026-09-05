@@ -2,6 +2,7 @@ param(
     [string]$TrainPath = "data/interim/route_b_v2_candidate_4/train.jsonl",
     [string]$ValidationPath = "data/interim/route_b_v2_candidate_4/validation.jsonl",
     [string]$OutputDirectory = "checkpoints/small-text-seed42",
+    [string]$CondaExecutable = "conda",
     [switch]$PreflightOnly
 )
 
@@ -31,7 +32,7 @@ $ResolvedOutputDirectory = Resolve-RepositoryPath `
     -Path $OutputDirectory `
     -RepositoryRoot $RepositoryRoot
 
-$CondaEnvironmentOutput = @(& conda run -n intentfence python -c "import sys; print(sys.executable)")
+$CondaEnvironmentOutput = @(& $CondaExecutable run -n intentfence python -c "import sys; print(sys.executable)")
 if ($LASTEXITCODE -ne 0) {
     throw "Unable to resolve the intentfence Conda Python. Open an Anaconda PowerShell prompt and retry."
 }

@@ -862,10 +862,13 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 8. 当前已验证事实
 
-截至 2026-09-02：
+截至 2026-09-05：
 
 - Ruff 静态检查通过；
-- 242 个单元/API/协议/数据/训练框架测试通过；另有 1 条来自 FastAPI/Starlette 测试依赖的非阻塞弃用警告；
+- 261 个单元/API/协议/数据/训练框架测试通过；FastAPI/Starlette 测试客户端弃用警告已通过约束
+  `starlette>=0.40,<1` 并同步到 0.52.1 消除；
+- `pip check` 通过；core/dev 锁定环境与当前 Python 3.12 Windows 环境一致；data、ML 和 ONNX extras
+  仍按实验 manifest 单独锁定；
 - Python 编译检查通过；
 - wheel 构建通过；
 - C0 协议校验和 C1 框架校验通过；
