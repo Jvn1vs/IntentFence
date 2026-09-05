@@ -559,9 +559,15 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   stratum）、配对差值、Cohen's dz、跨 seed 汇总和 Holm 校正；合成 fixture 测试通过；
 - ✅ `scripts/summarize_seed_runs.py` 已实现不补造 seed 的标量结果汇总，并显式声明它不能
   替代逐样本 paired bootstrap；
-- ⬜ 未租 GPU；
-- ⬜ 未执行任何 Base 训练；
-- ⬜ 没有真实 checkpoint、跨 seed 结果或正式显著性/效应量报告。
+- ✅ 2026-09-05 在用户已有 RTX 4090 上完成 candidate 8 AI 工程路线的 Base C multitask、
+  seed 42 单次运行（5 epochs、5,000 train/2,000 validation）。Codex 配置环境和准备命令，
+  用户在 tmux pane 按 Enter 启动；训练完成且 checkpoint reload 通过，`best` 对应 epoch 4。
+  验证集 Risk accuracy 为 0.9995、Macro-F1 为 0.9994999992187488；仅是 project-owned mock
+  数据上的工程证据，不能证明真实攻击防御效果。耗时 380.946923 秒，实际账单待补录。
+  完整命令、版本、哈希、曲线及限制见
+  `reports/training/c2b_base_action_multitask_seed42_20260905.md`。
+- ✅ 已有本地真实训练 checkpoint；权重、数据、原始日志和原始 run manifest 不提交 Git。
+- ⬜ 尚无跨 seed、A/B/C 对比、Alignment 独立评估或正式显著性/效应量报告；C2b 正式研究出口未通过。
 
 #### 要测试什么
 
@@ -874,8 +880,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 - C0 协议校验和 C1 框架校验通过；
 - 合成 fixture 已覆盖来源/转换 replay、人工审计 key、merge、去重、六角色划分、manifest、完整性报告、规则与 word/char TF-IDF 接口及正式测试锁；
 - 上述结果属于静态、合成和规则后端运行时验证，只证明工程框架按当前契约工作，**不证明 IntentFence 在真实数据或公开基准上有效**；
-- 尚无训练 checkpoint、真实校准结果、跨数据集结果或 ONNX INT8 模型；C3b 当前新增内容仍
-  只属于静态/fixture/规则后端工程验证（含一次本机 Uvicorn 和一次 Docker rules-only smoke）。
+- 2026-09-05 新增一份 Base C multitask seed 42 的 AI 工程训练 checkpoint，成功重载且文件哈希
+  经核验；详见 C2b 与对应训练报告。它不改变前述静态/fixture 测试的证据范围。尚无真实校准结果、
+  跨数据集结果或 ONNX INT8 模型；C3b 当前新增内容仍只属于静态/fixture/规则后端工程验证
+  （含一次本机 Uvicorn 和一次 Docker rules-only smoke）。
 - C4 的公开发布审计、论文模板和主张证据矩阵已通过 fixture/静态检查，但不等于最终公开
   内容已获项目所有者批准。
 - G1 的 committed release-tree、README 链接和 CI 契约预检已实现并通过；这不等于已合并到
@@ -935,12 +943,15 @@ Alignment/action realism 57）。项目所有者已完成逐条裁决，validato
 独立人类签核。最新双 AI 分歧的项目所有者补充复核包详情见
 `docs/route_b_ai_disagreement_handoff.md`；正式两名独立人类 v2 审核包详情见
 `docs/route_b_candidate_8_human_audit_handoff.md`。C2a 的代码、fixture 与 dry-run 仍是框架准备，
-不构成进入正式研究训练的授权；C2b 的 Base 配置、统计工具和带授权门的启动脚本已准备，但没有启动
-任何模型运行。AI 工程训练授权已通过校验，但还没有启动实际模型运行。C2c 的 reliability
+不构成进入正式研究训练的授权；C2b 已于 2026-09-05 完成一次用户确认并在 tmux 启动的
+Base C multitask seed 42 AI 工程运行，训练和 checkpoint reload 通过。聚合结果与复现记录见
+`reports/training/c2b_base_action_multitask_seed42_20260905.md`；这不解除正式人类审核门，
+也不代表完成 C2b 的多变体、多 seed 主实验。当前停在本次结果提交与复核处，未启动下一轮训练。
+C2c 的 reliability
 diagram/classwise ECE、calibration split 哈希校验、只读 preflight 和 owner authorization gate
-已准备，但没有真实 logits、温度或阈值。不得在项目所有者亲自执行之前产生 checkpoint 或拟合
-校准参数，不得进入最终测试或 Small/Base 训练
-结果汇总。C3a 的固定阈值评测、分组/错误分析、cluster bootstrap、Wilson 区间和一次性
+已准备，但没有用于校准的真实 logits、温度或阈值。校准和最终测试仍锁定；下一轮训练仍须先展示
+完整命令并由用户确认，本轮结果提交不授权其他变体、seed 或后续阶段。
+C3a 的固定阈值评测、分组/错误分析、cluster bootstrap、Wilson 区间和一次性
 final-test ledger 也已准备，但没有读取或生成真实 Test A/B/C 预测。按用户指示，已先继续
 推进不依赖 checkpoint 的 C3b 工程框架；C3b 的真实导出、INT8 安全重跑和 CPU 实测仍等待
 冻结模型与对应阶段确认，不改变人工审核、训练、校准和最终测试门。

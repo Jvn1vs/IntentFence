@@ -36,6 +36,7 @@ reports/data_quality/*.jsonl
 !reports/error_analysis/.gitkeep
 
 # Experiment tooling
+logs/
 runs/
 wandb/
 mlruns/
