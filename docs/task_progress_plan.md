@@ -567,6 +567,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
   完整命令、版本、哈希、曲线及限制见
   `reports/training/c2b_base_action_multitask_seed42_20260905.md`。
 - ✅ 已有本地真实训练 checkpoint；权重、数据、原始日志和原始 run manifest 不提交 Git。
+- ✅ 2026-09-05 完成同一 candidate 8、C action Risk-only、seed 42 单次工程运行；验证集
+  Risk accuracy 0.9105、Macro-F1 0.905618926130284，checkpoint reload 通过，输入哈希前后
+  一致。与 C multitask seed 42 的对照报告见
+  `reports/training/c2b_base_action_risk_seed42_20260905.md`；实际费用待补录。
 - ⬜ 尚无跨 seed、A/B/C 对比、Alignment 独立评估或正式显著性/效应量报告；C2b 正式研究出口未通过。
 
 #### 要测试什么
