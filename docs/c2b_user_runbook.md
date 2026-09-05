@@ -1,7 +1,7 @@
 # C2b Base 主实验运行准备手册
 
-状态：工程准备已完成；Codex 不租用 GPU、不启动 Base 训练，也不拟合任何学习参数。
-正式训练仍必须由项目所有者明确授权并亲自执行。默认人类审核路线保持不变；新增的
+状态：工程准备已完成；Codex 可在每轮训练前向项目所有者展示完整命令，并在获得该轮明确确认后执行；不得隐藏或代替命令审查。
+正式训练仍必须经过项目所有者明确授权。默认人类审核路线保持不变；新增的
 `2.2.0-ai-assisted-engineering.1` 只允许 AI-reviewed engineering training，不产生
 `human_verified` 或 formal/paper-grade 证据。
 
@@ -45,7 +45,7 @@ Set-Location E:\IntentFence
 如果 `conda` 已在 PATH 中，可以省略 `-CondaExecutable`；否则传入本机实际的完整
 `conda.exe` 路径。
 
-在当前 CPU 主机上只允许运行上述预检；不要为了验证脚本而传入 `-RequireCuda` 或启动训练。
+每次实际训练前，Codex 必须先展示将要执行的完整命令、配置、seed、输出目录和费用估计，等待项目所有者对该轮命令明确确认；确认后才可传入 `-RequireCuda` 启动训练。
 
 如果租用的是 Linux 云 GPU，可使用仓库内等价的 Bash 入口。它与 PowerShell 入口执行相同的
 候选 manifest、配置、Conda、CUDA、授权、输出目录、checkpoint 和 run manifest 检查：
