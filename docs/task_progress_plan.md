@@ -930,6 +930,14 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-08：candidate 9 公开来源扩充入口
+
+用户已确认继续此前的公开训练集扩充。已完成 BIPIA/InjecAgent 固定来源共 123 个登记文件的大小与 SHA-256 核验，以及 Email 50/Table 900 条 clean 背景的严格转换（skipped=0，split=null，待审核）。
+InjecAgent 62 条攻击原文、17 条用户指令全部与官方测试重叠，触发原 candidate 9 方案的训练排除条件；重组不能提供隔离的训练素材。
+完整 candidate 9 尚未就绪：须补全独立 calibration 的协议设计、背景/攻击家族隔离配对、CodeQA 专用适配与上游条款，以及多样化攻击/困难负样本和标签审核。详见 `reports/data/candidate_9_source_audit_20260908.md` 与 `docs/candidate_9_data_plan.md`。当前停止点为本次数据入口核验汇报；candidate 8 保持历史工程基线，未启动下一轮训练。
+
+### candidate 8 历史停止点（保留）
+
 当前活动候选为 candidate 8。其 27,000 条 project-owned mock 语料、manifest、split 隔离与
 归一化模板检查已通过；两轮双 AI 工程审核与一次项目所有者分歧裁决均已如实封存。2026-09-04
 已新增冻结的 `B-ai-assisted-engineering` 路线：AI 证据仍不等同于人类审核，但可在结构证据
