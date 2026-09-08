@@ -1,0 +1,33 @@
+schema_version: 1
+candidate: candidate_9
+status: engineering_data_candidate_not_training_authorization
+seed: 42
+split_ratios:
+  train: 0.7
+  validation: 0.1
+  calibration: 0.1
+  test_a: 0.1
+tasks: [email, table]
+attacks_per_context: 3
+near_duplicate_jaccard: 0.8
+shingle_chars: 5
+hard_negatives: data/owned/candidate_9_hard_negatives.jsonl
+locked_inputs:
+  - data/processed/v1/calibration.jsonl
+  - data/processed/v1/test_a.jsonl
+  - data/processed/v1/test_b.jsonl
+  - data/processed/v1/test_c.jsonl
+  - data/interim/route_b_v2_candidate_8/calibration.jsonl
+  - data/interim/route_b_v2_candidate_8/test_a.jsonl
+excluded_sources:
+  injecagent: All atomic user/attacker instructions overlap official tests.
+  code: Dedicated adapter and upstream Stack Exchange terms/attribution review pending.
+  qa: Upstream terms not recorded for this expansion.
+  abstract: Upstream terms not recorded for this expansion.
+label_policy:
+  risk: Clean and authored hard negatives are provisional benign; inserted task-diversion instructions are provisional instruction_hijacking.
+  alignment: Unannotated; binary alignment_label is legacy schema compatibility only.
+  action: Missing; do not invent actions.
+  reviewer: codex
+  human_verified: false
+  training_ready: false

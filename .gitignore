@@ -50,3 +50,5 @@ mlruns/
 .vscode/
 .DS_Store
 Thumbs.db
+# Locally authored candidate training material; preserve outside public Git.
+data/owned/

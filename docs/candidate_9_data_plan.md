@@ -1,6 +1,10 @@
 # Candidate 9 多来源训练数据方案
 
-状态：2026-09-08 已执行固定来源核验与 Email/Table 正常背景转换；完整 candidate 9 数据协议、攻击构造和 split manifest 尚未冻结。本文不授权直接训练。
+状态：2026-09-08 已构造 candidate_9_v2，3620 条，完整性验证通过；仍未训练就绪。实际执行规则由 configs/candidate_9.yaml 记录，后文原 80/10/10 方案保留为历史草案，已由独立 calibration 的 70/10/10/10 组划分替代。本文不授权直接训练。
+
+## 最新构造结果
+
+见 `reports/data/candidate_9_build_20260908.md`。train/validation/calibration/internal Test A 为 2550/357/351/362 条。由于锁定集合排除，Email 仅保留 1 个公开背景，当前候选仍以 Table 为主，不能称为已经解决分布单一问题。16 条 authored 困难负样本仅是初始素材。完整性通过不等于标签审核、五类 Risk、独立 Alignment 或动作数据门通过。
 
 ## 2026-09-08 执行发现与适用修正
 

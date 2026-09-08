@@ -12,8 +12,9 @@ codex_allowed:
   - "analyze_logs_manifests_metrics_and_checkpoints_supplied_by_project_owner"
   - "produce_and_validate_dual_ai_training_evidence_under_route_2_2"
   - "build_ai_engineering_readiness_without_formal_training_authorization"
-  - "execute_owner_approved_training_commands_after_command_review"
 codex_prohibited:
+  # Current AGENTS.md reserves every learned-parameter update to the owner.
+  - "run_small_or_base_model_training_or_tiny_overfit"
   - "fit_tfidf_or_any_other_learned_baseline_on_real_project_data"
   - "run_training_without_pre_run_command_review"
   - "update_model_or_calibration_parameters"

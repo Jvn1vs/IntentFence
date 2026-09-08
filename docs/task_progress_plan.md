@@ -932,6 +932,8 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ### 2026-09-08：candidate 9 公开来源扩充入口
 
+后续构造已获用户确认并完成 candidate_9_v2：总计 3620 条，四角色分别为 2550/357/351/362，独立 verifier 通过。实际规则和限制见 `configs/candidate_9.yaml`、`reports/data/candidate_9_build_20260908.md`。这替代下面“仅完成来源入口”的停止状态；当前仍未训练就绪，主要缺口为 Table 来源占比过高、困难负样本量少、五分类/独立 Alignment/动作覆盖未完成。旧 candidate 8 保持不变。
+
 用户已确认继续此前的公开训练集扩充。已完成 BIPIA/InjecAgent 固定来源共 123 个登记文件的大小与 SHA-256 核验，以及 Email 50/Table 900 条 clean 背景的严格转换（skipped=0，split=null，待审核）。
 InjecAgent 62 条攻击原文、17 条用户指令全部与官方测试重叠，触发原 candidate 9 方案的训练排除条件；重组不能提供隔离的训练素材。
 完整 candidate 9 尚未就绪：须补全独立 calibration 的协议设计、背景/攻击家族隔离配对、CodeQA 专用适配与上游条款，以及多样化攻击/困难负样本和标签审核。详见 `reports/data/candidate_9_source_audit_20260908.md` 与 `docs/candidate_9_data_plan.md`。当前停止点为本次数据入口核验汇报；candidate 8 保持历史工程基线，未启动下一轮训练。
