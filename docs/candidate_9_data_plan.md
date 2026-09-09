@@ -1,8 +1,14 @@
 # Candidate 9 多来源训练数据方案
 
-状态：2026-09-08 已构造 candidate_9_v2，3620 条，完整性验证通过；仍未训练就绪。实际执行规则由 configs/candidate_9.yaml 记录，后文原 80/10/10 方案保留为历史草案，已由独立 calibration 的 70/10/10/10 组划分替代。本文不授权直接训练。
+状态：2026-09-09 已构造 candidate_9_v3，20691 条，独立完整性验证尚待结果；仍未训练就绪。v2 的 3620 条及其验证记录保留。实际执行规则由 configs/candidate_9.yaml 和 configs/candidate_9_v3.yaml 记录，后文原 80/10/10 方案保留为历史草案，已由独立 calibration 的 70/10/10/10 组划分替代。本文不授权直接训练。
+
+项目所有者于 2026-09-09 明确选择继续补齐原五类风险和动作数据，见 `docs/candidate_9_multitask_completion.md`。Dolly 已获单独条款批准并加入 v3；原文仅列 BIPIA/InjecAgent 的来源方案为历史设计，当前实际来源与排除事实以对应构造报告为准。
 
 ## 最新构造结果
+
+v3 见 `reports/data/candidate_9_v3_build_20260909.md`：train/validation/calibration/internal Test A 为 14582/2065/2044/2000 条，4579 个背景/近重复组，新增 Dolly 背景改善任务分布，但缺少另外三类 Risk 的已审核标签、独立 Alignment 与可追溯动作。后续保留多任务目标，不转为二分类文本检测实验。
+
+以下为 v2 历史结果：
 
 见 `reports/data/candidate_9_build_20260908.md`。train/validation/calibration/internal Test A 为 2550/357/351/362 条。由于锁定集合排除，Email 仅保留 1 个公开背景，当前候选仍以 Table 为主，不能称为已经解决分布单一问题。16 条 authored 困难负样本仅是初始素材。完整性通过不等于标签审核、五类 Risk、独立 Alignment 或动作数据门通过。
 
