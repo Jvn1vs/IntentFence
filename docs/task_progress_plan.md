@@ -930,7 +930,13 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-09：Dolly 公开来源接入
+
+项目所有者已明确批准固定版本 Dolly-15k 的约 13.1 MB 下载、CC-BY-SA-3.0 归属保留，以及带参考文本的问答、摘要、信息抽取用途。下载已完成，原始 15011 条中筛选出 4467 条有参考文本的背景。正在独立 v3 目录构造新候选，同时保护 v2 calibration/Test A；结果行数与通过状态以本轮最终 manifest 和独立 verifier 为准，不依据输入筛选数量提前宣称完成。
+
 ### 2026-09-08：candidate 9 公开来源扩充入口
+
+进一步来源调查已形成 `docs/candidate_9_source_expansion_decision.md`：deepset 数据卡许可证声明冲突、SafeGuard 数据卡缺少明确许可证，均未下载。Dolly-15k 可补充带参考文本的人工问答/摘要/抽取背景，已固定 revision、13.1 MB 下载范围及 CC-BY-SA-3.0 归属记录，纯适配器 fixture 已准备。`configs/candidate_9_source_proposals.yaml` 中新条款批准仍为 false；等项目所有者明确确认后才能下载并连接下一版构造，不能把普通指令标签冒充安全或动作标签。
 
 后续构造已获用户确认并完成 candidate_9_v2：总计 3620 条，四角色分别为 2550/357/351/362，独立 verifier 通过。实际规则和限制见 `configs/candidate_9.yaml`、`reports/data/candidate_9_build_20260908.md`。这替代下面“仅完成来源入口”的停止状态；当前仍未训练就绪，主要缺口为 Table 来源占比过高、困难负样本量少、五分类/独立 Alignment/动作覆盖未完成。旧 candidate 8 保持不变。
 

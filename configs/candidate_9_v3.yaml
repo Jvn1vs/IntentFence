@@ -1,0 +1,9 @@
+schema_version: 1
+base_config: configs/candidate_9.yaml
+candidate: candidate_9_v3
+source_proposals: configs/candidate_9_source_proposals.yaml
+dolly_manifest: data/raw/dolly/source_manifest.json
+additional_locked_inputs:
+  - data/interim/candidate_9_v2/calibration.jsonl
+  - data/interim/candidate_9_v2/test_a.jsonl
+review_per_source_kind_role: 25
