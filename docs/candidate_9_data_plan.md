@@ -1,6 +1,6 @@
 # Candidate 9 多来源训练数据方案
 
-状态：2026-09-09 已构造 candidate_9_v3，20691 条，独立完整性验证尚待结果；仍未训练就绪。v2 的 3620 条及其验证记录保留。实际执行规则由 configs/candidate_9.yaml 和 configs/candidate_9_v3.yaml 记录，后文原 80/10/10 方案保留为历史草案，已由独立 calibration 的 70/10/10/10 组划分替代。本文不授权直接训练。
+状态：2026-09-09 已构造 candidate_9_v3，20691 条，独立完整性验证通过；仍未训练就绪。v2 的 3620 条及其验证记录保留。实际执行规则由 configs/candidate_9.yaml 和 configs/candidate_9_v3.yaml 记录，后文原 80/10/10 方案保留为历史草案，已由独立 calibration 的 70/10/10/10 组划分替代。本文不授权直接训练。
 
 项目所有者于 2026-09-09 明确选择继续补齐原五类风险和动作数据，见 `docs/candidate_9_multitask_completion.md`。Dolly 已获单独条款批准并加入 v3；原文仅列 BIPIA/InjecAgent 的来源方案为历史设计，当前实际来源与排除事实以对应构造报告为准。
 

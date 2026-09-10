@@ -1,0 +1,18 @@
+schema_version: 1
+repository: jinjinyien/ToolSafety
+revision: 7c444473e0dc0a822247858c249b10856ade04ef
+data_file: toolsafety.json
+expected_bytes: 223041316
+expected_sha256: e623a0e72b2faf5270876462dc8a3197967c533b00755a80050187db34bcbd72
+license_declared: MIT
+attribution: Yuejin Xie, Youliang Yuan, Wenxuan Wang, Fan Mo, Jianmin Guo, Pinjia He; ToolSafety (EMNLP 2025)
+paper_doi: 10.18653/v1/2025.emnlp-main.714
+owner_approved_download_and_readonly_audit: true
+approval_recorded_at: '2026-09-09'
+approval_evidence: 'Project owner replied: 批准下载并只读审计'
+approved_scope: Pinned data and card download; local read-only action, trajectory, duplicate, and upstream-terms audit
+training_candidate_inclusion_approved: false
+upstream_terms_audit_complete: false
+execute_tools: false
+train_models: false
+publish_data: false

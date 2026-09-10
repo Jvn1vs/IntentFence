@@ -1,6 +1,6 @@
 # Candidate 9 v3：Dolly 公开背景接入
 
-日期：2026-09-09。状态：构造完成，独立 verifier 运行中；不代表训练就绪。
+日期：2026-09-09。状态：构造完成，独立 verifier 已通过；不代表训练就绪。
 
 ## 数据和来源
 
@@ -31,7 +31,9 @@ Dolly 原始 15011 条中选取 4467 条带非空参考文本的 closed_qa、inf
 - internal Test A SHA-256：`d27dbaa76b5a76492cc1a6268e621d2e486ed4f229fb8ae5ffe5e2d39030b52a`。
 - train/validation 审核包 `label_review.jsonl`：211 条，reviewer/decision 均为空；未抽取校准/测试供调参。
 
-v2 calibration/Test A 已加入保护集合；旧 v1/candidate 8 校准与测试以及 BIPIA 官方 test 继续受保护。构造器给出的最终跨 split 字符近重复组为 0，阈值为规范化字符 5-gram Jaccard >=0.8。独立验证还会重算这些检查，并逐条重建 Dolly 样本的原始任务、内容和归属。
+v2 calibration/Test A 已加入保护集合；旧 v1/candidate 8 校准与测试以及 BIPIA 官方 test 继续受保护。构造器给出的最终跨 split 字符近重复组为 0，阈值为规范化字符 5-gram Jaccard >=0.8。独立验证已重算通过这些检查，并逐条成功重建 17784 条 Dolly 衍生样本的原始任务、内容和归属。
+
+独立 verifier 返回 `integrity_verified_not_training_ready`，共 20691 条，进程退出码 0。完整输出保存于 `data/interim/candidate_9_v3/verification_20260909.log`，SHA-256 `6a97595d2c3822c370bc0269cc66f38b817997f6ebfa02ff8c75e58665e7c611`。先前无最终记录的失效会话未计作成功，本次以持久日志和正常退出结果为准。
 
 ## 复现
 
@@ -48,7 +50,7 @@ python scripts/verify_candidate_9_v3.py data/interim/candidate_9_v3_reproduction
 
 ## 验证与限制
 
-本轮全量 279 项测试、Ruff、compileall、wheel 构建通过；来源适配与独立重建的 fixture 覆盖标签误标、内容替换、归属丢失和错误任务。真实独立验证结果待本轮 verifier 完成后更新。
+v3 实现提交时全量 279 项测试、Ruff、compileall、wheel 构建通过；来源适配与独立重建的 fixture 覆盖标签误标、内容替换、归属丢失和错误任务。真实数据独立验证也已通过；这些检查不证明标签语义正确、模型有效或满足多任务数据门。
 
 风险标签仍是暂定 benign/instruction_hijacking。四类 Alignment 未标注，拟执行动作缺失，human_verified=false、training_ready=false、formal_training_authorized=false。不能声称满足原五类 Risk 的 C 多任务训练门，也不能把数据增加当作模型泛化改善的实验证据。
 
