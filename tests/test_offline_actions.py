@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
+from intentfence.aib_pilot import PilotCase, bind_and_select
 from intentfence.offline_actions import (
     ADAPTERS,
     PolicyConfig,
@@ -219,3 +221,83 @@ def test_proposed_path_is_inert_and_does_not_overwrite(tmp_path):
     trace = select_action(Scenario.model_validate(raw), "goal_bounded")
     assert trace["candidate_action"]["arguments"]["path"] == str(target)
     assert target.read_text(encoding="utf-8") == "preserve"
+
+
+def pilot_fixture():
+    raw = scene()
+    raw["prefix"][0] = {"role": "system", "content": "Fixture system text."}
+    del raw["facts"]["recipient:old"]
+    raw["trusted_contract_origin"] = "project_authored_pilot_v1"
+    # A fixture user asks to pass along a result; its body originates in tool data.
+    raw["goal"]["arguments"]["body"] = "suggested-body"
+    raw["authorization"]["grants"] = [copy.deepcopy(raw["goal"])]
+    raw["source_preparation"] = {
+        "reviewer": "Codex/AI", "rationale": "Synthetic reviewed forwarding fixture.",
+        "goal_parameter_authorization": {p: raw["user_goal"] for p in raw["goal"]["arguments"]},
+        "suggested_request": {"operation": "message", "arguments": {
+            "recipient": "suggested-recipient", "body": "suggested-body"}},
+    }
+    row = {"id": raw["source"]["case_id"], "system_prompt": raw["prefix"][0]["content"],
+           "conversation": raw["prefix"][1:] + [{"role": "assistant", "content": "Future."}],
+           "tools_available": [{"name": "fixture_tool", "description": "Fixture only."}],
+           "ground_truth": "unsafe", "execution": {"fixture": True}}
+    blob = json.dumps(row).encode()
+    row_hash = hashlib.sha256(blob).hexdigest()
+    raw["source"]["row_sha256"] = row_hash
+    case = PilotCase(case_id=row["id"], row_sha256=row_hash, conversation_boundary=2,
+                     scenario=Scenario.model_validate(raw), policies=["goal_bounded", "content_following"],
+                     review="Fixture AI review.", reviewer="Codex/AI")
+    return blob, case
+
+
+def bind_fixture(blob, case):
+    return bind_and_select(blob, case, revision=case.scenario.source.revision,
+                           source_hash=case.scenario.source.file_sha256)
+
+
+def test_pilot_scoped_interpretation_retains_source_and_separate_labels():
+    blob, case = pilot_fixture()
+    result = bind_fixture(blob, case)
+    assert len(result["observations"]) == 2
+    assert result["risk_label"] is None and result["task_alignment_label"] is None
+    assert result["split"] is None and not result["training_ready"]
+    assert result["observations"][1]["branch_log"] == [
+        "resolved_ai_prepared_source_spans_not_nlp_inference"]
+    with pytest.raises(ValueError, match="scope mismatch"):
+        select_action(case.scenario, "goal_bounded")
+
+
+@pytest.mark.parametrize("mutation", ["bytes", "prefix", "boundary", "binding", "missing_auth"])
+def test_pilot_rejects_unbound_preparation(mutation):
+    blob, case = pilot_fixture()
+    raw = case.model_dump()
+    if mutation == "bytes":
+        blob += b" "
+    elif mutation == "prefix":
+        raw["scenario"]["prefix"][0]["content"] += " appended instruction"
+    elif mutation == "boundary":
+        raw["conversation_boundary"] = 3
+    elif mutation == "binding":
+        raw["scenario"]["source"]["row_sha256"] = "f" * 64
+    else:
+        raw["scenario"]["source_preparation"]["goal_parameter_authorization"] = {}
+    with pytest.raises(ValueError):
+        bind_fixture(blob, PilotCase.model_validate(raw))
+
+
+def test_pilot_future_and_source_labels_do_not_drive_actions():
+    blob, case = pilot_fixture()
+    baseline = bind_fixture(blob, case)
+    row = json.loads(blob)
+    row["conversation"][-1]["content"] = "A different future example."
+    row["ground_truth"] = "safe"
+    row["execution"] = {"arbitrary": "changed"}
+    blob = json.dumps(row).encode()
+    raw = case.model_dump()
+    raw["row_sha256"] = raw["scenario"]["source"]["row_sha256"] = hashlib.sha256(blob).hexdigest()
+    changed = bind_fixture(blob, PilotCase.model_validate(raw))
+    for old, new in zip(baseline["observations"], changed["observations"], strict=True):
+        assert old["candidate_action"] == new["candidate_action"]
+        assert old["branch_log"] == new["branch_log"]
+        assert old["prefix_sha256"] == new["prefix_sha256"]
+        assert old["action_observation_id"] != new["action_observation_id"]

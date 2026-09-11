@@ -1,4 +1,4 @@
-"""Fixture-only deterministic action selection; never dispatches source tools.
+"""Deterministic offline action selection; never dispatches source tools.
 
 Structured facts are an explicit, reviewed preparation layer, not an NLP parser.
 Neither source labels nor future messages are accepted by the policy interface.
@@ -76,6 +76,15 @@ class Authorization(StrictModel):
     evidence: list[Span]
 
 
+class SourcePreparation(StrictModel):
+    """Explicit AI interpretation, kept separate from unchanged source messages."""
+
+    reviewer: Literal["Codex/AI"]
+    rationale: Text
+    goal_parameter_authorization: dict[str, Span]
+    suggested_request: Request | None = None
+
+
 class Scenario(StrictModel):
     source: SourceBinding
     prefix: list[Message]
@@ -85,7 +94,8 @@ class Scenario(StrictModel):
     goal: Request
     suggestion: Span | None = None  # JSON {operation, arguments:{name:fact_id}}
     authorization: Authorization
-    trusted_contract_origin: Literal["project_authored_fixture_v1"]
+    trusted_contract_origin: Literal["project_authored_fixture_v1", "project_authored_pilot_v1"]
+    source_preparation: SourcePreparation | None = None
     fixture_mapping_version: Text
     fixture_world: dict[str, str]
     scenario_group: Text
@@ -126,11 +136,29 @@ class Scenario(StrictModel):
             if fact.trust == "context" and role != "assistant":
                 raise ValueError("context fact must originate in prior assistant context")
         self.resolve(self.goal)
-        if any(self.facts[f].trust != "user" for f in self.goal.arguments.values()):
+        prep = self.source_preparation
+        if prep is not None:
+            if self.trusted_contract_origin != "project_authored_pilot_v1":
+                raise ValueError("source preparation requires pilot contract")
+            if set(prep.goal_parameter_authorization) != set(self.goal.arguments):
+                raise ValueError("every goal parameter requires authorization interpretation")
+            for span in prep.goal_parameter_authorization.values():
+                self.text(span)
+                if span.message != self.user_goal.message:
+                    raise ValueError("parameter authorization must reference current user goal")
+            if prep.suggested_request is not None:
+                if self.suggestion is None:
+                    raise ValueError("prepared suggestion requires source evidence")
+                self.resolve(prep.suggested_request)
+        elif self.trusted_contract_origin != "project_authored_fixture_v1":
+            raise ValueError("pilot contract requires source preparation")
+        if prep is None and any(self.facts[f].trust != "user" for f in self.goal.arguments.values()):
             raise ValueError("fixture goal arguments must be user grounded")
         for grant in self.authorization.grants:
             self.resolve(grant)
-            if any(self.facts[f].trust != "user" for f in grant.arguments.values()):
+            if prep is not None and grant != self.goal:
+                raise ValueError("pilot grants must match the reviewed goal request")
+            if prep is None and any(self.facts[f].trust != "user" for f in grant.arguments.values()):
                 raise ValueError("authorization cannot originate in untrusted facts")
         if self.authorization.status == "known" and not self.authorization.evidence:
             raise ValueError("known authorization requires evidence")
@@ -147,7 +175,7 @@ class Scenario(StrictModel):
 
 class PolicyConfig(StrictModel):
     schema_version: Literal[1] = 1
-    scope: Literal["synthetic_fixtures_only"] = "synthetic_fixtures_only"
+    scope: Literal["synthetic_fixtures_only", "quarantined_source_pilot"] = "synthetic_fixtures_only"
     stale_selection: Literal["first_fact_id_different_value"] = "first_fact_id_different_value"
 
 
@@ -177,6 +205,8 @@ def select_action(
     # Revalidate nested mutable containers, including model_copy/model_construct inputs.
     scenario = Scenario.model_validate(scenario.model_dump())
     config = PolicyConfig.model_validate((config or PolicyConfig()).model_dump())
+    if (scenario.source_preparation is not None) != (config.scope == "quarantined_source_pilot"):
+        raise ValueError("source preparation and policy scope mismatch")
     if policy not in {"goal_bounded", "content_following", "stale_object", "unresolved_scope"}:
         raise ValueError("unknown policy")
     request = scenario.goal
@@ -186,13 +216,19 @@ def select_action(
         if scenario.suggestion is None:
             reason = "missing_structured_suggestion"
         else:
-            request = Request.model_validate(json.loads(
-                scenario.text(scenario.suggestion), object_pairs_hook=_unique_object
-            ))
+            if scenario.source_preparation is not None:
+                request = scenario.source_preparation.suggested_request
+                if request is None:
+                    raise ValueError("source suggestion has no reviewed parameter interpretation")
+                branches.append("resolved_ai_prepared_source_spans_not_nlp_inference")
+            else:
+                request = Request.model_validate(json.loads(
+                    scenario.text(scenario.suggestion), object_pairs_hook=_unique_object
+                ))
+                branches.append("parsed_exact_low_trust_json_span")
             scenario.resolve(request)
             if any(scenario.facts[f].trust != "untrusted" for f in request.arguments.values()):
                 raise ValueError("suggestion arguments must have low-trust provenance")
-            branches.append("parsed_exact_low_trust_json_span")
     elif policy == "stale_object":
         parameter = ADAPTERS[request.operation][2]
         if parameter is None:
@@ -236,7 +272,8 @@ def select_action(
     after = {"resources": before, "proposals": [action]}
     trace = {
         "schema_version": 1,
-        "runtime": "deterministic_fixture_policy",
+        "runtime": ("ai_prepared_source_policy" if scenario.source_preparation
+                    else "deterministic_fixture_policy"),
         "source_binding": scenario.source.model_dump(),
         "scenario_group": scenario.scenario_group,
         "action_policy_id": policy,
@@ -252,6 +289,8 @@ def select_action(
             "goal": scenario.user_goal.model_dump(),
             "suggestion": scenario.suggestion.model_dump() if scenario.suggestion else None,
             "authorization": scenario.authorization.model_dump(),
+            "source_preparation": (scenario.source_preparation.model_dump()
+                                   if scenario.source_preparation else None),
         },
         "memory_before_sha256": digest({"resources": before, "proposals": []}),
         "memory_after_sha256": digest(after),

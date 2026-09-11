@@ -1,0 +1,18 @@
+schema_version: 1
+owner_approved: true
+approval_evidence: Project owner replied 确认下一阶段 after the fixture framework stage and small isolated AIB adaptation pilot proposal.
+scope: quarantined_source_pilot
+source_revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+source_path: data/raw/agent_injection_bench/data/agent_injection_bench.jsonl
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+case_ids: [AIB-00100, AIB-00128, AIB-00147, AIB-00178]
+excluded_case_ids: [AIB-00139, AIB-00159]
+preparation_path: data/interim/aib_action_pilot_20260911/preparation.json
+preparation_sha256: 05b57a4577a2cda49f452b1c5bfaee92d0a9e313a4541b19c1e7a43ccfc281b1
+output_dir: data/interim/aib_action_pilot_20260911/run_v1
+reviewer: Codex/AI
+human_verified: false
+apply_training_labels: false
+construct_splits: false
+train_models: false
+execute_source_tools: false
