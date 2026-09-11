@@ -1,6 +1,13 @@
 schema_version: 2
 effective_from: "2026-08-24"
 owner: "project_owner"
+routine_stage_continuation:
+  owner_authorized: true
+  effective_from: "2026-09-11"
+  evidence: "确认，之后都改成你自己推进，不需要我确认"
+  scope: "data_and_engineering_stage_transitions"
+  requires_repeated_confirmation: false
+  supersedes_historical_stage_stop_notices: true
 codex_allowed:
   - "implement_framework_code_and_configuration"
   - "run_static_lint_unit_tests_and_synthetic_fixture_tests"

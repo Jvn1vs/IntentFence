@@ -7,9 +7,12 @@
 - Use Conda for every project environment. The default CPU/data environment is
   named `intentfence`; do not create or document a project `.venv`. Use the
   official Anaconda and PyPI endpoints, not third-party package mirrors.
-- Work on one stage at a time. At the end of every stage, stop and report the
-  changed files, verification results, remaining risks, and proposed next step.
-- Do not start the next stage until the user explicitly confirms it.
+- Work on one stage at a time. Report changed files, verification results,
+  remaining risks, and the next step at each stage checkpoint, then continue.
+- On 2026-09-11 the owner explicitly authorized autonomous continuation:
+  "确认，之后都改成你自己推进，不需要我确认". Routine data/engineering stage
+  transitions no longer require confirmation. Historical stage stop notices are
+  superseded. Preserve the specific training, human-review and resource boundaries below.
 - Do not rent GPU capacity, call paid APIs, publish a release, or download large
   model/data artifacts without explicit user approval for that stage.
 - The project owner has authorized Codex to execute the real C1 data workflow:
