@@ -1,0 +1,16 @@
+schema_version: 1
+owner_approved: true
+approval_evidence: Owner authorized autonomous data/engineering continuation on 2026-09-11.
+scope: quarantined_source_pilot
+source_revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+source_path: data/raw/agent_injection_bench/data/agent_injection_bench.jsonl
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+case_ids: [AIB-00022, AIB-00099]
+preparation_path: data/interim/aib_hijacking_pilot_20260911/preparation.json
+preparation_sha256: df7305a32d98a1b1d71f2b57c8171147271310fb261649779c56de55d5d5ce78
+output_dir: data/interim/aib_hijacking_pilot_20260911/run_v1
+human_verified: false
+apply_training_labels: false
+construct_splits: false
+execute_source_tools: false
+train_models: false
