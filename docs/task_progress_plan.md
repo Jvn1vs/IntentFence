@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：AIB五轮准备清单关联完成
+
+固定五轮输入并复用逐动作哈希核验，关联21条单次非盲AI意见和保守家族约束（保留未选中must-link成员）。13场景暂定Risk覆盖五类，但仅00026/00103/00167具备不同、非弃权且realistic的动作Alignment意见；此为意见覆盖，不是同前缀/独立审核通过。报告 `reports/data/aib_preparation_register_20260911.md` 列出公钥截断、桶策略语义、内部澄清代码、部分摘要及旧值误用等具体缺口。
+
+新增清单构造脚本及3项测试，相关9 passed（4.35秒）、Ruff通过。ignored register.json SHA-256 `eead216c4935a2787fb33971cdd954006be8d5fe467eb3e6644224ff83ecacf5`。未赋标签或构造split，training_ready=false。下一步自主核对桶策略/澄清表示并寻找完整上下文的缺失对照，不降低原五风险四Alignment动作目标。
+
 ### 2026-09-11：ToolSafety官方工具入口调查完成，三条继续隔离
 
 检查ToolBench未截断238项目录树及StableToolBench官方发布链接，找到ToolEnv2404（11,706,795字节、数据卡MIT）和Cache（235,732,308字节、数据卡未声明许可证）两个压缩包入口。仅取公共目录、版本信息和README，未下载档案；尚无三条工具与上游具体版本的对应证据。报告 `reports/data/toolsafety_upstream_metadata_20260911.md` 保存链接、版本、哈希及范围限制。
