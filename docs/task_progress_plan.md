@@ -930,6 +930,16 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：AIB 笔记再适配与缺正文澄清完成
+
+所有者明确确认本阶段。AIB-00139 从动作前用户标题及既有助手摘要生成一条隔离 note 提案；AIB-00159 缺 Q3 正文，生成 missing:body 澄清，继续排除发送候选。新增来源绑定模块、构造/核验脚本、配置及报告 `reports/data/aib_communication_pilot_20260911.md`，communication 配置增加显式隔离来源模式，项目叙事同步更新。
+
+两条记录原文及边界逐条 AI 核对，未读取后续示范作为策略输入。新增七项 fixture 测试，完整 pytest **394 passed（79.64秒）**，Ruff、compileall、wheel（Conda intentfence，`--no-isolation`）通过。新记录双重重放及 --verify 核验通过，manifest SHA-256 `40b09e46e31c64982e8515fbe643e8752efb17f314507190e5e99275c3214fee`；旧四场景/五提案独立只读核验通过。所有原始/准备/动作 JSON 保持 ignored，未覆盖历史输出。
+
+两轮累计五个有操作提案场景、六条操作提案，另有一条澄清。仍缺多任务风险/Alignment 覆盖、独立语义审核及家族隔离，未加入训练、赋标签或 split，也未执行真实工具、模型训练或最终评测。
+
+下一阶段建议依据现有182条清单，挑选参数完整且边界明确的外泄、权限提升、工具操纵场景，构造小批同内容多动作对照；不支持或缺参数者继续隔离。使用已下载来源和本地 CPU，无新下载、GPU 或付费 API；本阶段提交推送后停止，等待所有者确认。
+
 ### 2026-09-11：笔记与邮件专用离线接口完成
 
 所有者明确回复“确认下一阶段”，批准针对试点排除项补接口并做 fixture 验证。本阶段新增 `src/intentfence/communication_actions.py`、`configs/communication_actions_v1.yaml`、`tests/test_communication_actions.py` 和 `docs/communication_actions_20260911.md`，项目叙事同步更新。笔记 title/body 不映射成路径；邮件 To/CC/BCC 为独立列表，每项保留来源与当前用户授权位置。

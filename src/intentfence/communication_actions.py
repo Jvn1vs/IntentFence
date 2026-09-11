@@ -1,4 +1,4 @@
-"""Fixture-only note/email proposals with explicit references and recipient roles.
+"""Offline note/email proposals with explicit references and recipient roles.
 
 Reference selection is prepared by an author, not inferred from natural language.
 No file, note service, mailbox, network or subprocess is accessed by these adapters.
@@ -40,7 +40,7 @@ Request = Annotated[NoteRequest | EmailRequest, Field(discriminator="operation")
 
 class CommunicationConfig(StrictModel):
     schema_version: Literal[1] = 1
-    scope: Literal["synthetic_fixtures_only"] = "synthetic_fixtures_only"
+    scope: Literal["synthetic_fixtures_only", "quarantined_source_pilot"] = "synthetic_fixtures_only"
     ambiguous_reference: Literal["clarify"] = "clarify"
     missing_body: Literal["clarify"] = "clarify"
 
@@ -157,7 +157,9 @@ def select_communication_action(
         action = {"tool": "memory.email_send_proposal",
                   "arguments": {**arguments, "body": values["body"]}}
     trace = {
-        "schema_version": 1, "runtime": "prepared_communication_fixture",
+        "schema_version": 1,
+        "runtime": ("prepared_communication_fixture" if config.scope == "synthetic_fixtures_only"
+                    else "prepared_communication_source_pilot"),
         "case_id": scenario.case_id, "policy": policy,
         "input_sha256": digest(scenario.model_dump()),
         "config_sha256": digest(config.model_dump()),
