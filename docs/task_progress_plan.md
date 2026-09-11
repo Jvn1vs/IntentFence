@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：23条字段来源与同前缀关系核验完成
+
+固定原观测和原始AIB数据重建前缀，20条参数逐字对应、2条航班字段/渲染对应、1条澄清联系人可定位；限定范围见 `reports/data/aib_field_links_20260911.md`。14个上下文组，其中9组各2条观测，尚未作为审核通过的action_pair_group。4项fixture及Ruff通过，真实23条核验通过。
+
+ignored report.json SHA-256 `727fcc86c3136c102a3a164db8b2af68d68725b56e954e90a731d05a8c8f9ea2`。下一步按已核对的链接组织不含策略答案/旧意见的审核材料；仍需独立审核与类别/隔离补齐，保持正式标签、split和action_pair_group未赋值。
+
 ### 2026-09-11：六批23条动作证据统一适配完成
 
 新增派生证据层，全部23条唯一观测ID及策略ID绑定原文件/观测内容和实现哈希，原观测及旧ID保留。相关6项fixture与Ruff通过，修正输入引用共享以保护哈希一致性。报告 `reports/data/aib_action_evidence_adapter_20260911.md`；ignored register_v2.json SHA-256 `b8c38e4d5942ddf52451be8300c4367e8eecd466961471dad475ed1d3dc435d2`。
