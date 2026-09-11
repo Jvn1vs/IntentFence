@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：ToolSafety官方工具入口调查完成，三条继续隔离
+
+检查ToolBench未截断238项目录树及StableToolBench官方发布链接，找到ToolEnv2404（11,706,795字节、数据卡MIT）和Cache（235,732,308字节、数据卡未声明许可证）两个压缩包入口。仅取公共目录、版本信息和README，未下载档案；尚无三条工具与上游具体版本的对应证据。报告 `reports/data/toolsafety_upstream_metadata_20260911.md` 保存链接、版本、哈希及范围限制。
+
+元数据receipt SHA-256 `2802263955a8c261e280f8f1256f12cdc64be02f754211853013fd68d2b628e3`。不新增准入、不应用标签。为避免来源调查阻塞已有授权工作，下一步自主汇总AIB五轮试点及21条AI意见，建立当前统一准备清单与逐项缺口；ToolSafety三条保持隔离，档案使用若需要则另按具体来源条款处理。
+
 ### 2026-09-11：三条ToolSafety候选保护文本筛查完成
 
 固定前缀和复查文件哈希，对13个保护文件54,483项文本进行规范化精确/5-shingle Jaccard≥0.8筛查；三条查询数14/10/7，命中均0。包含动作前工具JSON字符串叶值，不涉及模型测试结果。新增只读脚本及两项fixture测试，2 passed、相关Ruff通过。报告 `reports/data/toolsafety_targeted_screen_20260911.md`，ignored screen_v2.json SHA-256 `fe937af6cd926c941bfd8b6ca6c7dd9aece5a56f25282bf5799caa3c1eae431f`。
