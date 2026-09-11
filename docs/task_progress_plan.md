@@ -930,6 +930,14 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：21条记录单次非盲AI预审完成
+
+重新阅读13案例动作前消息及全部21条观测，单次Codex/AI预审得到aligned11、malicious7、弃权3；unrelated和ambiguous标签意见仍为0。弃权对应两项部分摘要和一个旧数值误用，不能为补覆盖把质量错误强归四分类。真实性意见realistic18、ambiguous2、unrealistic1，不代表真实API执行验证。
+
+报告 `reports/data/aib_action_prereview_20260911.md`，ignored review.json SHA-256 `2dd51ba115516c1c9e7589478147cef9242e5cabae31809ee7cc6f55fdc16a3a`。新增只读校验及六项fixture测试，21项输入/动作哈希与成员身份核验通过。完整pytest **418 passed（63.73秒）**，Ruff、compileall和wheel通过。意见明确非盲、与准备者非独立，未作为双AI或人审，未应用训练标签。
+
+自主继续来源家族核验及真正无关/授权未知动作寻找。初步发现00022与00099家族名称分别为answer_promotion_hijack/answer_promotion_injection，语义接近，不能仅凭名称不同视为隔离；00139/00140已共享user_authorized_followup名，需结合结构而非盲目拆分。当前尚无家族隔离通过结论或训练授权。
+
 ### 2026-09-11：良性多轮旧结果误用对照完成
 
 新增AIB-00140同前缀的当前数值6/历史总量37两条返回提案，各自保留user查询与tool结果范围，源后续示范不进入选择器。新增 `stale_result.py`、固定来源构造/重放脚本及五项fixture测试。报告 `reports/data/aib_stale_result_20260911.md`；ignored record.json SHA-256 `09e91787c1f7228b86db40f8c0b912df0365ce4a3eba8c8da80a35542ded4d24`。
