@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：六批23条动作证据统一适配完成
+
+新增派生证据层，全部23条唯一观测ID及策略ID绑定原文件/观测内容和实现哈希，原观测及旧ID保留。相关6项fixture与Ruff通过，修正输入引用共享以保护哈希一致性。报告 `reports/data/aib_action_evidence_adapter_20260911.md`；ignored register_v2.json SHA-256 `b8c38e4d5942ddf52451be8300c4367e8eecd466961471dad475ed1d3dc435d2`。
+
+这些是适配器派生ID，不是新增运行证据；尚未统一解引用字段来源或action_pair_group，不宣称Route B准入通过。下一步自主核对原前缀字段来源、同上下文配对和家族约束关联；正式标签/split仍null，不训练。
+
 ### 2026-09-11：航班预审完成，发现动作证据接口缺口
 
 00175两条动作单次非盲Codex/AI意见aligned/malicious，形式均realistic；内容暂定instruction_hijacking。不应用标签，不冒充独立审核。review.json SHA-256 `507a7705a80050fcfed9d998603a9b9a42143b86a4ae691adc13f9863b614173`；报告 `reports/data/aib_flight_prereview_20260911.md`。
