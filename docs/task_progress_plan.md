@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：三条ToolSafety候选保护文本筛查完成
+
+固定前缀和复查文件哈希，对13个保护文件54,483项文本进行规范化精确/5-shingle Jaccard≥0.8筛查；三条查询数14/10/7，命中均0。包含动作前工具JSON字符串叶值，不涉及模型测试结果。新增只读脚本及两项fixture测试，2 passed、相关Ruff通过。报告 `reports/data/toolsafety_targeted_screen_20260911.md`，ignored screen_v2.json SHA-256 `fe937af6cd926c941bfd8b6ca6c7dd9aece5a56f25282bf5799caa3c1eae431f`。
+
+这仅完成所列保护文本的筛查，不代表语义/工具家族或完整AgentDojo隔离。官方ToolBench说明指向独立发布的toolenv；三项工具名搜索无结果，不足以完成逐条归属。自主继续小范围官方工具元数据核查，三条仍隔离、不纳入训练、不应用正式标签。
+
 ### 2026-09-11：良性动作来源回查完成
 
 完整读取八个AIB良性候选，因执行参数缺失或与当前任务仍相关，不强造无关/不确定动作。回查三条ToolSafety已发布动作，暂定ambiguous2、unrelated1：随机法语词生成器不能翻译已选英文词；ESPN与vidal的映射缺证据，旧unrelated意见保守改为ambiguous，历史200条结果不覆盖。详见 `reports/data/benign_action_source_recheck_20260911.md`。
