@@ -1,0 +1,14 @@
+schema_version: 1
+owner_approved: true
+approval_recorded_at: '2026-09-11'
+approval_evidence: 'Project owner replied 批准 to the proposal for at most 200 isolated prefixes and AI pre-review.'
+max_records: 200
+seed: 42
+source_revision: 7c444473e0dc0a822247858c249b10856ade04ef
+source_sha256: e623a0e72b2faf5270876462dc8a3197967c533b00755a80050187db34bcbd72
+diagnostics_sha256: e4de8eb3a0fbf43bebb4b7a52663b3931ccf10a75a80a7b05acb50cbbb69a1a7
+scope: Isolated prefix review package and truthful AI semantic pre-review only
+training_inclusion: false
+human_verified: false
+execute_tools: false
+train_models: false
