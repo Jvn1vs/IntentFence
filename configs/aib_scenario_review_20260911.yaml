@@ -1,0 +1,19 @@
+schema_version: 1
+owner_approved: true
+approval_evidence: 'Project owner replied 确认下一阶段 after the 182-case scenario inventory and offline action planning proposal.'
+source_revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+scope: Full isolated scenario inventory, provisional AI risk review and offline action design only
+expected_rows: 182
+review_partition_zero_based_inclusive:
+  agent_a: [0, 60]
+  agent_b: [61, 100]
+  agent_c: [122, 181]
+  root_completion: [101, 121]
+partition_change_reason: Agent B stopped at its usage limit after saving 40 reviews; root read and completed the remaining 21. Agent C saved all 60 before its terminal error.
+human_verified: false
+apply_training_labels: false
+construct_actions: false
+construct_splits: false
+train_models: false
+execute_source_tools: false
