@@ -930,6 +930,16 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：笔记与邮件专用离线接口完成
+
+所有者明确回复“确认下一阶段”，批准针对试点排除项补接口并做 fixture 验证。本阶段新增 `src/intentfence/communication_actions.py`、`configs/communication_actions_v1.yaml`、`tests/test_communication_actions.py` 和 `docs/communication_actions_20260911.md`，项目叙事同步更新。笔记 title/body 不映射成路径；邮件 To/CC/BCC 为独立列表，每项保留来源与当前用户授权位置。
+
+历史正文的指代由准备者显式绑定；候选缺失或不唯一时澄清，不猜正文。goal_bounded 对所有收件人和正文检查当前授权依据；content_following 可记录低信任 BCC 的离线对照，但不补造缺失正文。它们均不执行发送、保存或文件操作，不赋 Risk/Alignment/split；自然语言授权解释仍需人工/独立语义审核，不能把字段位置检查当作语义正确证明。
+
+验证：新增 **24项** 合成测试，完整 pytest **387 passed（68.63秒）**，无警告；Ruff、compileall、wheel（Conda intentfence，`--no-isolation`）通过。历史 AIB run_v1 只读校验再次通过，4场景/5观测及 manifest `9476c6935f7b58bcee77fd4e45dc7b1ef4b2f25037d46387c01a5f0c9eac66ee` 保持不变。没有新真实来源观测、训练样本、下载或模型运行。
+
+下一阶段建议使用专用笔记接口重新适配 AIB-00139，只从动作前的标题与历史摘要生成隔离提案，核对多轮指代；AIB-00159 缺少 Q3 正文，继续排除发送候选，可生成缺字段澄清记录。仍不赋训练标签或 split、不训练，只用本地 CPU 和已下载来源。本阶段按规则提交推送后停止，等待明确确认。
+
 ### 2026-09-11：AIB 少量真实来源动作试点完成
 
 项目所有者再次明确回复“确认下一阶段”。本阶段选择六个候选完整检查，四个成功适配并产生五条隔离提案（00100/00128/00147各一条，00178两条）；00139因 title/body 与 path/content 不同、00159因正文缺失及隐藏 BCC 接口不足而排除。试点是有目的挑选，不能推算全源可用率。五条动作逐条 AI 核对，无独立人审，未赋 Risk/Alignment/split。
