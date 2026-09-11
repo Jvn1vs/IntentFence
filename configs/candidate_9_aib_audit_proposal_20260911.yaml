@@ -1,0 +1,34 @@
+schema_version: 1
+status: proposed_pending_owner_source_terms_approval
+source: ppradyoth/AgentInjectionBench
+revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+license_declared: Apache-2.0
+owner_approved: false
+scope: Local read-only audit of released synthetic cases, action provenance and split feasibility
+max_download_bytes: 351742
+files:
+  - path: data/agent_injection_bench.jsonl
+    bytes: 314335
+    git_blob_oid: 57289ac57325e97accdb478e57d0ae9e017584ef
+  - path: data/taxonomy.json
+    bytes: 7773
+    git_blob_oid: b563fa99ae1980cfe5fb37dff238520ea5064208
+  - path: README.md
+    bytes: 18928
+    git_blob_oid: ca88fb5004e6b5bea86a4d6e684b1a9225ef2bfe
+  - path: LICENSE
+    bytes: 10706
+    git_blob_oid: ef0c461b9ea8543bbbd18fa6cb5e75115c007fde
+requirements:
+  - Verify published Git blob identifiers and calculate local SHA-256 after download
+  - Preserve authorship and Apache-2.0 notices; record source and transformation provenance
+  - Distinguish hand-authored expected behavior from source-observed assistant actions
+  - Audit template and scenario groups before considering the upstream 70/15/15 row split
+  - Check locked-source overlap without using final-test outcomes for design
+  - Retain all records in quarantine; do not apply training labels
+execute_source_tools: false
+generate_with_models: false
+training_inclusion: false
+train_models: false
+publish_data: false
+human_verified: false
