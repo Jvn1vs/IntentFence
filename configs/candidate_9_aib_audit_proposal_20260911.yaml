@@ -1,9 +1,11 @@
 schema_version: 1
-status: proposed_pending_owner_source_terms_approval
+status: owner_approved_readonly_audit
 source: ppradyoth/AgentInjectionBench
 revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
 license_declared: Apache-2.0
-owner_approved: false
+owner_approved: true
+approval_recorded_at: '2026-09-11'
+approval_evidence: 'Project owner replied: 批准按提案下载并只读审计'
 scope: Local read-only audit of released synthetic cases, action provenance and split feasibility
 max_download_bytes: 351742
 files:

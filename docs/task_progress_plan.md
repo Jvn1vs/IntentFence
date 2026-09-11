@@ -930,6 +930,16 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：AgentInjectionBench 只读审计完成
+
+用户明确批准按提案下载并只读审计。四个固定文件合计 351742 bytes，大小与 Git blob OID 全部匹配，SHA-256 已保存；README/LICENSE 复用经同版本哈希验证的文档缓存。182 条中只有一条显式 tool_call，位于正常用户新请求后；9 条有目的 AI 抽查确认 unsafe 场景标签不能直接成为 malicious 动作标签。
+
+全量 user/tool_result 文本跨案例精确与 5-shingle Jaccard>=0.8 比较无命中；对 13 个保护输入文件的 54483 段文本做同规则筛查也无命中，但不能证明完整场景/模板/AgentDojo 隔离。数据继续隔离，未赋本项目标签或生成 split。报告：`reports/data/aib_readonly_audit_20260911.md`，机器证据：`data/interim/aib_audit_20260911/audit_v2.json`，SHA-256 `586e34cdeec7d94a3826a27a70a90b7a3a5073fbd42bcb6fa979d6a41bccf1b8`。
+
+新增审计脚本及 fixture 测试已验证：完整 pytest 315 passed（61.64 秒），Ruff、compileall、wheel 和 diff 检查通过。
+
+下一阶段建议在此来源内建立完整隔离场景清单，审核风险机制与家族，再形成非统一模板的离线动作方案。本阶段按规则提交后停止，等待确认，不自动启动转换或训练。
+
 ### 2026-09-11：三类缺失风险来源检索
 
 项目所有者已回复“确认下一阶段”。已使用文献检索 skill、OpenAlex 备用检索及官方论文/仓库/数据卡，核验缺失三类风险的动作来源；比较和排除理由见 `docs/candidate_9_targeted_action_sources_20260911.md`。没有确认可直接补齐五类风险与四类 Alignment 的现成训练集。
