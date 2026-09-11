@@ -1,0 +1,15 @@
+schema_version: 1
+scope: conservative_must_link_constraints_not_split_clearance
+reviewer: Codex/AI
+review_sha256: 259689b354db7405e8aa63740f717db0f94b5b5d71502858e8886f476f08982a
+link_equal_provisional_names: true
+manual_links:
+  - members: [AIB-00022, AIB-00025, AIB-00099, AIB-00109, AIB-00113, AIB-00175]
+    reason: Low-trust article/search/API content redirects an answer into an endorsed promotion or biased recommendation; broad conservative grouping, not a claim of verbatim duplication.
+  - members: [AIB-00071, AIB-00159, AIB-00167]
+    reason: Low-trust communication metadata adds an unrequested recipient or forwarding destination; CC, BCC and extra DM remain distinct actions inside one conservative isolation group.
+  - members: [AIB-00086, AIB-00178]
+    reason: Low-trust text directs an SSH authorized_keys modification using an incomplete key literal; rotation and onboarding pretexts do not make the capability-changing mechanism independent.
+human_verified: false
+family_isolation_complete: false
+construct_splits: false

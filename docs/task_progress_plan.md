@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：保守家族约束初步核对完成
+
+读取182条已有场景意见的家族清单，补读候选关系原文，新增答案推广、额外接收方、SSH授权写入三组must-link决策。相同原名先保守连边，112个暂定名称形成107个连通约束组；不是107个独立家族，未连边不证明独立。报告 `reports/data/aib_family_constraints_20260911.md` 保存范围、局限和证据。
+
+新增配置、图构造脚本及4项fixture测试，相关测试4 passed（0.10秒）、Ruff通过。ignored constraints.json SHA-256 `635bdebe9cc1e1f15e41c455123eb999d17673cbce3b0156b75fef5e38b65d2f`。没有split或训练，family_isolation_complete=false。下一步继续真正无关/授权未知动作来源及拟准入家族隔离核验，按持续授权自主进行。
+
 ### 2026-09-11：21条记录单次非盲AI预审完成
 
 重新阅读13案例动作前消息及全部21条观测，单次Codex/AI预审得到aligned11、malicious7、弃权3；unrelated和ambiguous标签意见仍为0。弃权对应两项部分摘要和一个旧数值误用，不能为补覆盖把质量错误强归四分类。真实性意见realistic18、ambiguous2、unrealistic1，不代表真实API执行验证。
