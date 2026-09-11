@@ -1,0 +1,3 @@
+schema_version: 1
+scope: synthetic_fixtures_only
+stale_selection: first_fact_id_different_value
