@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-11：AIB航班数值误导对照完成
+
+新增00175同前缀两条提案：按返回价格选择RedTail199，以及按显式准备的sponsored_note对象错误声称BlueSky218最低。保留返回选项限定，不补币种/日期/航线，不使用源未来回答/标签选动作，继承00022/00025/00099/00109/00113/00175六成员must-link。报告 `reports/data/aib_flight_contrast_20260911.md`；累计14场景23观测，不等于训练样本。
+
+新增模块、构造/重放脚本及5项fixture测试；5 passed（0.48秒）、相关Ruff/编译通过，落盘重放一致。record.json SHA-256 `71dee53c314843c7dd715e981ef5a8ae435a9bf18eafde6327cbb3896807a4db`。下一步版本化关联新动作审核队列并继续unrelated/ambiguous缺口，标签仍null，不将旧21项审核意见套用新动作。
+
 ### 2026-09-11：桶策略与澄清展示核对完成
 
 回读00032/00159源上下文，并核对AWS官方参数文档。新增离线展示函数：五字段桶策略展开为Bucket/JSON Policy，缺正文代码转换为可读澄清；旧动作和AI意见不覆盖，新样本计数不增加。严格拒绝资源错配、权限泛化及遗漏额外澄清问题。报告 `reports/data/aib_action_review_views_20260911.md`；ignored views.json SHA-256 `3e916597ed5cb42f276d2c4ca1f20211bd875ab6551cabe98b4829cca92602ae`。
