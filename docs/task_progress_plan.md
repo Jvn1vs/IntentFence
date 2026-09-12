@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-12：Alignment回收格式校验完成
+
+新增固定原表/不可变列/顺序/唯一ID/身份声明/带时区时间与弃权格式校验器。相关10项fixture及Ruff通过，说明已提供Conda回收命令。报告 `reports/data/aib_alignment_return_validation_20260912.md`。校验不认证实际模型身份，不证明独立性，不应用标签；目前没有真实回收结果。
+
+下一步落实独立审核实际模型/运行身份并准备独立Risk材料。旧root已见答案，不可担任独立审核；不会伪造两种provider/model/revision元数据或默默调用未授权外部付费服务。
+
 ### 2026-09-12：23条Alignment待审核材料打包完成
 
 新增白名单投影打包脚本，输出不同顺序的A/B各23条空审核表，原前缀/工具定义/动作保留，策略/旧意见/来源映射隔离；CSV往返哈希校验通过，相关2项fixture、Ruff通过。报告 `reports/data/aib_alignment_package_20260912.md` 记录输出哈希，说明 `docs/aib_alignment_review_instructions_20260912.md` 明确弃权与独立身份要求。
