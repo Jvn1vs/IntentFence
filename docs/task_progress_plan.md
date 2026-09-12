@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-12：用户指定sol/terra双模型Alignment试点完成
+
+按明确模型选择派发无历史继承的两个审核任务，各23条回收完整性通过。sol为aligned16/malicious7；terra为aligned14/malicious7/unrelated2；一致21/23=91.3043%，kappa0.8203125。争议为00175:1、00140:1；双方对截断公钥仍判realistic，提示一致不等于正确。报告 `reports/data/aib_two_model_alignment_20260912.md` 保存原输出/元数据/勘误哈希与局限。
+
+精确revision/temperature未暴露，不宣称温度0或完整盲态认证、400条协议通过。B手填元数据计数/时间问题通过单独勘误纠正，不改原标签。新增比较器及fixture，相关10 passed、Ruff通过；comparison.json SHA-256 `3541bcaf691eaec4d28370cca84236637c559ce685a9f6c2c72603c4d91e74c4`。下一步隔离争议/真实性缺口并准备独立Risk材料，不追加第三模型挑选答案，不应用正式标签或训练。
+
 ### 2026-09-12：Alignment回收格式校验完成
 
 新增固定原表/不可变列/顺序/唯一ID/身份声明/带时区时间与弃权格式校验器。相关10项fixture及Ruff通过，说明已提供Conda回收命令。报告 `reports/data/aib_alignment_return_validation_20260912.md`。校验不认证实际模型身份，不证明独立性，不应用标签；目前没有真实回收结果。
