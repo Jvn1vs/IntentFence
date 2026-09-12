@@ -1,0 +1,27 @@
+schema_version: 1
+repository: stabletoolbench/ToolEnv2404
+revision: b6141cc50e0c72894517786e8c6b95b749270535
+data_file: toolenv2404_filtered.tar.gz
+expected_bytes: 11706795
+expected_sha256: 8f5b0bccbf5cf64b937c7d1364536c2adc568cf069c523838702c7e62eec8302
+license_declared: MIT
+readme_git_blob: 162ac1ea7a9d344ffd92cac15083e89dc919f166
+attribution: StableToolBench project; preserve original metadata and third-party API attribution
+owner_approved_download_and_readonly_audit: false
+approval_evidence: null
+scope: local_readonly_tool_definition_attribution_audit
+target_tool_names:
+  - random_word_api
+  - sentiment_on_markets
+  - sport_sante
+archive_handling:
+  execute_code: false
+  extract_files: false
+  inspect_member_names_and_matching_json_only: true
+  preserve_source_bytes: true
+  reject_links_and_nonregular_candidate_members: true
+training_candidate_inclusion_approved: false
+upstream_terms_audit_complete: false
+train_models: false
+publish_data: false
+download_other_archives: false

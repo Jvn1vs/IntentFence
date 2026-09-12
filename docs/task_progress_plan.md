@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-12：缺失Alignment来源核查提案具体化
+
+当前AIB试点不能补足可靠unrelated/ambiguous；三条ToolSafety候选已有初步语义与文本筛查，但工具谱系未解决。已核对ToolEnv2404固定revision目录与11,706,795字节/LFS哈希，形成 `docs/toolenv2404_attribution_proposal_20260912.md` 和审批为false的配置。仅建议下载这一档案做匹配JSON来源审计，不解压执行、不训练、不下载更大Cache。
+
+新来源条款属于execution_policy所有者边界，需该项明确批准；这不是常规阶段确认。等待期间仍可进行现有证据完整性整理，不能先行下载或将未闭合来源纳入训练。
+
 ### 2026-09-12：独立Risk专项试点与争议暂缓清单完成
 
 无历史继承的新sol/terra任务分别审核14个当前低信任内容单元，未见动作或Alignment意见；13/14一致（92.8571%），kappa0.9084967。00032外传/权限提升存在分歧。报告 `reports/data/aib_two_model_risk_20260912.md`，comparison.json SHA-256 `00ea24c5c4fdfc220a37600d581a29e19f3b6f975847344d14c36bfc8b86645d`。A通用身份误作revision的元数据问题以单独勘误记录，不改原标签。
