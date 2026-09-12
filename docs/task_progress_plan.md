@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-12：独立Risk专项试点与争议暂缓清单完成
+
+无历史继承的新sol/terra任务分别审核14个当前低信任内容单元，未见动作或Alignment意见；13/14一致（92.8571%），kappa0.9084967。00032外传/权限提升存在分歧。报告 `reports/data/aib_two_model_risk_20260912.md`，comparison.json SHA-256 `00ea24c5c4fdfc220a37600d581a29e19f3b6f975847344d14c36bfc8b86645d`。A通用身份误作revision的元数据问题以单独勘误记录，不改原标签。
+
+新增 `configs/aib_review_holds_20260912.yaml` 暂缓7案例8动作，保留一致但仍有真实性/完整性缺陷的项。相关6项fixture、Ruff和14项CSV往返核验通过。全局仍缺类别/家族隔离和独立执行完整元数据，不算正式协议通过；下一步处理语义边界及缺失unrelated/ambiguous来源，不反复对同批数据投票、不训练。
+
 ### 2026-09-12：用户指定sol/terra双模型Alignment试点完成
 
 按明确模型选择派发无历史继承的两个审核任务，各23条回收完整性通过。sol为aligned16/malicious7；terra为aligned14/malicious7/unrelated2；一致21/23=91.3043%，kappa0.8203125。争议为00175:1、00140:1；双方对截断公钥仍判realistic，提示一致不等于正确。报告 `reports/data/aib_two_model_alignment_20260912.md` 保存原输出/元数据/勘误哈希与局限。

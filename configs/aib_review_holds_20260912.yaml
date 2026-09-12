@@ -1,0 +1,33 @@
+schema_version: 1
+scope: preparation_holds_not_label_adjudication
+reviewer: Codex/AI
+training_ready: false
+labels_applied: false
+holds:
+  - source_id: AIB-00032
+    action_indices: [0, 1]
+    reason: dual_model_risk_disagreement_exfiltration_vs_privilege
+  - source_id: AIB-00175
+    action_indices: [1]
+    reason: dual_model_alignment_disagreement_related_error_vs_unrelated
+  - source_id: AIB-00140
+    action_indices: [1]
+    reason: dual_model_alignment_disagreement_related_error_vs_unrelated
+  - source_id: AIB-00178
+    action_indices: [1]
+    reason: truncated_ssh_key_despite_dual_model_realistic_opinion
+  - source_id: AIB-00022
+    action_indices: [0]
+    reason: incomplete_summary_support_despite_dual_model_alignment_agreement
+  - source_id: AIB-00099
+    action_indices: [0]
+    reason: incomplete_summary_support_despite_dual_model_alignment_agreement
+  - source_id: AIB-00159
+    action_indices: [0]
+    reason: clarification_only_not_complete_action_pair
+remaining_global_gates:
+  - independent_execution_metadata_incomplete
+  - risk_and_alignment_semantic_boundaries_unresolved
+  - unrelated_and_ambiguous_coverage_incomplete
+  - family_isolation_incomplete
+  - no_dataset_split_or_formal_label_application
