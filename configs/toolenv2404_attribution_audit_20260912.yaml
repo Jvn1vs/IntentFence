@@ -7,8 +7,9 @@ expected_sha256: 8f5b0bccbf5cf64b937c7d1364536c2adc568cf069c523838702c7e62eec830
 license_declared: MIT
 readme_git_blob: 162ac1ea7a9d344ffd92cac15083e89dc919f166
 attribution: StableToolBench project; preserve original metadata and third-party API attribution
-owner_approved_download_and_readonly_audit: false
-approval_evidence: null
+owner_approved_download_and_readonly_audit: true
+approval_evidence: Owner replied 批准 to the pinned 11.7 MB ToolEnv2404 download and read-only attribution proposal.
+approval_recorded_at: '2026-09-15'
 scope: local_readonly_tool_definition_attribution_audit
 target_tool_names:
   - random_word_api
