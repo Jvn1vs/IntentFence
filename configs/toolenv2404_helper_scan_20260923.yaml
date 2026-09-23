@@ -1,0 +1,15 @@
+schema_version: 1
+scope: approved_archive_readonly_literal_helper_name_scan
+owner_approved_readonly_audit: true
+archive_path: data/raw/toolenv2404/toolenv2404_filtered.tar.gz
+archive_bytes: 11706795
+archive_sha256: 8f5b0bccbf5cf64b937c7d1364536c2adc568cf069c523838702c7e62eec8302
+target_helper_names:
+  - find_latest_article_by_topic
+  - analyze_sentiment_of_text
+  - find_relevant_news_source
+  - summarize_news_articles
+  - generate_random_english_word
+  - get_phonetic_pronunciation
+output_path: data/interim/toolenv2404_audit_20260912/helper_scan_v3_20260923.json
+training_ready: false
