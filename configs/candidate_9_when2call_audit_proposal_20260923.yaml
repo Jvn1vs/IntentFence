@@ -1,0 +1,27 @@
+schema_version: 1
+status: proposed_readonly_audit
+source: nvidia/When2Call
+revision: 0582f7749df63a96fdc3070932e83e72396ace53
+license_declared: CC-BY-4.0
+owner_approved: false
+scope: Read-only audit of preference contrasts for action-alignment evidence
+max_download_bytes: 17374730
+files:
+  - path: train/when2call_train_pref.jsonl
+    bytes: 17369692
+    lfs_sha256: d90637f108fabf1b097493c5818c3692e1d73140259d2f8e490536255e765bc4
+  - path: README.md
+    bytes: 5038
+requirements:
+  - Verify fixed revision, byte counts, local SHA-256 and attribution
+  - Preserve chosen and rejected provenance; rejected actions are synthetic counterfactuals
+  - Audit APIGen/xLAM upstream terms before training inclusion
+  - Audit source-family and locked-test overlap before any split or label application
+  - Inspect whether missing-parameter and wrong-tool cases map to project Alignment definitions
+  - Keep source in ignored quarantine; never execute tool calls
+download_test_files: false
+training_inclusion: false
+formal_labels: false
+train_models: false
+publish_data: false
+human_verified: false

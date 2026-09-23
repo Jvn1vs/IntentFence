@@ -930,6 +930,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：When2Call 缺失动作类别来源筛查
+
+按文献检索流程核查 NAACL 2025 论文、NVIDIA 官方数据卡/仓库、HF 固定版本元数据，形成 `docs/candidate_9_when2call_source_screen_20260923.md` 和 17,374,730 bytes 的隔离只读审计提案。preference 对照含合成错误动作，可用于检验 unrelated/ambiguous 候选证据，但不能当成真实代理执行或直接继承本项目标签。训练输入源自 APIGen/xLAM，二次发布声明不能代替上游条款核查。只完成文献/元数据筛查，未下载、应用标签、划分或训练；新来源审批仍为 false。下一步若获得对该固定范围及条款的明确批准，才下载并只读审计；同时继续已批准本地来源的独立审核准备。
+
 ### 2026-09-23：AIB-00105 补充审核材料准备
 
 从固定v3登记册隔离选择00105两条动作，生成A/B各2条Alignment待填表与各1条Risk待填表；原案例ID、历史意见、源标签、未来回复不在审核表。完整文件哈希、协调映射及限制见 `reports/data/aib_00105_review_package_20260923.md`。最终完整测试483 passed（76.48秒），全仓Ruff、compileall、wheel及审核包逐文件重放通过；尚未执行审核，review_complete/independence_verified/human_verified/training_ready均为false。下一步需独立审核返回与执行元数据验证，同时继续扩充unrelated/ambiguous有证据来源；此包本身不解除训练门。
