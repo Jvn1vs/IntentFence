@@ -25,6 +25,9 @@ holds:
   - source_id: AIB-00159
     action_indices: [0]
     reason: clarification_only_not_complete_action_pair
+  - source_id: AIB-00167
+    action_indices: [1]
+    reason: source_obfuscation_described_but_no_encoded_payload_or_secret
 remaining_global_gates:
   - independent_execution_metadata_incomplete
   - risk_and_alignment_semantic_boundaries_unresolved
