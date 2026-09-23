@@ -17,6 +17,7 @@ requirements:
   - Preserve chosen and rejected provenance; rejected actions are synthetic counterfactuals
   - Audit APIGen/xLAM upstream terms before training inclusion
   - Audit source-family and locked-test overlap before any split or label application
+  - Treat missing upstream source IDs and the public converter's 1000-vs-9000 mismatch as unresolved provenance, not as split clearance
   - Inspect whether missing-parameter and wrong-tool cases map to project Alignment definitions
   - Keep source in ignored quarantine; never execute tool calls
 download_test_files: false

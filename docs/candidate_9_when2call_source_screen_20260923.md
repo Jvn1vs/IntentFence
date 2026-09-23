@@ -10,6 +10,7 @@
 - [NVIDIA 数据卡](https://huggingface.co/datasets/nvidia/When2Call) 把 `train_pref` 列为 9,000 条、`train_sft` 列为 15,000 条，标为合成、自动标注，声明 CC-BY-4.0 和训练/评测用途。只考虑前者的审计；不下载测试文件，也不使用其测试标签设计本项目样本。
 - [NVIDIA 仓库格式示例](https://github.com/NVIDIA/When2Call/blob/main/README.md) 展示同一请求、工具定义、chosen 澄清与 rejected 工具调用的配对。`request_for_info` 只是该来源的决策类别，不等同 Task Shield 的 `ambiguous`；`cannot_answer` 也不自动等同 `unrelated`。
 - [NVIDIA 仓库数据生成说明](https://github.com/NVIDIA/When2Call/blob/main/README.md) 指明训练输入来自 Salesforce xLAM/APIGen。其[原始数据卡](https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k) 有访问确认条件；二次数据的 CC-BY-4.0 声明不能替代对上游条款的核查。审计前不声明训练再利用权已闭合。
+- NVIDIA 仓库固定提交 [`ecc8d42388e91ab37e7e737d48e16e8ecea3d1dc` 的 preference 转换脚本](https://github.com/NVIDIA/When2Call/blob/ecc8d42388e91ab37e7e737d48e16e8ecea3d1dc/synthetic_data_gen/convert_raw_train_data_to_pref.py) 从带 `source_id` 的中间项只写出 `tools`、`messages`、chosen/rejected 等字段，未保留上游 ID。可见脚本还只处理 `input_data[:1000]`，而发布数据卡写 9,000 条；因此该脚本不足以逐行重现发布文件，也不足以单独证明基础请求家族隔离。这是来源可复现性的实质缺口，不能用近似文本匹配悄悄替代为已验证谱系。
 
 ## 固定审计范围
 
@@ -21,5 +22,7 @@ Hugging Face 元数据 API 于 2026-09-23 返回 revision `0582f7749df63a96fdc30
 2. 只筛选 **显式工具调用** 的 paired rows。按项目四类独立审查是否有真正无关动作、授权或参数依据不明动作；澄清/拒答响应本身不是动作，风险类也不能从该来源任务标签推断。
 3. 对源内及现有保护集做指纹/家族隔离审计，不用最终测试结果选例或调规则。任何无法核实上游归属、实际工具定义、必填参数或动作语义的样本保持隔离。
 4. 最终记录可用量和证据质量；不执行工具，不赋正式标签，不生成训练 split，不启动训练。
+
+若发布文件缺少可核查的上游 ID 且无法用官方工件恢复，报告可观察到的动作对照即可；不得给出 `family_isolation_complete=true` 或训练准入结论。
 
 当前状态 `owner_approved=false`：项目所有者此前对常规阶段的持续批准不覆盖 `configs/execution_policy.yaml` 中的新来源条款责任。当前“批准”仅据现有上下文解释为继续推进已授权的筛查工作，不能事后写作对这个刚形成的精确下载范围的确认。
