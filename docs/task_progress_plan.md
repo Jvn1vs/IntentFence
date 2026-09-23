@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：AIB 动作对照复核队列缩小
+
+只读交叉核对23条隔离观测、双模型回收表及7例暂缓记录，发现3组同前缀且双方意见分别为 aligned/aligned 与 malicious/malicious 的动作对照：AIB-00026、00103、00167，共6条观测。它们仅进入后续字段来源与语义复核队列，正式标签、split、human_verified/training_ready 均不改变。其他两动作组有分歧或证据暂缓；缺失 unrelated/ambiguous 覆盖没有解决。明细及输入哈希见 `reports/data/aib_contrast_review_queue_20260923.md`。
+
+下一步对这三组逐字段回放源前缀和准备参数，再核对家族/锁定集合关系；仅使用已下载数据和本地 CPU。这个文档阶段无运行代码修改，不启动训练或额外下载。
+
 ### 2026-09-23：ToolSafety 多步轨迹来源边界复核
 
 核对 [ToolSafety 官方论文 §3.2](https://aclanthology.org/2025.emnlp-main.714.pdf) 与本地三条动作前缀：论文明确用 GPT-4o 合成多步轨迹并固定末步为原目标工具；ToolEnv2404 已对应三条末步目标 API，但六个前置辅助工具的逐条来源仍不可证。论文 14,290 条总体统计与当前固定源 15,569 条不同，不能混用。证据和每条处理结论见 `reports/data/toolsafety_multistep_provenance_20260923.md`。
