@@ -1,0 +1,15 @@
+schema_version: 1
+scope: answer_free_supplemental_review_materials_only
+register_path: data/interim/aib_action_evidence_20260923/register_v3.json
+register_sha256: d2a4fbf34d9d06df13a94a236a8e211a6081cd8f6d93473533ed7a60f3a7d5fd
+source_path: data/raw/agent_injection_bench/data/agent_injection_bench.jsonl
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+record_path: data/interim/aib_gitlog_contrast_20260923/run_v1/record.jsonl
+record_sha256: 36bba8084290047eeaa5b5320ca8c8459ee6bd67af1471a8372b98fe4a54dd89
+case_id: AIB-00105
+action_keys: [AIB-00105:0, AIB-00105:1]
+output_dir: data/interim/aib_00105_review_20260923
+review_complete: false
+independence_verified: false
+human_verified: false
+training_ready: false

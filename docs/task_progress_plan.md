@@ -930,6 +930,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：AIB-00105 补充审核材料准备
+
+从固定v3登记册隔离选择00105两条动作，生成A/B各2条Alignment待填表与各1条Risk待填表；原案例ID、历史意见、源标签、未来回复不在审核表。完整文件哈希、协调映射及限制见 `reports/data/aib_00105_review_package_20260923.md`。最终完整测试483 passed（76.48秒），全仓Ruff、compileall、wheel及审核包逐文件重放通过；尚未执行审核，review_complete/independence_verified/human_verified/training_ready均为false。下一步需独立审核返回与执行元数据验证，同时继续扩充unrelated/ambiguous有证据来源；此包本身不解除训练门。
+
 ### 2026-09-23：AIB 统一动作登记册扩充为v3
 
 将AIB-00105的2条源绑定离线动作追加到历史23条后，得到25条唯一动作ID；前23条与v2逐条完全一致，旧文件保留。固定v2及其全部输入、新记录/manifest全部输入、原始AIB行与圈定span核验通过，v3逐字节重放通过。报告及输出哈希见 `reports/data/aib_action_register_v3_20260923.md`；输出在ignored目录。新增扩展模块、脚本、版本化配置及3项fixture；完整测试481 passed（112.12秒），全仓Ruff、compileall、wheel与diff检查通过。所有正式标签和split为空，human_verified/training_ready及Route B准入仍为false。
