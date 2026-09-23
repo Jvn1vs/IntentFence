@@ -1,0 +1,17 @@
+schema_version: 3
+scope: append_quarantined_source_bound_observations
+base_path: data/interim/aib_action_evidence_20260911/register_v2.json
+base_sha256: b8c38e4d5942ddf52451be8300c4367e8eecd466961471dad475ed1d3dc435d2
+new_record_path: data/interim/aib_gitlog_contrast_20260923/run_v1/record.jsonl
+new_record_sha256: 36bba8084290047eeaa5b5320ca8c8459ee6bd67af1471a8372b98fe4a54dd89
+new_manifest_path: data/interim/aib_gitlog_contrast_20260923/run_v1/manifest.json
+new_manifest_sha256: afed6420b314bd3774511fba29f517bf1b5712cc7442ef726ccb51bf5a064faf
+source_config_path: configs/aib_gitlog_contrast_20260923.yaml
+expected_case_id: AIB-00105
+expected_old_observations: 23
+expected_new_observations: 25
+output_path: data/interim/aib_action_evidence_20260923/register_v3.json
+training_ready: false
+human_verified: false
+labels_applied: false
+construct_splits: false

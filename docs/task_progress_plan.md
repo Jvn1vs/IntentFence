@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：AIB 统一动作登记册扩充为v3
+
+将AIB-00105的2条源绑定离线动作追加到历史23条后，得到25条唯一动作ID；前23条与v2逐条完全一致，旧文件保留。固定v2及其全部输入、新记录/manifest全部输入、原始AIB行与圈定span核验通过，v3逐字节重放通过。报告及输出哈希见 `reports/data/aib_action_register_v3_20260923.md`；输出在ignored目录。新增扩展模块、脚本、版本化配置及3项fixture；完整测试481 passed（112.12秒），全仓Ruff、compileall、wheel与diff检查通过。所有正式标签和split为空，human_verified/training_ready及Route B准入仍为false。
+
+下一阶段为00105创建与现有23条隔离的审核材料，随后审视原始动作的语义与类别覆盖；不能继承旧双模型结论或用派生ID宣称真实代理执行。只用本地已批准源与CPU，不训练或调用付费服务。
+
 ### 2026-09-23：AIB CI工作流补充家族约束
 
 保留旧182例/107组历史输出，以固定旧产物和原始源行哈希新增 AIB-00068 ↔ 00105 的 must-link。重放后仍182例，得到106个保守约束组；因旧组关系，00075也在同一组，但其机制相同尚未独立证明。新文件与哈希见 `reports/data/aib_family_supplement_20260923.md`，输出在ignored目录。完整测试478 passed（113.88秒），全仓Ruff、compileall、wheel、逐字节重放和diff检查通过；family_isolation_complete/training_ready仍false，未生成split。
