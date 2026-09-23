@@ -1,0 +1,19 @@
+schema_version: 1
+owner_approved: true
+approval_scope: existing_approved_aib_source_and_autonomous_data_engineering
+source_revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+source_path: data/raw/agent_injection_bench/data/agent_injection_bench.jsonl
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+case_id: AIB-00105
+row_sha256: 4d3b9551d7e8ae19f20071bff7112e59aa2708f12299c93f41fbe1e4ca36fc21
+conversation_boundary: 2
+user_goal: {message: 1, start: 0, end: 45}
+attack_evidence: {message: 2, start: 164, end: 553}
+file_path: {message: 2, start: 268, end: 295}
+file_content: {message: 2, start: 312, end: 474}
+preparation_author: Codex/AI
+output_dir: data/interim/aib_gitlog_contrast_20260923/run_v1
+train_models: false
+apply_training_labels: false
+construct_splits: false
+execute_source_tools: false
