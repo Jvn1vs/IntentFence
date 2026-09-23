@@ -2,6 +2,8 @@
 
 日期：2026-09-09。项目所有者明确回复：“继续补齐原五类风险和动作数据”。阶段状态以 `docs/task_progress_plan.md` 为准。
 
+2026-09-23 补充证据快照见 `reports/data/candidate_9_action_coverage_snapshot_20260923.md`：v3 train/validation 共16,647行仍无动作或Alignment；AIB虽有182个AI场景意见、25条离线动作/15场景，但没有正式标签或训练拆分；ToolSafety 200条仅是AI预审且上游归属未闭合。下表保留2026-09-09时的既有缺口定义，不能由后来的暂定场景计数自动标记完成。
+
 ## 固定目标与当前缺口
 
 保留 candidate 8 第一轮工程结果，继续五类 Risk 与四类 Task Alignment 的动作感知目标。candidate 9 v3 的 20691 条是背景与攻击配对数量，不代表新增同等数量的独立场景，也不代表多任务数据已经就绪。

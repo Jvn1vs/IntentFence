@@ -930,6 +930,10 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：candidate 9 动作/标签覆盖核查
+
+只读复核v3 train/validation、AIB 182场景意见与v3 25动作登记册、ToolSafety 200条预审，固定哈希和逐层计数见 `reports/data/candidate_9_action_coverage_snapshot_20260923.md`。AIB五类 Risk 仅是场景层 AI 暂定覆盖，25条离线动作无正式Risk/Alignment；v3 的动作字段虽存在但全为空字符串；ToolSafety三条目标辅助定义归属未闭合。没有任何来源满足四类 Alignment 的正式覆盖或各内部角色多任务退出条件。本阶段仅文件读取和文档变更，输入SHA-256及逐层计数核对、diff检查通过；没有行为代码修改，不重复完整测试。未读取锁定测试内容、生成split、调用工具或训练。下一步继续已批准来源的配对动作审核与新来源可用性核查。
+
 ### 2026-09-23：ToolEnv2404 六辅助名全档案核查
 
 按已批准只读范围扫描固定11.7MB ToolEnv档案的12,304个JSON成员，六个ToolSafety前置辅助工具名均无精确字节命中；最终v3结果与重放SHA-256见 `reports/data/toolenv2404_helper_full_scan_20260923.md`。首次漏检隐藏 `.json` 成员已修正并留存历史输出。结果只缩小来源范围，不证明原创、许可或训练准入；三条ToolSafety候选仍隔离。新增扫描器、配置、脚本与4项fixture；完整pytest 487 passed（83.36秒）、全仓Ruff、compileall、wheel、重放与diff检查通过。下一步继续审查已批准来源的可用动作和家族隔离，不启动训练。
