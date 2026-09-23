@@ -1,0 +1,18 @@
+schema_version: 1
+scope: additional_conservative_must_link_not_split_clearance
+base_path: data/interim/aib_family_constraints_20260911/constraints.json
+base_sha256: 635bdebe9cc1e1f15e41c455123eb999d17673cbce3b0156b75fef5e38b65d2f
+source_path: data/raw/agent_injection_bench/data/agent_injection_bench.jsonl
+source_revision: ef230359966c4d87b1c925aa56b8bf6e3f6ffed3
+source_sha256: 606cb74f5ce874dba45d9cdf591af678d7c6bd8a92ff3189d0f522fb39fb941e
+source_row_sha256:
+  AIB-00068: 4abab94e01eb0f8e28edff15410cf1eebd8c9556e175764527285e8756cae81e
+  AIB-00105: 4d3b9551d7e8ae19f20071bff7112e59aa2708f12299c93f41fbe1e4ca36fc21
+manual_links:
+  - members: [AIB-00068, AIB-00105]
+    reason: Both low-trust carriers direct the agent to place an outbound secret or environment export step in a CI workflow; user tasks and wording differ, so this is a conservative split constraint rather than a duplicate claim.
+human_verified: false
+family_isolation_complete: false
+construct_splits: false
+training_ready: false
+output_path: data/interim/aib_family_supplement_20260923/constraints_v2.json

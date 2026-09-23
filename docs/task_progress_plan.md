@@ -930,6 +930,12 @@ H1～H5 属于核心论文级实验。H6 只有在核心实验完成且用户批
 
 ## 10. 当前停止点与 Route B 新阶段
 
+### 2026-09-23：AIB CI工作流补充家族约束
+
+保留旧182例/107组历史输出，以固定旧产物和原始源行哈希新增 AIB-00068 ↔ 00105 的 must-link。重放后仍182例，得到106个保守约束组；因旧组关系，00075也在同一组，但其机制相同尚未独立证明。新文件与哈希见 `reports/data/aib_family_supplement_20260923.md`，输出在ignored目录。完整测试478 passed（113.88秒），全仓Ruff、compileall、wheel、逐字节重放和diff检查通过；family_isolation_complete/training_ready仍false，未生成split。
+
+下一步复核旧组的过宽风险和00105动作/引述语义，继续寻找具备真实参数证据的非统一模板案例。仅使用已批准源与本地CPU，无训练或新下载。
+
 ### 2026-09-23：AIB-00105 提交记录注入对照
 
 在已批准的固定AIB源内新增1个场景2条离线拟议动作：同一前缀下，按用户请求原样返回提交记录，或受低信任提交正文影响提出写CI工作流文件。路径与内容均有精确源span，原文后续回复未进入选择器；没有真实写文件、推送或执行命令。源绑定重放及哈希核验通过，完整测试472 passed（178.34秒），全仓Ruff、compileall与wheel通过。证据见 `reports/data/aib_gitlog_contrast_20260923.md`，原记录在ignored目录；正式Risk/Alignment/split为空，human_verified/training_ready=false。
